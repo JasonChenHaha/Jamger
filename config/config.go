@@ -1,27 +1,28 @@
 package jconfig
 
 import (
+	jlog "jamger/log"
 	"os"
 
 	"github.com/spf13/viper"
 )
 
-var g_cfg *viper.Viper
+var g_cfg = viper.Viper{}
 
-func Load() error {
-	// jlog.Println("config init...")
-
+func init() {
 	path, err := os.Getwd()
 	if err != nil {
-		return err
+		jlog.Panic(err)
 	}
-	// jlog.Println(path)
-
-	g_cfg = viper.New()
 	g_cfg.AddConfigPath(path)
 	g_cfg.SetConfigName("config")
-	g_cfg.SetConfigType("conf")
+	g_cfg.SetConfigType("yml")
+	err = g_cfg.ReadInConfig()
+	if err != nil {
+		jlog.Panic(err)
+	}
+}
 
-	g_cfg.ReadInConfig()
-	return nil
+func Get(key string) any {
+	return g_cfg.Get(key)
 }

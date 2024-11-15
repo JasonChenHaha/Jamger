@@ -11,9 +11,9 @@ ifneq ($(shell test -f go.mod && echo 1 || echo 0), 1)
 endif
 	go mod tidy
 	mkdir -p $(OUT_PATH)
-	cp ./script/start_svr.sh $(OUT_PATH); chmod +x $(OUT_PATH)/start_svr.sh; sed -i 's/svr_name/$(SVR_NAME)/' $(OUT_PATH)/start_svr.sh
-	cp ./script/stop_svr.sh $(OUT_PATH); chmod +x $(OUT_PATH)/stop_svr.sh; sed -i 's/svr_name/$(SVR_NAME)/' $(OUT_PATH)/stop_svr.sh
-	cp ./script/config.conf $(OUT_PATH)
+	cp ./template/start_svr.sh $(OUT_PATH); chmod +x $(OUT_PATH)/start_svr.sh; sed -i 's/svr_name/$(SVR_NAME)/' $(OUT_PATH)/start_svr.sh
+	cp ./template/stop_svr.sh $(OUT_PATH); chmod +x $(OUT_PATH)/stop_svr.sh; sed -i 's/svr_name/$(SVR_NAME)/' $(OUT_PATH)/stop_svr.sh
+	cp ./template/config.yml $(OUT_PATH)
 
 build: install
 	make install

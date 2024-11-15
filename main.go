@@ -1,14 +1,11 @@
 package main
 
 import (
-	jconfig "jamger/config"
 	jlog "jamger/log"
+	jnet "jamger/net"
 )
 
 func main() {
-	jlog.Infoln("welcome to jamger!")
-	err := jconfig.Load()
-	if err != nil {
-		jlog.Errorln(err)
-	}
+	jlog.Info("welcome to jamger!")
+	jnet.Run()
 }

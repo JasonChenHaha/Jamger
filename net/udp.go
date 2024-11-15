@@ -1,0 +1,5 @@
+package jnet
+
+func init() {
+
+}

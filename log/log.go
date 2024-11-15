@@ -6,10 +6,9 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var g_log *logrus.Logger
+var g_log = logrus.Logger{}
 
 func init() {
-	g_log = logrus.New()
 	g_log.Out = os.Stdout
 	g_log.SetLevel(logrus.TraceLevel)
 	g_log.SetReportCaller(true)
