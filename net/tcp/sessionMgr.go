@@ -1,32 +1,41 @@
 package tcp
 
 import (
+	jlog "jamger/log"
 	"net"
 	"sync"
 	"sync/atomic"
 )
 
 type SessionMgr struct {
-	ses   map[int64]*Session
-	sesId int64
-	lock  sync.RWMutex
+	sesIdCounter uint64
+	ses          sync.Map
 }
 
 var g_sesMgr = SessionMgr{}
 
-func (mgr *SessionMgr) add(con net.Conn) {
-	mgr.lock.Lock()
-	defer mgr.lock.Unlock()
+// ------------------------- package -------------------------
 
-	id := atomic.AddInt64(&mgr.sesId, 1)
-	ses := &Session{id: id, con: con}
-	g_sesMgr.ses[id] = ses
-	ses.run()
+func (mgr *SessionMgr) add(con net.Conn) {
+	id := atomic.AddUint64(&mgr.sesIdCounter, 1)
+	ses := newSession(id)
+	mgr.ses.Store(id, ses)
+	ses.run(con)
 }
 
-func (mgr *SessionMgr) delete(id int64) {
-	mgr.lock.Lock()
-	defer mgr.lock.Unlock()
+func (mgr *SessionMgr) close(id uint64) {
+	obj, ok := mgr.ses.Load(id)
+	if ok {
+		mgr.ses.Delete(id)
+		obj.(*Session).close()
+	}
+}
 
-	delete(mgr.ses, id)
+func (mgr *SessionMgr) send(id uint64, pack Pack) {
+	obj, ok := mgr.ses.Load(id)
+	if !ok {
+		jlog.Errorf("session %d not found", id)
+		return
+	}
+	obj.(*Session).send(pack)
 }

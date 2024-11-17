@@ -7,7 +7,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-var g_cfg = viper.Viper{}
+var g_cfg = viper.New()
 
 func init() {
 	path, err := os.Getwd()

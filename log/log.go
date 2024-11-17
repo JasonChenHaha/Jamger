@@ -6,7 +6,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var g_log = logrus.Logger{}
+var g_log = logrus.New()
 
 func init() {
 	g_log.Out = os.Stdout

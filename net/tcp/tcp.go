@@ -6,6 +6,8 @@ import (
 	"net"
 )
 
+// ------------------------- outside -------------------------
+
 func Run() {
 	cfg := jconfig.Get("tcp").(map[string]any)
 	addr := cfg["addr"].(string)
@@ -14,9 +16,12 @@ func Run() {
 	if err != nil {
 		jlog.Panic(err)
 	}
+	jlog.Debug("listen ok!!!")
 
 	go accept(listener)
 }
+
+// ------------------------- inside -------------------------
 
 func accept(listener net.Listener) {
 	for {

@@ -1,118 +1,82 @@
 package tcp
 
 import (
-	"encoding/binary"
-	"fmt"
-	"io"
-	"jamger/comm"
+	jconfig "jamger/config"
 	jlog "jamger/log"
 	"net"
-	"sync"
 	"time"
 )
 
-const (
-	HEAD_SIZE = 2
-	CMD_SIZE  = 2
-)
-
-type Pack struct {
-	Cmd  uint16
-	Data []byte
-}
+var g_callback func(id uint64, pack Pack)
 
 type Session struct {
-	id       int64
-	con      net.Conn
-	sendQ    comm.Queue
+	id       uint64
 	rTimeout time.Duration
-	wTimeout time.Duration
-	callback func(sesID int64, pack Pack)
-	wait     sync.WaitGroup
+	sTimeout time.Duration
+	sChan    chan Pack
+	qChan    chan any
 }
 
-func (ses *Session) run() {
-	ses.wait.Add(2)
-	go ses.recvGoro()
-	go ses.sendGoro()
-	go func() {
-		ses.wait.Wait()
-		ses.con.Close()
-		g_sesMgr.delete(ses.id)
-	}()
+// ------------------------- outside -------------------------
+
+func SetCallback(f func(id uint64, pack Pack)) {
+	g_callback = f
 }
 
-func (ses *Session) recvGoro() {
-	for {
-		if ses.rTimeout > 0 {
-			ses.con.SetReadDeadline(time.Now().Add(ses.rTimeout))
-		}
-		pack, err := ses.recvPack()
-		if err != nil {
-			jlog.Errorln("session recv error: ", err)
-			break
-		}
-		ses.callback(ses.id, pack)
+// ------------------------- package -------------------------
+
+func newSession(id uint64) *Session {
+	return &Session{
+		id:       id,
+		rTimeout: jconfig.Get("tcp.rTimeout").(time.Duration),
+		sTimeout: jconfig.Get("tcp.sTimeout").(time.Duration),
+		sChan:    make(chan Pack, 666),
+		qChan:    make(chan any, 4),
 	}
-	ses.wait.Done()
 }
 
-func (ses *Session) sendGoro() {
-	for {
-		if ses.wTimeout > 0 {
-			ses.con.SetWriteDeadline(time.Now().Add(ses.wTimeout))
-		}
-		packs := ses.sendQ.PickAll().([]Pack)
-		for _, p := range packs {
-			err := ses.sendPack(p)
-			if err != nil {
-				jlog.Errorln("session send error: ", err)
-				break
-			}
-		}
-	}
-	ses.wait.Done()
+func (ses *Session) run(con net.Conn) {
+	go ses.recvGoro(con)
+	go ses.sendGoro(con)
 }
-
-func (ses *Session) recvPack() (pack Pack, err error) {
-	buffer := make([]byte, HEAD_SIZE)
-	_, err = io.ReadFull(ses.con, buffer)
-	if err != nil {
-		return
-	}
-	size := binary.LittleEndian.Uint16(buffer)
-	if size < HEAD_SIZE+CMD_SIZE {
-		err = fmt.Errorf("pack size invalid")
-		return
-	}
-	buffer = make([]byte, size)
-	_, err = io.ReadFull(ses.con, buffer)
-	if err != nil {
-		return
-	}
-	pack.Cmd = binary.LittleEndian.Uint16(buffer)
-	pack.Data = buffer[CMD_SIZE:]
-	return
-}
-
-func (ses *Session) sendPack(pack Pack) error {
-	size := HEAD_SIZE + CMD_SIZE + len(pack.Data)
-	buffer := make([]byte, size)
-	binary.LittleEndian.PutUint16(buffer, uint16(size))
-	binary.LittleEndian.PutUint16(buffer[HEAD_SIZE:], pack.Cmd)
-	copy(buffer[HEAD_SIZE+CMD_SIZE:], pack.Data)
-	for pos := 0; pos < size; {
-		n, err := ses.con.Write(buffer)
-		if err != nil {
-			break
-		}
-		pos += n
-	}
-	return nil
-}
-
-// --------------------------- interface ---------------------------
 
 func (ses *Session) send(pack Pack) {
-	ses.sendQ = append(ses.sendQ, pack)
+	ses.sChan <- pack
+}
+
+func (ses *Session) close() {
+	ses.qChan <- 0
+	ses.qChan <- 0
+}
+
+// ------------------------- inside -------------------------
+
+func (ses *Session) recvGoro(con net.Conn) {
+	select {
+	case <-ses.qChan:
+		break
+	default:
+		con.SetReadDeadline(time.Now().Add(ses.rTimeout))
+		pack, err := recvPack(con)
+		if err != nil {
+			jlog.Errorln("session recv error: ", err)
+			g_sesMgr.close(ses.id)
+		}
+		g_callback(ses.id, pack)
+	}
+}
+
+func (ses *Session) sendGoro(con net.Conn) {
+	select {
+	case <-ses.qChan:
+		break
+	case pack := <-ses.sChan:
+		con.SetWriteDeadline(time.Now().Add(ses.sTimeout))
+		err := sendPack(con, pack)
+		if err != nil {
+			jlog.Errorln("session send error: ", err)
+			g_sesMgr.close(ses.id)
+		}
+	}
+	con.Close()
 }

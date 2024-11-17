@@ -27,8 +27,8 @@ func (que *Queue) Pick() any {
 }
 
 func (que *Queue) PickAll() any {
-	que.lock.RLock()
-	defer que.lock.RUnlock()
+	que.lock.Lock()
+	defer que.lock.Unlock()
 
 	data := que.Data
 	que.Data = nil
