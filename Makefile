@@ -1,5 +1,6 @@
 SVR_NAME = jamger
 OUT_PATH = ./out
+TEST_PATH = ./test
 
 all: install build
 
@@ -28,5 +29,8 @@ start:
 stop:
 	$(OUT_PATH)/stop_svr.sh
 
-.PHONY:
-	 all install build clean start stop
+test:
+	cp ./template/config.yml $(TEST_PATH)
+	cd $(TEST_PATH) && go run ./
+
+.PHONY: all install build clean start stop test

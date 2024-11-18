@@ -1,5 +1,0 @@
-package jnet
-
-func init() {
-
-}

@@ -1,4 +1,4 @@
-package tcp
+package jtcp
 
 import (
 	"encoding/binary"
@@ -26,12 +26,6 @@ const (
 type Pack struct {
 	Cmd  uint16
 	Data []byte
-}
-
-// ------------------------- outside -------------------------
-
-func MakePack() Pack {
-	return Pack{}
 }
 
 // ------------------------- package -------------------------
@@ -63,7 +57,7 @@ func sendPack(con net.Conn, pack Pack) error {
 	for pos := 0; pos < size; {
 		n, err := con.Write(buffer)
 		if err != nil {
-			break
+			return err
 		}
 		pos += n
 	}

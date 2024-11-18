@@ -1,18 +1,37 @@
 package jlog
 
 import (
+	"fmt"
 	"os"
+	"path/filepath"
+	"runtime"
+	"strings"
 
 	"github.com/sirupsen/logrus"
 )
 
 var g_log = logrus.New()
 
+type LogFormater struct{}
+
+// ------------------------- inside -------------------------
+
+func (format *LogFormater) Format(entry *logrus.Entry) ([]byte, error) {
+	t := entry.Time.Format("2006-01-02 15:04:05.000")
+	lv := strings.ToUpper(entry.Level.String())
+	_, file, line, _ := runtime.Caller(7)
+	file = filepath.Base(file)
+	return []byte(fmt.Sprintf("[%s][%s][%s.%d] %s\n", t, lv, file, line, entry.Message)), nil
+}
+
 func init() {
 	g_log.Out = os.Stdout
 	g_log.SetLevel(logrus.TraceLevel)
 	g_log.SetReportCaller(true)
+	g_log.SetFormatter(&LogFormater{})
 }
+
+// ------------------------- outside -------------------------
 
 func Trace(args ...any) {
 	g_log.Trace(args...)
