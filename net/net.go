@@ -6,29 +6,21 @@ import (
 	jtcp "jamger/net/tcp"
 )
 
-type Net struct {
-	Tcp  *jtcp.Tcp
-	Http *jhttp.Http
-}
-
 // ------------------------- outside -------------------------
 
-func NewNet() *Net {
-	net := &Net{}
+var Tcp *jtcp.Tcp
+var Http *jhttp.Http
+
+func Run() {
 	cfg := jconfig.Get("tcp").(map[string]any)
 	if cfg != nil {
-		net.Tcp = jtcp.NewTcp(cfg["addr"].(string))
+		Tcp = jtcp.NewTcp()
+		Tcp.Run()
 	}
 
 	cfg = jconfig.Get("http").(map[string]any)
 	if cfg != nil {
-
-		net.Http = jhttp.NewHttp(cfg["addr"].(string))
+		Http = jhttp.NewHttp()
+		Http.Run()
 	}
-
-	return net
-}
-
-func (net *Net) Run() {
-	net.Tcp.Run()
 }

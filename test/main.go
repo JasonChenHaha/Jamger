@@ -7,20 +7,22 @@ import (
 	jlog "jamger/log"
 	jtcp "jamger/net/tcp"
 	"net"
+	"net/http"
 	"strings"
 )
 
 func main() {
-	jlog.Info("test start")
+	jlog.Info("<test start>")
 	testTcp()
+	// testHttp()
 }
 
 func testTcp() {
-	jlog.Info("test tcp")
+	jlog.Info("<test tcp>")
 	addr := strings.Split(jconfig.Get("tcp.addr").(string), ":")
 	con, err := net.Dial("tcp", "127.0.0.1:"+addr[1])
 	if err != nil {
-		jlog.Fatal("connect failed: ", err)
+		jlog.Fatal(err)
 	}
 	defer con.Close()
 	jlog.Info("connect to server ", addr)
@@ -32,8 +34,22 @@ func testTcp() {
 	sendPack(con, pack)
 
 	pack = recvPack(con)
-	jlog.Infoln(pack.Cmd, string(pack.Data))
-	con.Close()
+	jlog.Info(pack.Cmd, string(pack.Data))
+}
+
+func testHttp() {
+	jlog.Info("<test http>")
+	rsp, err := http.Get("http://127.0.0.1:8080?abc=1&ddd=2&haha=3")
+	if err != nil {
+		jlog.Fatal(err)
+	}
+	defer rsp.Body.Close()
+
+	body, err := io.ReadAll(rsp.Body)
+	if err != nil {
+		jlog.Fatal(err)
+	}
+	jlog.Info(string(body))
 }
 
 func sendPack(con net.Conn, pack jtcp.Pack) {
@@ -46,7 +62,7 @@ func sendPack(con net.Conn, pack jtcp.Pack) {
 	for pos := 0; pos < size; {
 		n, err := con.Write(buffer)
 		if err != nil {
-			jlog.Fatal("send pack failed: ", err)
+			jlog.Fatal(err)
 		}
 		pos += n
 	}
@@ -56,13 +72,13 @@ func recvPack(con net.Conn) (pack jtcp.Pack) {
 	buffer := make([]byte, jtcp.HEAD_SIZE)
 	_, err := io.ReadFull(con, buffer)
 	if err != nil {
-		jlog.Fatal("recv pack failed: ", err)
+		jlog.Fatal(err)
 	}
 	bodySize := binary.LittleEndian.Uint16(buffer)
 	buffer = make([]byte, bodySize)
 	_, err = io.ReadFull(con, buffer)
 	if err != nil {
-		jlog.Fatal("recv pack failed: ", err)
+		jlog.Fatal(err)
 	}
 	pack.Cmd = binary.LittleEndian.Uint16(buffer)
 	pack.Data = buffer[jtcp.CMD_SIZE:]

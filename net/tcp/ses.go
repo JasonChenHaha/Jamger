@@ -3,6 +3,7 @@ package jtcp
 import (
 	"io"
 	jconfig "jamger/config"
+	"jamger/global"
 	jlog "jamger/log"
 	"net"
 	"time"
@@ -13,19 +14,19 @@ type Ses struct {
 	id       uint64
 	rTimeout time.Duration
 	sTimeout time.Duration
-	sChan    chan Pack
+	sChan    chan *Pack
 	qChan    chan any
 }
 
 // ------------------------- package -------------------------
 
-func newSession(tcp *Tcp, id uint64) *Ses {
+func newSes(tcp *Tcp, id uint64) *Ses {
 	return &Ses{
 		tcp:      tcp,
 		id:       id,
 		rTimeout: time.Duration(jconfig.Get("tcp.rTimeout").(int)) * time.Second,
 		sTimeout: time.Duration(jconfig.Get("tcp.sTimeout").(int)) * time.Second,
-		sChan:    make(chan Pack, 666),
+		sChan:    make(chan *Pack, global.G_TCP_SEND_BUFFER_SIZE),
 		qChan:    make(chan any, 4),
 	}
 }
@@ -35,7 +36,7 @@ func (ses *Ses) run(con net.Conn) {
 	go ses.sendGoro(con)
 }
 
-func (ses *Ses) send(pack Pack) {
+func (ses *Ses) send(pack *Pack) {
 	ses.sChan <- pack
 }
 
@@ -47,6 +48,7 @@ func (ses *Ses) close() {
 // ------------------------- inside -------------------------
 
 func (ses *Ses) recvGoro(con net.Conn) {
+	defer ses.tcp.delete(ses.id)
 	for {
 		select {
 		case <-ses.qChan:
@@ -58,9 +60,8 @@ func (ses *Ses) recvGoro(con net.Conn) {
 			pack, err := recvPack(con)
 			if err != nil {
 				if err != io.EOF {
-					jlog.Error("ses recv error: ", err)
+					jlog.Error(err)
 				}
-				ses.tcp.delete(ses.id)
 				return
 			}
 			ses.tcp.receive(ses.id, pack)
@@ -69,7 +70,12 @@ func (ses *Ses) recvGoro(con net.Conn) {
 }
 
 func (ses *Ses) sendGoro(con net.Conn) {
-	defer con.Close()
+	defer func() {
+		err := con.Close()
+		if err != nil {
+			jlog.Error(err)
+		}
+	}()
 	for {
 		select {
 		case <-ses.qChan:
@@ -80,7 +86,7 @@ func (ses *Ses) sendGoro(con net.Conn) {
 			}
 			err := sendPack(con, pack)
 			if err != nil {
-				jlog.Error("ses send error: ", err)
+				jlog.Error(err)
 				ses.tcp.delete(ses.id)
 				return
 			}

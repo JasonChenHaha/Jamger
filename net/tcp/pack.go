@@ -30,7 +30,7 @@ type Pack struct {
 
 // ------------------------- package -------------------------
 
-func recvPack(con net.Conn) (pack Pack, err error) {
+func recvPack(con net.Conn) (pack *Pack, err error) {
 	buffer := make([]byte, HEAD_SIZE)
 	_, err = io.ReadFull(con, buffer)
 	if err != nil {
@@ -42,12 +42,14 @@ func recvPack(con net.Conn) (pack Pack, err error) {
 	if err != nil {
 		return
 	}
-	pack.Cmd = binary.LittleEndian.Uint16(buffer)
-	pack.Data = buffer[CMD_SIZE:]
+	pack = &Pack{
+		Cmd:  binary.LittleEndian.Uint16(buffer),
+		Data: buffer[CMD_SIZE:],
+	}
 	return
 }
 
-func sendPack(con net.Conn, pack Pack) error {
+func sendPack(con net.Conn, pack *Pack) error {
 	bodySize := CMD_SIZE + len(pack.Data)
 	size := HEAD_SIZE + bodySize
 	buffer := make([]byte, size)

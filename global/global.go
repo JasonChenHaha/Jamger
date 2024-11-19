@@ -1,7 +1,7 @@
 package global
 
-import (
-	jnet "jamger/net"
-)
+// tcp发包通道缓冲区大小
+var G_TCP_SEND_BUFFER_SIZE = 10
 
-var G_net *jnet.Net
+// web发包通道缓冲区大小
+var G_WEB_SEND_BUFFER_SIZE = 10

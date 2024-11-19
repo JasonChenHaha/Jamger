@@ -2,16 +2,17 @@ package jtcp
 
 import (
 	jconfig "jamger/config"
+	jdebug "jamger/debug"
 	jlog "jamger/log"
 	"net"
 	"sync"
 	"sync/atomic"
+	"time"
 )
 
-type Handler func(id uint64, pack Pack)
+type Handler func(id uint64, pack *Pack)
 
 type Tcp struct {
-	addr    string
 	idc     uint64
 	ses     sync.Map
 	counter uint64
@@ -20,11 +21,12 @@ type Tcp struct {
 
 // ------------------------- outside -------------------------
 
-func NewTcp(addr string) *Tcp {
-	return &Tcp{
-		addr:    addr,
-		handler: make(map[uint16]Handler),
+func NewTcp() *Tcp {
+	tcp := &Tcp{handler: make(map[uint16]Handler)}
+	if jconfig.Get("debug").(bool) {
+		go tcp.watch()
 	}
+	return tcp
 }
 
 func (tcp *Tcp) RegisterHandler(id uint16, handler Handler) {
@@ -37,14 +39,14 @@ func (tcp *Tcp) Run() {
 
 	listener, err := net.Listen("tcp", addr)
 	if err != nil {
-		jlog.Panic(err)
+		jlog.Fatal(err)
 	}
-	jlog.Info("tcp listen on ", addr)
+	jlog.Info("listen on ", addr)
 
 	go tcp.accept(listener)
 }
 
-func (tcp *Tcp) Send(id uint64, pack Pack) {
+func (tcp *Tcp) Send(id uint64, pack *Pack) {
 	obj, ok := tcp.ses.Load(id)
 	if !ok {
 		jlog.Errorf("session %d not found", id)
@@ -69,7 +71,7 @@ func (tcp *Tcp) accept(listener net.Listener) {
 
 func (tcp *Tcp) add(con net.Conn) {
 	id := atomic.AddUint64(&tcp.idc, 1)
-	ses := newSession(tcp, id)
+	ses := newSes(tcp, id)
 	tcp.ses.Store(id, ses)
 	tcp.counter++
 	ses.run(con)
@@ -84,11 +86,24 @@ func (tcp *Tcp) delete(id uint64) {
 	}
 }
 
-func (tcp *Tcp) receive(id uint64, pack Pack) {
+func (tcp *Tcp) receive(id uint64, pack *Pack) {
+	jlog.Debug(jdebug.StructToString(pack))
+	jlog.Debug("hehe")
 	fu, ok := tcp.handler[pack.Cmd]
 	if !ok {
 		jlog.Warn("cmd not exist, ", pack.Cmd)
 		return
 	}
 	fu(id, pack)
+}
+
+// ------------------------- debug -------------------------
+
+func (tcp *Tcp) watch() {
+	ticker := time.NewTicker(3 * time.Second)
+	for {
+		for range ticker.C {
+			jlog.Debug("connecting ", tcp.counter)
+		}
+	}
 }
