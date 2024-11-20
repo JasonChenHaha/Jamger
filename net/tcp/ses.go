@@ -3,7 +3,7 @@ package jtcp
 import (
 	"io"
 	jconfig "jamger/config"
-	"jamger/global"
+	jglobal "jamger/global"
 	jlog "jamger/log"
 	"net"
 	"time"
@@ -26,8 +26,8 @@ func newSes(tcp *Tcp, id uint64) *Ses {
 		id:       id,
 		rTimeout: time.Duration(jconfig.Get("tcp.rTimeout").(int)) * time.Second,
 		sTimeout: time.Duration(jconfig.Get("tcp.sTimeout").(int)) * time.Second,
-		sChan:    make(chan *Pack, global.G_TCP_SEND_BUFFER_SIZE),
-		qChan:    make(chan any, 4),
+		sChan:    make(chan *Pack, jglobal.G_TCP_SEND_BUFFER_SIZE),
+		qChan:    make(chan any, 2),
 	}
 }
 
@@ -48,7 +48,6 @@ func (ses *Ses) close() {
 // ------------------------- inside -------------------------
 
 func (ses *Ses) recvGoro(con net.Conn) {
-	defer ses.tcp.delete(ses.id)
 	for {
 		select {
 		case <-ses.qChan:
@@ -62,6 +61,7 @@ func (ses *Ses) recvGoro(con net.Conn) {
 				if err != io.EOF {
 					jlog.Error(err)
 				}
+				ses.tcp.delete(ses.id)
 				return
 			}
 			ses.tcp.receive(ses.id, pack)
@@ -84,8 +84,7 @@ func (ses *Ses) sendGoro(con net.Conn) {
 			if ses.sTimeout > 0 {
 				con.SetWriteDeadline(time.Now().Add(ses.sTimeout))
 			}
-			err := sendPack(con, pack)
-			if err != nil {
+			if err := sendPack(con, pack); err != nil {
 				jlog.Error(err)
 				ses.tcp.delete(ses.id)
 				return

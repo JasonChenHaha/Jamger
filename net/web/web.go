@@ -24,11 +24,7 @@ type Web struct {
 // ------------------------- outside -------------------------
 
 func NewWeb() *Web {
-	web := &Web{handler: make(map[uint16]Handler)}
-	if jconfig.Get("debug").(bool) {
-		go web.watch()
-	}
-	return web
+	return &Web{handler: make(map[uint16]Handler)}
 }
 
 func (web *Web) RegisterHandler(id uint16, handler Handler) {
@@ -36,23 +32,29 @@ func (web *Web) RegisterHandler(id uint16, handler Handler) {
 }
 
 func (web *Web) Run() {
-	cfg := jconfig.Get("web").(map[string]any)
-	addr := cfg["addr"].(string)
-
 	web.upgrader = &websocket.Upgrader{
 		CheckOrigin: func(r *http.Request) bool {
 			return true
 		},
 	}
-
 	go func() {
-		http.HandleFunc("/", web.accept)
+		addr := jconfig.Get("web.addr").(string)
+		mux := http.NewServeMux()
+		mux.HandleFunc("/", web.accept)
+		server := &http.Server{
+			Addr:         addr,
+			Handler:      mux,
+			ReadTimeout:  time.Duration(jconfig.Get("web.rTimeout").(int)) * time.Second,
+			WriteTimeout: time.Duration(jconfig.Get("web.sTimeout").(int)) * time.Second,
+		}
 		jlog.Info("listen on ", addr)
-		err := http.ListenAndServe(addr, nil)
-		if err != nil {
+		if err := server.ListenAndServe(); err != nil {
 			jlog.Fatal(err)
 		}
 	}()
+	if jconfig.Get("debug").(bool) {
+		go web.watch()
+	}
 }
 
 func (web *Web) Send(id uint64, pack *Pack) {
@@ -83,8 +85,7 @@ func (web *Web) add(con *websocket.Conn) {
 }
 
 func (web *Web) delete(id uint64) {
-	obj, ok := web.ses.Load(id)
-	if ok {
+	if obj, ok := web.ses.Load(id); ok {
 		web.ses.Delete(id)
 		web.counter--
 		obj.(*Ses).close()

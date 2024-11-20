@@ -3,7 +3,19 @@ tcp:
     rTimeout: 0
     sTimeout: 0
 
+kcp:
+    addr: "0.0.0.0:20000"
+    rTimeout: 0
+    sTimeout: 0
+
+web:
+    addr: "0.0.0.0:30000"
+    rTimeout: 0
+    sTimeout: 0
+
 http:
     addr: "0.0.0.0:8080"
+    rTimeout: 0
+    sTimeout: 0
 
-debug: false
+debug: true

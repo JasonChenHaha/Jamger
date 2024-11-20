@@ -2,7 +2,6 @@ package jtcp
 
 import (
 	jconfig "jamger/config"
-	jdebug "jamger/debug"
 	jlog "jamger/log"
 	"net"
 	"sync"
@@ -22,11 +21,7 @@ type Tcp struct {
 // ------------------------- outside -------------------------
 
 func NewTcp() *Tcp {
-	tcp := &Tcp{handler: make(map[uint16]Handler)}
-	if jconfig.Get("debug").(bool) {
-		go tcp.watch()
-	}
-	return tcp
+	return &Tcp{handler: make(map[uint16]Handler)}
 }
 
 func (tcp *Tcp) RegisterHandler(id uint16, handler Handler) {
@@ -34,16 +29,16 @@ func (tcp *Tcp) RegisterHandler(id uint16, handler Handler) {
 }
 
 func (tcp *Tcp) Run() {
-	cfg := jconfig.Get("tcp").(map[string]any)
-	addr := cfg["addr"].(string)
-
+	addr := jconfig.Get("tcp.addr").(string)
 	listener, err := net.Listen("tcp", addr)
 	if err != nil {
 		jlog.Fatal(err)
 	}
 	jlog.Info("listen on ", addr)
-
 	go tcp.accept(listener)
+	if jconfig.Get("debug").(bool) {
+		go tcp.watch()
+	}
 }
 
 func (tcp *Tcp) Send(id uint64, pack *Pack) {
@@ -78,8 +73,7 @@ func (tcp *Tcp) add(con net.Conn) {
 }
 
 func (tcp *Tcp) delete(id uint64) {
-	obj, ok := tcp.ses.Load(id)
-	if ok {
+	if obj, ok := tcp.ses.Load(id); ok {
 		tcp.ses.Delete(id)
 		tcp.counter--
 		obj.(*Ses).close()
@@ -87,8 +81,6 @@ func (tcp *Tcp) delete(id uint64) {
 }
 
 func (tcp *Tcp) receive(id uint64, pack *Pack) {
-	jlog.Debug(jdebug.StructToString(pack))
-	jlog.Debug("hehe")
 	fu, ok := tcp.handler[pack.Cmd]
 	if !ok {
 		jlog.Warn("cmd not exist, ", pack.Cmd)

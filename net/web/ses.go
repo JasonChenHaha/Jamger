@@ -1,9 +1,8 @@
 package jweb
 
 import (
-	"io"
 	jconfig "jamger/config"
-	"jamger/global"
+	jglobal "jamger/global"
 	jlog "jamger/log"
 	"time"
 
@@ -27,8 +26,8 @@ func newSes(web *Web, id uint64) *Ses {
 		id:       id,
 		rTimeout: time.Duration(jconfig.Get("web.rTimeout").(int)) * time.Second,
 		sTimeout: time.Duration(jconfig.Get("web.sTimeout").(int)) * time.Second,
-		sChan:    make(chan *Pack, global.G_TCP_SEND_BUFFER_SIZE),
-		qChan:    make(chan any, 4),
+		sChan:    make(chan *Pack, jglobal.G_WEB_SEND_BUFFER_SIZE),
+		qChan:    make(chan any, 2),
 	}
 }
 
@@ -49,7 +48,6 @@ func (ses *Ses) close() {
 // ------------------------- inside -------------------------
 
 func (ses *Ses) recvGoro(con *websocket.Conn) {
-	defer ses.web.delete(ses.id)
 	for {
 		select {
 		case <-ses.qChan:
@@ -60,16 +58,14 @@ func (ses *Ses) recvGoro(con *websocket.Conn) {
 			}
 			_, data, err := con.ReadMessage()
 			if err != nil {
-				if err != io.EOF {
+				err := err.(*websocket.CloseError)
+				if err.Code != websocket.CloseNormalClosure && err.Code != websocket.CloseAbnormalClosure {
 					jlog.Error(err)
 				}
+				ses.web.delete(ses.id)
 				return
 			}
-			pack, err := unserializeData(data)
-			if err != nil {
-				jlog.Error(err)
-				return
-			}
+			pack := unserializeData(data)
 			ses.web.receive(ses.id, pack)
 		}
 	}
@@ -90,17 +86,12 @@ func (ses *Ses) sendGoro(con *websocket.Conn) {
 			if ses.sTimeout > 0 {
 				con.SetWriteDeadline(time.Now().Add(ses.sTimeout))
 			}
-			data, err := serializePack(pack)
+			data := serializePack(pack)
+			err := con.WriteMessage(websocket.BinaryMessage, data)
 			if err != nil {
 				jlog.Error(err)
 				return
 			}
-			err = con.WriteMessage(websocket.BinaryMessage, data)
-			if err != nil {
-				jlog.Error(err)
-				return
-			}
-
 		}
 	}
 }

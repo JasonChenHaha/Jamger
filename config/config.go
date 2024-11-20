@@ -17,8 +17,7 @@ func init() {
 	g_cfg.AddConfigPath(path)
 	g_cfg.SetConfigName("config")
 	g_cfg.SetConfigType("yml")
-	err = g_cfg.ReadInConfig()
-	if err != nil {
+	if err = g_cfg.ReadInConfig(); err != nil {
 		jlog.Panic(err)
 	}
 }

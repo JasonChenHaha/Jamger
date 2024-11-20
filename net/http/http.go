@@ -4,6 +4,7 @@ import (
 	"fmt"
 	jconfig "jamger/config"
 	jlog "jamger/log"
+	"time"
 
 	"net/http"
 )
@@ -18,12 +19,17 @@ func NewHttp() *Http {
 
 func (htp *Http) Run() {
 	go func() {
-		cfg := jconfig.Get("http").(map[string]any)
-		addr := cfg["addr"].(string)
-		http.HandleFunc("/", htp.handler)
+		addr := jconfig.Get("http.addr").(string)
+		mux := http.NewServeMux()
+		mux.HandleFunc("/", htp.handler)
+		server := &http.Server{
+			Addr:         addr,
+			Handler:      mux,
+			ReadTimeout:  time.Duration(jconfig.Get("http.rTimeout").(int)) * time.Second,
+			WriteTimeout: time.Duration(jconfig.Get("http.sTimeout").(int)) * time.Second,
+		}
 		jlog.Info("listen on ", addr)
-		err := http.ListenAndServe(addr, nil)
-		if err != nil {
+		if err := server.ListenAndServe(); err != nil {
 			jlog.Fatal(err)
 		}
 	}()
@@ -39,8 +45,8 @@ func (htp *Http) handler(w http.ResponseWriter, r *http.Request) {
 		params[k] = v[0]
 	}
 	if r.Method == "GET" {
-		fmt.Fprint(w, "this is get server")
+		fmt.Fprint(w, "this is http server[get]")
 	} else {
-		fmt.Fprint(w, "this is post server")
+		fmt.Fprint(w, "this is post server[post]")
 	}
 }

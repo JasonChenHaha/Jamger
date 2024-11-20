@@ -13,7 +13,7 @@ func main() {
 
 	jnet.Run()
 
-	work.Init()
+	work.Run()
 
 	keep()
 }
