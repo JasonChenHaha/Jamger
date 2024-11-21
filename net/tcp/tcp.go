@@ -29,14 +29,14 @@ func (tcp *Tcp) RegisterHandler(id uint16, handler Handler) {
 }
 
 func (tcp *Tcp) Run() {
-	addr := jconfig.Get("tcp.addr").(string)
+	addr := jconfig.GetString("tcp.addr")
 	listener, err := net.Listen("tcp", addr)
 	if err != nil {
 		jlog.Fatal(err)
 	}
 	jlog.Info("listen on ", addr)
 	go tcp.accept(listener)
-	if jconfig.Get("debug").(bool) {
+	if jconfig.GetBool("debug") {
 		go tcp.watch()
 	}
 }
@@ -66,10 +66,10 @@ func (tcp *Tcp) accept(listener net.Listener) {
 
 func (tcp *Tcp) add(con net.Conn) {
 	id := atomic.AddUint64(&tcp.idc, 1)
-	ses := newSes(tcp, id)
+	ses := newSes(tcp, con, id)
 	tcp.ses.Store(id, ses)
 	tcp.counter++
-	ses.run(con)
+	ses.run()
 }
 
 func (tcp *Tcp) delete(id uint64) {

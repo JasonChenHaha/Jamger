@@ -38,21 +38,21 @@ func (web *Web) Run() {
 		},
 	}
 	go func() {
-		addr := jconfig.Get("web.addr").(string)
+		addr := jconfig.GetString("web.addr")
 		mux := http.NewServeMux()
 		mux.HandleFunc("/", web.accept)
 		server := &http.Server{
 			Addr:         addr,
 			Handler:      mux,
-			ReadTimeout:  time.Duration(jconfig.Get("web.rTimeout").(int)) * time.Second,
-			WriteTimeout: time.Duration(jconfig.Get("web.sTimeout").(int)) * time.Second,
+			ReadTimeout:  time.Duration(jconfig.GetInt("web.rTimeout")) * time.Millisecond,
+			WriteTimeout: time.Duration(jconfig.GetInt("web.sTimeout")) * time.Millisecond,
 		}
 		jlog.Info("listen on ", addr)
 		if err := server.ListenAndServe(); err != nil {
 			jlog.Fatal(err)
 		}
 	}()
-	if jconfig.Get("debug").(bool) {
+	if jconfig.GetBool("debug") {
 		go web.watch()
 	}
 }
@@ -78,10 +78,10 @@ func (web *Web) accept(w http.ResponseWriter, r *http.Request) {
 
 func (web *Web) add(con *websocket.Conn) {
 	id := atomic.AddUint64(&web.idc, 1)
-	ses := newSes(web, id)
+	ses := newSes(web, con, id)
 	web.ses.Store(id, ses)
 	web.counter++
-	ses.run(con)
+	ses.run()
 }
 
 func (web *Web) delete(id uint64) {

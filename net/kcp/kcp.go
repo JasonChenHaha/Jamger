@@ -2,7 +2,6 @@ package jkcp
 
 import (
 	jconfig "jamger/config"
-	jglobal "jamger/global"
 	jlog "jamger/log"
 	"log"
 	"sync"
@@ -32,14 +31,14 @@ func (kc *Kcp) RegisterHandler(id uint16, handler Handler) {
 }
 
 func (kc *Kcp) Run() {
-	addr := jconfig.Get("kcp.addr").(string)
-	listener, err := kcp.ListenWithOptions(addr, nil, jglobal.G_KCP_DATASHARDS, jglobal.G_KCP_PARITYSHARDS)
+	addr := jconfig.GetString("kcp.addr")
+	listener, err := kcp.ListenWithOptions(addr, nil, jconfig.GetInt("kcp.dataShards"), jconfig.GetInt("kcp.parityShards"))
 	if err != nil {
 		jlog.Fatal(err)
 	}
 	jlog.Info("listen on ", addr)
 	go kc.accept(listener)
-	if jconfig.Get("debug").(bool) {
+	if jconfig.GetBool("debug") {
 		go kc.watch()
 	}
 }
@@ -68,10 +67,10 @@ func (kc *Kcp) accept(listener *kcp.Listener) {
 
 func (kc *Kcp) add(con *kcp.UDPSession) {
 	id := atomic.AddUint64(&kc.idc, 1)
-	ses := newSes(kc, id)
+	ses := newSes(kc, con, id)
 	kc.ses.Store(id, ses)
 	kc.counter++
-	ses.run(con)
+	ses.run()
 }
 
 func (kc *Kcp) delete(id uint64) {

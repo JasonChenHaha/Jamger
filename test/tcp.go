@@ -12,7 +12,7 @@ import (
 
 func testTcp() {
 	jlog.Info("<test tcp>")
-	addr := strings.Split(jconfig.Get("tcp.addr").(string), ":")
+	addr := strings.Split(jconfig.GetString("tcp.addr"), ":")
 	con, err := net.Dial("tcp", "127.0.0.1:"+addr[1])
 	if err != nil {
 		jlog.Fatal(err)

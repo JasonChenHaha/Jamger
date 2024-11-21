@@ -19,14 +19,14 @@ func NewHttp() *Http {
 
 func (htp *Http) Run() {
 	go func() {
-		addr := jconfig.Get("http.addr").(string)
+		addr := jconfig.GetString("http.addr")
 		mux := http.NewServeMux()
 		mux.HandleFunc("/", htp.handler)
 		server := &http.Server{
 			Addr:         addr,
 			Handler:      mux,
-			ReadTimeout:  time.Duration(jconfig.Get("http.rTimeout").(int)) * time.Second,
-			WriteTimeout: time.Duration(jconfig.Get("http.sTimeout").(int)) * time.Second,
+			ReadTimeout:  time.Duration(jconfig.GetInt("http.rTimeout")) * time.Second,
+			WriteTimeout: time.Duration(jconfig.GetInt("http.sTimeout")) * time.Second,
 		}
 		jlog.Info("listen on ", addr)
 		if err := server.ListenAndServe(); err != nil {

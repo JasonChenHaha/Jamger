@@ -7,7 +7,6 @@ import (
 	jglobal "jamger/global"
 	jlog "jamger/log"
 	jkcp "jamger/net/kcp"
-	"net"
 	"strings"
 
 	"github.com/xtaci/kcp-go"
@@ -15,12 +14,12 @@ import (
 
 func testKcp() {
 	jlog.Info("<test kcp>")
-	addr := strings.Split(jconfig.Get("kcp.addr").(string), ":")
-	con, err := kcp.DialWithOptions("127.0.0.1:"+addr[1], nil, jglobal.G_KCP_DATASHARDS, jglobal.G_KCP_PARITYSHARDS)
+	addr := strings.Split(jconfig.GetString("kcp.addr"), ":")
+	con, err := kcp.DialWithOptions("127.0.0.1:"+addr[1], nil, jconfig.GetInt("kcp.dataShards"), jconfig.GetInt("kcp.parityShards"))
 	if err != nil {
 		jlog.Fatal(err)
 	}
-	defer con.Close()
+	defer closeKcp(con)
 
 	pack := &jkcp.Pack{
 		Cmd:  2,
@@ -28,11 +27,21 @@ func testKcp() {
 	}
 	sendKcpPack(con, pack)
 
-	pack = recvKcpPack(con)
-	jlog.Infoln(pack.Cmd, string(pack.Data))
+	select {}
+
+	// pack = recvKcpPack(con)
+	// jlog.Infoln(pack.Cmd, string(pack.Data))
 }
 
-func sendKcpPack(con net.Conn, pack *jkcp.Pack) {
+func closeKcp(con *kcp.UDPSession) {
+	pack := &jkcp.Pack{
+		Cmd: jglobal.CMD_CLOSE,
+	}
+	sendKcpPack(con, pack)
+	con.Close()
+}
+
+func sendKcpPack(con *kcp.UDPSession, pack *jkcp.Pack) {
 	bodySize := gCmdSize + len(pack.Data)
 	size := gHeadSize + bodySize
 	buffer := make([]byte, size)
@@ -48,7 +57,7 @@ func sendKcpPack(con net.Conn, pack *jkcp.Pack) {
 	}
 }
 
-func recvKcpPack(con net.Conn) *jkcp.Pack {
+func recvKcpPack(con *kcp.UDPSession) *jkcp.Pack {
 	buffer := make([]byte, gHeadSize)
 	if _, err := io.ReadFull(con, buffer); err != nil {
 		jlog.Fatal(err)

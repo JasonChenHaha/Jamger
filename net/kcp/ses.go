@@ -1,7 +1,6 @@
 package jkcp
 
 import (
-	"io"
 	jconfig "jamger/config"
 	jglobal "jamger/global"
 	jlog "jamger/log"
@@ -12,6 +11,7 @@ import (
 
 type Ses struct {
 	kcp      *Kcp
+	con      *kcp.UDPSession
 	id       uint64
 	rTimeout time.Duration
 	sTimeout time.Duration
@@ -21,20 +21,25 @@ type Ses struct {
 
 // ------------------------- package -------------------------
 
-func newSes(kcp *Kcp, id uint64) *Ses {
-	return &Ses{
+func newSes(kcp *Kcp, con *kcp.UDPSession, id uint64) *Ses {
+	ses := &Ses{
 		kcp:      kcp,
+		con:      con,
 		id:       id,
-		rTimeout: time.Duration(jconfig.Get("kcp.rTimeout").(int)) * time.Second,
-		sTimeout: time.Duration(jconfig.Get("kcp.sTimeout").(int)) * time.Second,
-		sChan:    make(chan *Pack, jglobal.G_KCP_SEND_BUFFER_SIZE),
+		rTimeout: time.Duration(jconfig.GetInt("kcp.rTimeout")) * time.Millisecond,
+		sTimeout: time.Duration(jconfig.GetInt("kcp.sTimeout")) * time.Millisecond,
+		sChan:    make(chan *Pack, jconfig.GetInt("kcp.sBufferSize")),
 		qChan:    make(chan any, 4),
 	}
+	if jconfig.GetBool("kcp.noDelay.enable") {
+		ses.con.SetNoDelay(1, jconfig.GetInt("kcp.noDelay.interval"), jconfig.GetInt("kcp.noDelay.resend"), jconfig.GetInt("kcp.noDelay.nc"))
+	}
+	return ses
 }
 
-func (ses *Ses) run(con *kcp.UDPSession) {
-	go ses.recvGoro(con)
-	go ses.sendGoro(con)
+func (ses *Ses) run() {
+	go ses.recvGoro()
+	go ses.sendGoro()
 }
 
 func (ses *Ses) send(pack *Pack) {
@@ -48,20 +53,21 @@ func (ses *Ses) close() {
 
 // ------------------------- inside -------------------------
 
-func (ses *Ses) recvGoro(con *kcp.UDPSession) {
+func (ses *Ses) recvGoro() {
 	for {
 		select {
 		case <-ses.qChan:
 			return
 		default:
 			if ses.rTimeout > 0 {
-				con.SetReadDeadline(time.Now().Add(ses.rTimeout))
+				ses.con.SetReadDeadline(time.Now().Add(ses.rTimeout))
 			}
-			pack, err := recvPack(con)
+			pack, err := recvPack(ses.con)
 			if err != nil {
-				if err != io.EOF {
-					jlog.Error(err)
-				}
+				jlog.Error(err)
+				ses.kcp.delete(ses.id)
+				return
+			} else if pack.Cmd == jglobal.CMD_CLOSE {
 				ses.kcp.delete(ses.id)
 				return
 			}
@@ -70,9 +76,9 @@ func (ses *Ses) recvGoro(con *kcp.UDPSession) {
 	}
 }
 
-func (ses *Ses) sendGoro(con *kcp.UDPSession) {
+func (ses *Ses) sendGoro() {
 	defer func() {
-		err := con.Close()
+		err := ses.con.Close()
 		if err != nil {
 			jlog.Error(err)
 		}
@@ -83,9 +89,9 @@ func (ses *Ses) sendGoro(con *kcp.UDPSession) {
 			return
 		case pack := <-ses.sChan:
 			if ses.sTimeout > 0 {
-				con.SetWriteDeadline(time.Now().Add(ses.sTimeout))
+				ses.con.SetWriteDeadline(time.Now().Add(ses.sTimeout))
 			}
-			if err := sendPack(con, pack); err != nil {
+			if err := sendPack(ses.con, pack); err != nil {
 				jlog.Error(err)
 				ses.kcp.delete(ses.id)
 				return

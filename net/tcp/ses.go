@@ -3,7 +3,6 @@ package jtcp
 import (
 	"io"
 	jconfig "jamger/config"
-	jglobal "jamger/global"
 	jlog "jamger/log"
 	"net"
 	"time"
@@ -11,6 +10,7 @@ import (
 
 type Ses struct {
 	tcp      *Tcp
+	con      *net.TCPConn
 	id       uint64
 	rTimeout time.Duration
 	sTimeout time.Duration
@@ -20,20 +20,25 @@ type Ses struct {
 
 // ------------------------- package -------------------------
 
-func newSes(tcp *Tcp, id uint64) *Ses {
-	return &Ses{
+func newSes(tcp *Tcp, con net.Conn, id uint64) *Ses {
+	ses := &Ses{
 		tcp:      tcp,
+		con:      con.(*net.TCPConn),
 		id:       id,
-		rTimeout: time.Duration(jconfig.Get("tcp.rTimeout").(int)) * time.Second,
-		sTimeout: time.Duration(jconfig.Get("tcp.sTimeout").(int)) * time.Second,
-		sChan:    make(chan *Pack, jglobal.G_TCP_SEND_BUFFER_SIZE),
+		rTimeout: time.Duration(jconfig.GetInt("tcp.rTimeout")) * time.Millisecond,
+		sTimeout: time.Duration(jconfig.GetInt("tcp.sTimeout")) * time.Millisecond,
+		sChan:    make(chan *Pack, jconfig.GetInt("tcp.sBufferSize")),
 		qChan:    make(chan any, 2),
 	}
+	if jconfig.GetBool("noDelay") {
+		ses.con.SetNoDelay(true)
+	}
+	return ses
 }
 
-func (ses *Ses) run(con net.Conn) {
-	go ses.recvGoro(con)
-	go ses.sendGoro(con)
+func (ses *Ses) run() {
+	go ses.recvGoro()
+	go ses.sendGoro()
 }
 
 func (ses *Ses) send(pack *Pack) {
@@ -47,16 +52,16 @@ func (ses *Ses) close() {
 
 // ------------------------- inside -------------------------
 
-func (ses *Ses) recvGoro(con net.Conn) {
+func (ses *Ses) recvGoro() {
 	for {
 		select {
 		case <-ses.qChan:
 			return
 		default:
 			if ses.rTimeout > 0 {
-				con.SetReadDeadline(time.Now().Add(ses.rTimeout))
+				ses.con.SetReadDeadline(time.Now().Add(ses.rTimeout))
 			}
-			pack, err := recvPack(con)
+			pack, err := recvPack(ses.con)
 			if err != nil {
 				if err != io.EOF {
 					jlog.Error(err)
@@ -69,9 +74,9 @@ func (ses *Ses) recvGoro(con net.Conn) {
 	}
 }
 
-func (ses *Ses) sendGoro(con net.Conn) {
+func (ses *Ses) sendGoro() {
 	defer func() {
-		err := con.Close()
+		err := ses.con.Close()
 		if err != nil {
 			jlog.Error(err)
 		}
@@ -82,9 +87,9 @@ func (ses *Ses) sendGoro(con net.Conn) {
 			return
 		case pack := <-ses.sChan:
 			if ses.sTimeout > 0 {
-				con.SetWriteDeadline(time.Now().Add(ses.sTimeout))
+				ses.con.SetWriteDeadline(time.Now().Add(ses.sTimeout))
 			}
-			if err := sendPack(con, pack); err != nil {
+			if err := sendPack(ses.con, pack); err != nil {
 				jlog.Error(err)
 				ses.tcp.delete(ses.id)
 				return

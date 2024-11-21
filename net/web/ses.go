@@ -2,38 +2,35 @@ package jweb
 
 import (
 	jconfig "jamger/config"
-	jglobal "jamger/global"
 	jlog "jamger/log"
-	"time"
 
 	"github.com/gorilla/websocket"
 )
 
 type Ses struct {
-	web      *Web
-	id       uint64
-	rTimeout time.Duration
-	sTimeout time.Duration
-	sChan    chan *Pack
-	qChan    chan any
+	web   *Web
+	con   *websocket.Conn
+	id    uint64
+	sChan chan *Pack
+	qChan chan any
 }
 
 // ------------------------- package -------------------------
 
-func newSes(web *Web, id uint64) *Ses {
-	return &Ses{
-		web:      web,
-		id:       id,
-		rTimeout: time.Duration(jconfig.Get("web.rTimeout").(int)) * time.Second,
-		sTimeout: time.Duration(jconfig.Get("web.sTimeout").(int)) * time.Second,
-		sChan:    make(chan *Pack, jglobal.G_WEB_SEND_BUFFER_SIZE),
-		qChan:    make(chan any, 2),
+func newSes(web *Web, con *websocket.Conn, id uint64) *Ses {
+	ses := &Ses{
+		web:   web,
+		con:   con,
+		id:    id,
+		sChan: make(chan *Pack, jconfig.GetInt("web.sBufferSize")),
+		qChan: make(chan any, 2),
 	}
+	return ses
 }
 
-func (ses *Ses) run(con *websocket.Conn) {
-	go ses.recvGoro(con)
-	go ses.sendGoro(con)
+func (ses *Ses) run() {
+	go ses.recvGoro()
+	go ses.sendGoro()
 }
 
 func (ses *Ses) send(pack *Pack) {
@@ -47,16 +44,13 @@ func (ses *Ses) close() {
 
 // ------------------------- inside -------------------------
 
-func (ses *Ses) recvGoro(con *websocket.Conn) {
+func (ses *Ses) recvGoro() {
 	for {
 		select {
 		case <-ses.qChan:
 			return
 		default:
-			if ses.rTimeout > 0 {
-				con.SetReadDeadline(time.Now().Add(ses.rTimeout))
-			}
-			_, data, err := con.ReadMessage()
+			_, data, err := ses.con.ReadMessage()
 			if err != nil {
 				err := err.(*websocket.CloseError)
 				if err.Code != websocket.CloseNormalClosure && err.Code != websocket.CloseAbnormalClosure {
@@ -71,9 +65,9 @@ func (ses *Ses) recvGoro(con *websocket.Conn) {
 	}
 }
 
-func (ses *Ses) sendGoro(con *websocket.Conn) {
+func (ses *Ses) sendGoro() {
 	defer func() {
-		err := con.Close()
+		err := ses.con.Close()
 		if err != nil {
 			jlog.Error(err)
 		}
@@ -83,11 +77,8 @@ func (ses *Ses) sendGoro(con *websocket.Conn) {
 		case <-ses.qChan:
 			return
 		case pack := <-ses.sChan:
-			if ses.sTimeout > 0 {
-				con.SetWriteDeadline(time.Now().Add(ses.sTimeout))
-			}
 			data := serializePack(pack)
-			err := con.WriteMessage(websocket.BinaryMessage, data)
+			err := ses.con.WriteMessage(websocket.BinaryMessage, data)
 			if err != nil {
 				jlog.Error(err)
 				return

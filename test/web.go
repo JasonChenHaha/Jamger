@@ -12,7 +12,7 @@ import (
 
 func testWeb() {
 	jlog.Info("<test web>")
-	addr := strings.Split(jconfig.Get("web.addr").(string), ":")
+	addr := strings.Split(jconfig.GetString("web.addr"), ":")
 	con, _, err := websocket.DefaultDialer.Dial("ws://127.0.0.1:"+addr[1]+"/ws", nil)
 	if err != nil {
 		jlog.Fatal(err)
