@@ -41,13 +41,13 @@ func (tcp *Tcp) Run() {
 	}
 }
 
-func (tcp *Tcp) Send(id uint64, pack *Pack) {
+func (tcp *Tcp) Send(id uint64, cmd uint16, data []byte) {
 	obj, ok := tcp.ses.Load(id)
 	if !ok {
 		jlog.Errorf("session %d not found", id)
 		return
 	}
-	obj.(*Ses).send(pack)
+	obj.(*Ses).send(makePack(cmd, data))
 }
 
 // ------------------------- inside -------------------------
@@ -93,9 +93,7 @@ func (tcp *Tcp) receive(id uint64, pack *Pack) {
 
 func (tcp *Tcp) watch() {
 	ticker := time.NewTicker(3 * time.Second)
-	for {
-		for range ticker.C {
-			jlog.Debug("connecting ", tcp.counter)
-		}
+	for range ticker.C {
+		jlog.Debug("connecting ", tcp.counter)
 	}
 }

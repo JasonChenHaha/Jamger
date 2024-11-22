@@ -28,6 +28,15 @@ type Pack struct {
 	Data []byte
 }
 
+// ------------------------- outside -------------------------
+
+func makePack(cmd uint16, data []byte) *Pack {
+	return &Pack{
+		Cmd:  cmd,
+		Data: data,
+	}
+}
+
 // ------------------------- package -------------------------
 
 func recvPack(con net.Conn) (pack *Pack, err error) {

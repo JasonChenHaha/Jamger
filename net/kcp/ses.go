@@ -64,14 +64,20 @@ func (ses *Ses) recvGoro() {
 			}
 			pack, err := recvPack(ses.con)
 			if err != nil {
-				jlog.Error(err)
 				ses.kcp.delete(ses.id)
 				return
-			} else if pack.Cmd == jglobal.CMD_CLOSE {
-				ses.kcp.delete(ses.id)
-				return
+			} else {
+				switch pack.Cmd {
+				case jglobal.CMD_HEARTBEAT:
+				case jglobal.CMD_CLOSE:
+					ses.kcp.delete(ses.id)
+					return
+				case jglobal.CMD_PING:
+					ses.kcp.Send(ses.id, jglobal.CMD_PONG, []byte{})
+				default:
+					ses.kcp.receive(ses.id, pack)
+				}
 			}
-			ses.kcp.receive(ses.id, pack)
 		}
 	}
 }

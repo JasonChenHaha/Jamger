@@ -23,7 +23,6 @@ func init() {
 		jlog.Panic(err)
 	}
 	formatCfg()
-	jlog.Debug(g_cfg.Get("abc"))
 }
 
 // 格式化配置中的数值

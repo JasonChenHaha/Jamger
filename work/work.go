@@ -3,6 +3,7 @@ package work
 import (
 	jdebug "jamger/debug"
 	jlog "jamger/log"
+	jmeta "jamger/meta"
 	jnet "jamger/net"
 	jkcp "jamger/net/kcp"
 	jtcp "jamger/net/tcp"
@@ -10,6 +11,7 @@ import (
 )
 
 func Run() {
+	jmeta.Init()
 	jnet.Tcp.RegisterHandler(1, cb1)
 	jnet.Kcp.RegisterHandler(2, cb2)
 	jnet.Web.RegisterHandler(1, cb3)
@@ -17,25 +19,15 @@ func Run() {
 
 func cb1(id uint64, pack *jtcp.Pack) {
 	jlog.Debug(jdebug.StructToString(pack))
-
-	pack = &jtcp.Pack{
-		Cmd:  1,
-		Data: []byte("ok!"),
-	}
-	jnet.Tcp.Send(id, pack)
+	jnet.Tcp.Send(id, 1, []byte("ok!"))
 }
 
 func cb2(id uint64, pack *jkcp.Pack) {
 	jlog.Debug(jdebug.StructToString(pack))
-
-	pack = &jkcp.Pack{
-		Cmd:  1,
-		Data: []byte("ok!"),
-	}
-	jnet.Kcp.Send(id, pack)
+	jnet.Kcp.Send(id, 1, []byte("ok!"))
 }
 
 func cb3(id uint64, pack *jweb.Pack) {
 	jlog.Debug(jdebug.StructToString(pack))
-	jlog.Debug(string(pack.Data))
+	jnet.Kcp.Send(id, 1, []byte("ok!"))
 }

@@ -20,6 +20,13 @@ type Pack struct {
 
 // ------------------------- package -------------------------
 
+func makePack(cmd uint16, data []byte) *Pack {
+	return &Pack{
+		Cmd:  cmd,
+		Data: data,
+	}
+}
+
 func unserializeData(data []byte) *Pack {
 	return &Pack{
 		Cmd:  binary.LittleEndian.Uint16(data),

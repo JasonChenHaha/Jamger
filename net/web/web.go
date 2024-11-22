@@ -42,10 +42,8 @@ func (web *Web) Run() {
 		mux := http.NewServeMux()
 		mux.HandleFunc("/", web.accept)
 		server := &http.Server{
-			Addr:         addr,
-			Handler:      mux,
-			ReadTimeout:  time.Duration(jconfig.GetInt("web.rTimeout")) * time.Millisecond,
-			WriteTimeout: time.Duration(jconfig.GetInt("web.sTimeout")) * time.Millisecond,
+			Addr:    addr,
+			Handler: mux,
 		}
 		jlog.Info("listen on ", addr)
 		if err := server.ListenAndServe(); err != nil {
@@ -57,13 +55,13 @@ func (web *Web) Run() {
 	}
 }
 
-func (web *Web) Send(id uint64, pack *Pack) {
+func (web *Web) Send(id uint64, cmd uint16, data []byte) {
 	obj, ok := web.ses.Load(id)
 	if !ok {
 		jlog.Errorf("session %d not found", id)
 		return
 	}
-	obj.(*Ses).send(pack)
+	obj.(*Ses).send(makePack(cmd, data))
 }
 
 // ------------------------- inside -------------------------
@@ -105,9 +103,7 @@ func (web *Web) receive(id uint64, pack *Pack) {
 
 func (web *Web) watch() {
 	ticker := time.NewTicker(3 * time.Second)
-	for {
-		for range ticker.C {
-			jlog.Debug("connecting ", web.counter)
-		}
+	for range ticker.C {
+		jlog.Debug("connecting ", web.counter)
 	}
 }

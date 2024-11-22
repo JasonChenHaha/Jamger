@@ -31,6 +31,13 @@ type Pack struct {
 
 // ------------------------- package -------------------------
 
+func makePack(cmd uint16, data []byte) *Pack {
+	return &Pack{
+		Cmd:  cmd,
+		Data: data,
+	}
+}
+
 func recvPack(con *kcp.UDPSession) (pack *Pack, err error) {
 	buffer := make([]byte, gHeadSize)
 	if _, err = io.ReadFull(con, buffer); err != nil {

@@ -43,13 +43,13 @@ func (kc *Kcp) Run() {
 	}
 }
 
-func (kc *Kcp) Send(id uint64, pack *Pack) {
+func (kc *Kcp) Send(id uint64, cmd uint16, data []byte) {
 	obj, ok := kc.ses.Load(id)
 	if !ok {
 		jlog.Errorf("session %d not found", id)
 		return
 	}
-	obj.(*Ses).send(pack)
+	obj.(*Ses).send(makePack(cmd, data))
 }
 
 // ------------------------- debug -------------------------
@@ -94,9 +94,7 @@ func (kc *Kcp) receive(id uint64, pack *Pack) {
 
 func (kc *Kcp) watch() {
 	ticker := time.NewTicker(3 * time.Second)
-	for {
-		for range ticker.C {
-			jlog.Debug("connecting ", kc.counter)
-		}
+	for range ticker.C {
+		jlog.Debug("connecting ", kc.counter)
 	}
 }

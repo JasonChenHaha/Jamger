@@ -2,7 +2,6 @@ package main
 
 import (
 	jlog "jamger/log"
-	"strings"
 )
 
 const (
@@ -16,8 +15,6 @@ func main() {
 	// testKcp()
 	// testWeb()
 	// testHttp()
-	a := "1m"
-	b := strings.TrimSuffix(a, "m")
-	jlog.Debug(b)
-	jlog.Debug(strings.HasSuffix(a, "m"))
+
+	select {}
 }

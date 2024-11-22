@@ -1,35 +1,40 @@
 tcp:
-    addr: "0.0.0.0:10000"
-    noDelay: false
-    rTimeout: 0
-    sTimeout: 0
+    addr: 0.0.0.0:10000
+    noDelay: false          # 延迟发送
+    rTimeout: 10s           # 读超时
+    sTimeout: 5s            # 写超时
     sBufferSize: 10         # 发包通道缓冲区大小
 
 kcp:
-    addr: "0.0.0.0:20000"
+    addr: 0.0.0.0:20000
     dataShards: 1           # 发包分片数
     parityShards: 0         # 冗余分片数
     noDelay:
         enable: true
-        interval: 10        # 协议内部工作的 interval，单位毫秒，比如 10ms或者 20ms
+        interval: 10ms      # 协议内部工作的 interval，比如 10ms或者 20ms
         resend: 2           # 快速重传模式，默认0关闭（设置为x, x次ACK跨越将会直接重传）
         nc: 1               # 是否关闭流控，默认是0代表不关闭，1代表关闭
-    rTimeout: 5
-    sTimeout: 0
-    sBufferSize: 10         # 发包通道缓冲区大小
+    rTimeout: 10s
+    sTimeout: 5s
+    sBufferSize: 10
 
 web:
-    addr: "0.0.0.0:30000"
-    rTimeout: 0
-    sTimeout: 0
-    sBufferSize: 10         # 发包通道缓冲区大小
+    addr: 0.0.0.0:30000
+    rTimeout: 10s
+    sTimeout: 5s
+    sBufferSize: 10
 
 http:
-    addr: "0.0.0.0:8080"
-    rTimeout: 0
-    sTimeout: 0
+    addr: 0.0.0.0:8080
+    rTimeout: 10s
+    sTimeout: 5s
 
-debug: false
+mysql:
+    dsn: mmog:mmog@tcp(192.168.4.19:3306)/test?charset=utf8mb4&parseTime=true&loc=Local
+    maxOpenCon: 10          # 最大打开连接数
+    maxIdleCon: 5           # 最大空闲连接数
+    maxLifeTime: 1h         # 最大连接存活时间
+    maxIdleTime: 30m        # 最大空闲连接存活时间
 
-abc:
-    kkk: 1ms
+
+debug: true

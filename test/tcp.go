@@ -4,33 +4,47 @@ import (
 	"encoding/binary"
 	"io"
 	jconfig "jamger/config"
+	jdebug "jamger/debug"
+	jglobal "jamger/global"
 	jlog "jamger/log"
 	jtcp "jamger/net/tcp"
 	"net"
 	"strings"
+	"time"
 )
 
-func testTcp() {
-	jlog.Info("<test tcp>")
-	addr := strings.Split(jconfig.GetString("tcp.addr"), ":")
-	con, err := net.Dial("tcp", "127.0.0.1:"+addr[1])
-	if err != nil {
-		jlog.Fatal(err)
-	}
-	defer con.Close()
-	jlog.Info("connect to server ", addr)
-
-	pack := &jtcp.Pack{
-		Cmd:  2,
-		Data: []byte("hello world"),
-	}
-	sendTcpPack(con, pack)
-
-	pack = recvTcpPack(con)
-	jlog.Infoln(pack.Cmd, string(pack.Data))
+type Tcp struct {
+	con net.Conn
 }
 
-func sendTcpPack(con net.Conn, pack *jtcp.Pack) {
+func testTcp() *Tcp {
+	jlog.Info("<test tcp>")
+	tcp := &Tcp{}
+	addr := strings.Split(jconfig.GetString("tcp.addr"), ":")
+	con, _ := net.Dial("tcp", "127.0.0.1:"+addr[1])
+	jlog.Info("connect to server ", addr)
+	tcp.con = con
+
+	go tcp.heartbeat()
+
+	tcp.send(jglobal.CMD_PING, []byte{})
+	tcp.recv()
+
+	return tcp
+}
+
+func (tcp *Tcp) heartbeat() {
+	ticker := time.NewTicker(5 * time.Second)
+	for range ticker.C {
+		tcp.send(jglobal.CMD_HEARTBEAT, []byte{})
+	}
+}
+
+func (tcp *Tcp) send(cmd uint16, data []byte) {
+	pack := &jtcp.Pack{
+		Cmd:  cmd,
+		Data: data,
+	}
 	bodySize := gCmdSize + len(pack.Data)
 	size := gHeadSize + bodySize
 	buffer := make([]byte, size)
@@ -38,7 +52,7 @@ func sendTcpPack(con net.Conn, pack *jtcp.Pack) {
 	binary.LittleEndian.PutUint16(buffer[gHeadSize:], pack.Cmd)
 	copy(buffer[gHeadSize+gCmdSize:], pack.Data)
 	for pos := 0; pos < size; {
-		n, err := con.Write(buffer)
+		n, err := tcp.con.Write(buffer)
 		if err != nil {
 			jlog.Fatal(err)
 		}
@@ -46,18 +60,15 @@ func sendTcpPack(con net.Conn, pack *jtcp.Pack) {
 	}
 }
 
-func recvTcpPack(con net.Conn) *jtcp.Pack {
+func (tcp *Tcp) recv() {
 	buffer := make([]byte, gHeadSize)
-	if _, err := io.ReadFull(con, buffer); err != nil {
-		jlog.Fatal(err)
-	}
+	io.ReadFull(tcp.con, buffer)
 	bodySize := binary.LittleEndian.Uint16(buffer)
 	buffer = make([]byte, bodySize)
-	if _, err := io.ReadFull(con, buffer); err != nil {
-		jlog.Fatal(err)
-	}
-	return &jtcp.Pack{
+	io.ReadFull(tcp.con, buffer)
+	pack := &jtcp.Pack{
 		Cmd:  binary.LittleEndian.Uint16(buffer),
 		Data: buffer[gCmdSize:],
 	}
+	jlog.Info(jdebug.StructToString(pack))
 }

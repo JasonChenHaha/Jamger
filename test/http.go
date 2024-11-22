@@ -8,15 +8,9 @@ import (
 
 func testHttp() {
 	jlog.Info("<test http>")
-	rsp, err := http.Get("http://127.0.0.1:8080?abc=1&ddd=2&haha=3")
-	if err != nil {
-		jlog.Fatal(err)
-	}
+	rsp, _ := http.Get("http://127.0.0.1:8080?abc=1&ddd=2&haha=3")
 	defer rsp.Body.Close()
 
-	body, err := io.ReadAll(rsp.Body)
-	if err != nil {
-		jlog.Fatal(err)
-	}
+	body, _ := io.ReadAll(rsp.Body)
 	jlog.Info(string(body))
 }

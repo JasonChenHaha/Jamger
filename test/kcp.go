@@ -4,44 +4,53 @@ import (
 	"encoding/binary"
 	"io"
 	jconfig "jamger/config"
+	jdebug "jamger/debug"
 	jglobal "jamger/global"
 	jlog "jamger/log"
 	jkcp "jamger/net/kcp"
 	"strings"
+	"time"
 
 	"github.com/xtaci/kcp-go"
 )
 
-func testKcp() {
+type Kcp struct {
+	con *kcp.UDPSession
+}
+
+func testKcp() *Kcp {
 	jlog.Info("<test kcp>")
+	kc := &Kcp{}
 	addr := strings.Split(jconfig.GetString("kcp.addr"), ":")
-	con, err := kcp.DialWithOptions("127.0.0.1:"+addr[1], nil, jconfig.GetInt("kcp.dataShards"), jconfig.GetInt("kcp.parityShards"))
-	if err != nil {
-		jlog.Fatal(err)
-	}
-	defer closeKcp(con)
+	con, _ := kcp.DialWithOptions("127.0.0.1:"+addr[1], nil, jconfig.GetInt("kcp.dataShards"), jconfig.GetInt("kcp.parityShards"))
+	jlog.Info("connect to server ", addr)
+	kc.con = con
 
-	pack := &jkcp.Pack{
-		Cmd:  2,
-		Data: []byte("this is kcp"),
-	}
-	sendKcpPack(con, pack)
+	go kc.heartbeat()
 
-	select {}
+	kc.send(jglobal.CMD_PING, []byte{})
+	kc.recv()
 
-	// pack = recvKcpPack(con)
-	// jlog.Infoln(pack.Cmd, string(pack.Data))
+	return kc
 }
 
-func closeKcp(con *kcp.UDPSession) {
-	pack := &jkcp.Pack{
-		Cmd: jglobal.CMD_CLOSE,
+func (kc *Kcp) heartbeat() {
+	ticker := time.NewTicker(5 * time.Second)
+	for range ticker.C {
+		kc.send(jglobal.CMD_HEARTBEAT, []byte{})
 	}
-	sendKcpPack(con, pack)
-	con.Close()
 }
 
-func sendKcpPack(con *kcp.UDPSession, pack *jkcp.Pack) {
+func (kc *Kcp) close() {
+	kc.send(jglobal.CMD_CLOSE, []byte{})
+	kc.con.Close()
+}
+
+func (kc *Kcp) send(cmd uint16, data []byte) {
+	pack := &jkcp.Pack{
+		Cmd:  cmd,
+		Data: data,
+	}
 	bodySize := gCmdSize + len(pack.Data)
 	size := gHeadSize + bodySize
 	buffer := make([]byte, size)
@@ -49,7 +58,7 @@ func sendKcpPack(con *kcp.UDPSession, pack *jkcp.Pack) {
 	binary.LittleEndian.PutUint16(buffer[gHeadSize:], pack.Cmd)
 	copy(buffer[gHeadSize+gCmdSize:], pack.Data)
 	for pos := 0; pos < size; {
-		n, err := con.Write(buffer)
+		n, err := kc.con.Write(buffer)
 		if err != nil {
 			jlog.Fatal(err)
 		}
@@ -57,18 +66,15 @@ func sendKcpPack(con *kcp.UDPSession, pack *jkcp.Pack) {
 	}
 }
 
-func recvKcpPack(con *kcp.UDPSession) *jkcp.Pack {
+func (kc *Kcp) recv() {
 	buffer := make([]byte, gHeadSize)
-	if _, err := io.ReadFull(con, buffer); err != nil {
-		jlog.Fatal(err)
-	}
+	io.ReadFull(kc.con, buffer)
 	bodySize := binary.LittleEndian.Uint16(buffer)
 	buffer = make([]byte, bodySize)
-	if _, err := io.ReadFull(con, buffer); err != nil {
-		jlog.Fatal(err)
-	}
-	return &jkcp.Pack{
+	io.ReadFull(kc.con, buffer)
+	pack := jkcp.Pack{
 		Cmd:  binary.LittleEndian.Uint16(buffer),
 		Data: buffer[gCmdSize:],
 	}
+	jlog.Info(jdebug.StructToString(pack))
 }

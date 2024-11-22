@@ -2,28 +2,34 @@ package jweb
 
 import (
 	jconfig "jamger/config"
+	jglobal "jamger/global"
 	jlog "jamger/log"
+	"time"
 
 	"github.com/gorilla/websocket"
 )
 
 type Ses struct {
-	web   *Web
-	con   *websocket.Conn
-	id    uint64
-	sChan chan *Pack
-	qChan chan any
+	web      *Web
+	con      *websocket.Conn
+	id       uint64
+	rTimeout time.Duration
+	sTimeout time.Duration
+	sChan    chan *Pack
+	qChan    chan any
 }
 
 // ------------------------- package -------------------------
 
 func newSes(web *Web, con *websocket.Conn, id uint64) *Ses {
 	ses := &Ses{
-		web:   web,
-		con:   con,
-		id:    id,
-		sChan: make(chan *Pack, jconfig.GetInt("web.sBufferSize")),
-		qChan: make(chan any, 2),
+		web:      web,
+		con:      con,
+		id:       id,
+		rTimeout: time.Duration(jconfig.GetInt("tcp.rTimeout")) * time.Millisecond,
+		sTimeout: time.Duration(jconfig.GetInt("tcp.sTimeout")) * time.Millisecond,
+		sChan:    make(chan *Pack, jconfig.GetInt("web.sBufferSize")),
+		qChan:    make(chan any, 2),
 	}
 	return ses
 }
@@ -50,17 +56,22 @@ func (ses *Ses) recvGoro() {
 		case <-ses.qChan:
 			return
 		default:
+			if ses.rTimeout > 0 {
+				ses.con.SetReadDeadline(time.Now().Add(ses.rTimeout))
+			}
 			_, data, err := ses.con.ReadMessage()
 			if err != nil {
-				err := err.(*websocket.CloseError)
-				if err.Code != websocket.CloseNormalClosure && err.Code != websocket.CloseAbnormalClosure {
-					jlog.Error(err)
-				}
 				ses.web.delete(ses.id)
 				return
 			}
 			pack := unserializeData(data)
-			ses.web.receive(ses.id, pack)
+			switch pack.Cmd {
+			case jglobal.CMD_HEARTBEAT:
+			case jglobal.CMD_PING:
+				ses.web.Send(ses.id, jglobal.CMD_PONG, []byte{})
+			default:
+				ses.web.receive(ses.id, pack)
+			}
 		}
 	}
 }
@@ -77,6 +88,9 @@ func (ses *Ses) sendGoro() {
 		case <-ses.qChan:
 			return
 		case pack := <-ses.sChan:
+			if ses.sTimeout > 0 {
+				ses.con.SetWriteDeadline(time.Now().Add(ses.sTimeout))
+			}
 			data := serializePack(pack)
 			err := ses.con.WriteMessage(websocket.BinaryMessage, data)
 			if err != nil {
