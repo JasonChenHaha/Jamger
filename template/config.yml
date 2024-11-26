@@ -37,4 +37,4 @@ mysql:
     maxIdleTime: 30m        # 最大空闲连接存活时间
 
 
-debug: false
+debug: true
