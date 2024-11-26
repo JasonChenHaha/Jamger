@@ -6,13 +6,14 @@ package jmysql
 import (
 	jconfig "jamger/config"
 	jlog "jamger/log"
+	"time"
 
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
 
 type Mysql struct {
-	db *gorm.DB
+	*gorm.DB
 }
 
 func NewMysql() *Mysql {
@@ -27,9 +28,13 @@ func (ms *Mysql) Run() {
 		jlog.Fatal(err)
 	}
 	jlog.Info("connect to mysql")
-	ms.db = db
-}
-
-func (ms *Mysql) AutoMigrate(tab interface{}) {
-	ms.db.AutoMigrate(tab)
+	sqlDb, err := db.DB()
+	if err != nil {
+		jlog.Fatal(err)
+	}
+	sqlDb.SetMaxOpenConns(jconfig.GetInt("mysql.maxOpenCon"))
+	sqlDb.SetMaxIdleConns(jconfig.GetInt("mysql.maxIdleCon"))
+	sqlDb.SetConnMaxLifetime(time.Duration(jconfig.GetInt("mysql.maxLifeTime")) * time.Millisecond)
+	sqlDb.SetConnMaxIdleTime(time.Duration(jconfig.GetInt("mysql.maxIdleTime")) * time.Millisecond)
+	ms.DB = db
 }

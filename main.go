@@ -3,6 +3,7 @@ package main
 import (
 	jdb "jamger/db"
 	jlog "jamger/log"
+	jmeta "jamger/meta"
 	jnet "jamger/net"
 	"jamger/work"
 	"os"
@@ -15,6 +16,8 @@ func main() {
 	jdb.Run()
 
 	jnet.Run()
+
+	jmeta.Init()
 
 	work.Run()
 
