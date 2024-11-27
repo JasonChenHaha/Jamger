@@ -15,6 +15,4 @@ func main() {
 	// testKcp()
 	// testWeb()
 	// testHttp()
-
-	select {}
 }

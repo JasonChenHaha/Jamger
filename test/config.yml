@@ -30,7 +30,7 @@ http:
     sTimeout: 5s
 
 mysql:
-    dsn: mmog:mmog@tcp(192.168.4.19:3306)/test?charset=utf8mb4&parseTime=true&loc=Local
+    dsn: mmog:mmog@tcp(192.168.4.14:3306)/test?charset=utf8mb4&parseTime=true&loc=Local
     maxOpenCon: 10          # 最大打开连接数
     maxIdleCon: 5           # 最大空闲连接数
     maxLifeTime: 1h         # 最大连接存活时间
