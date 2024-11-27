@@ -39,6 +39,10 @@ func init() {
 
 // ------------------------- outside -------------------------
 
+func Logger() *logrus.Logger {
+	return g_log.log
+}
+
 func Trace(args ...any) {
 	g_log.skip = 7
 	g_log.log.Trace(args...)

@@ -35,6 +35,6 @@ mysql:
     maxIdleCon: 5           # 最大空闲连接数
     maxLifeTime: 1h         # 最大连接存活时间
     maxIdleTime: 30m        # 最大空闲连接存活时间
-
+    slowThreshold: 100ms    # 慢日志阈值
 
 debug: true
