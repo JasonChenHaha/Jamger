@@ -5,7 +5,7 @@ import (
 	jlog "jamger/log"
 	jmeta "jamger/meta"
 	jnet "jamger/net"
-	"jamger/work"
+	jwork "jamger/work"
 	"os"
 	"os/signal"
 )
@@ -19,7 +19,7 @@ func main() {
 
 	jmeta.Init()
 
-	work.Run()
+	jwork.Run()
 
 	keep()
 }

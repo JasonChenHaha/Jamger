@@ -27,7 +27,7 @@ func (ms *Mysql) Run() {
 		SingularTable: false, // 开启表名复数形式
 		NoLowerCase:   false, // 开启自动转小写
 	}
-	lo := logger.New(jlog.Logger(), logger.Config{
+	lo := logger.New(jlog.GetLog(), logger.Config{
 		SlowThreshold: time.Duration(jconfig.GetInt("slowThreshold")) * time.Millisecond,
 		LogLevel:      logger.Warn,
 	})

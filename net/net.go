@@ -16,22 +16,22 @@ var Web *jweb.Web
 var Http *jhttp.Http
 
 func Run() {
-	if cfg := jconfig.Get("tcp"); cfg != nil {
+	if jconfig.Get("tcp") != nil {
 		Tcp = jtcp.NewTcp()
 		Tcp.Run()
 	}
 
-	if cfg := jconfig.Get("kcp"); cfg != nil {
+	if jconfig.Get("kcp") != nil {
 		Kcp = jkcp.NewKcp()
 		Kcp.Run()
 	}
 
-	if cfg := jconfig.Get("web"); cfg != nil {
+	if jconfig.Get("web") != nil {
 		Web = jweb.NewWeb()
 		Web.Run()
 	}
 
-	if cfg := jconfig.Get("http"); cfg != nil {
+	if jconfig.Get("http") != nil {
 		Http = jhttp.NewHttp()
 		Http.Run()
 	}

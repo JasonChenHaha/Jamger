@@ -31,7 +31,7 @@ func newSes(kcp *Kcp, con *kcp.UDPSession, id uint64) *Ses {
 		sChan:    make(chan *Pack, jconfig.GetInt("kcp.sBufferSize")),
 		qChan:    make(chan any, 4),
 	}
-	if jconfig.GetBool("kcp.noDelay.enable") {
+	if jconfig.Get("kcp.noDelay") != nil {
 		ses.con.SetNoDelay(1, jconfig.GetInt("kcp.noDelay.interval"), jconfig.GetInt("kcp.noDelay.resend"), jconfig.GetInt("kcp.noDelay.nc"))
 	}
 	return ses
