@@ -2,6 +2,7 @@ package main
 
 import (
 	jdb "jamger/db"
+	jexample "jamger/example"
 	jlog "jamger/log"
 	jmeta "jamger/meta"
 	jnet "jamger/net"
@@ -20,6 +21,8 @@ func main() {
 	jmeta.Init()
 
 	jwork.Run()
+
+	jexample.Run()
 
 	keep()
 }
