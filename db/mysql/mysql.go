@@ -40,13 +40,5 @@ func (ms *Mysql) Run() {
 		jlog.Fatal(err)
 	}
 	jlog.Info("connect to mysql")
-	sqlDb, err := db.DB()
-	if err != nil {
-		jlog.Fatal(err)
-	}
-	sqlDb.SetMaxOpenConns(jconfig.GetInt("mysql.maxOpenCon"))
-	sqlDb.SetMaxIdleConns(jconfig.GetInt("mysql.maxIdleCon"))
-	sqlDb.SetConnMaxLifetime(time.Duration(jconfig.GetInt("mysql.maxLifeTime")) * time.Millisecond)
-	sqlDb.SetConnMaxIdleTime(time.Duration(jconfig.GetInt("mysql.maxIdleTime")) * time.Millisecond)
 	ms.DB = db
 }

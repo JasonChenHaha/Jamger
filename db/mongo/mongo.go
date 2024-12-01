@@ -38,9 +38,7 @@ func NewMongo(base string) *Mongo {
 func (mog *Mongo) Run() {
 	opts := options.Client().
 		ApplyURI(jconfig.GetString("mongo.uri")).
-		SetTimeout(time.Duration(jconfig.GetInt("mongo.timeout")) * time.Millisecond).
-		SetMaxPoolSize(uint64(jconfig.GetInt("mongo.maxPoolSize"))).
-		SetMaxConnIdleTime(time.Duration(jconfig.GetInt("mong.maxIdleTime")) * time.Millisecond)
+		SetSocketTimeout(time.Duration(jconfig.GetInt("mongo.socketTimeout")) * time.Millisecond)
 	client, err := mongo.Connect(context.Background(), opts)
 	if err != nil {
 		jlog.Fatal(err)
