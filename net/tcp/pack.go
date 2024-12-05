@@ -28,7 +28,7 @@ type Pack struct {
 	Data []byte
 }
 
-// ------------------------- outside -------------------------
+// ------------------------- package -------------------------
 
 func makePack(cmd uint16, data []byte) *Pack {
 	return &Pack{
@@ -36,8 +36,6 @@ func makePack(cmd uint16, data []byte) *Pack {
 		Data: data,
 	}
 }
-
-// ------------------------- package -------------------------
 
 func recvPack(con net.Conn) (pack *Pack, err error) {
 	buffer := make([]byte, gHeadSize)

@@ -6,6 +6,8 @@ import (
 	"strings"
 )
 
+// ------------------------- outside -------------------------
+
 func StructToString(s any) string {
 	// 获取结构体类型和字段值
 	val := reflect.ValueOf(s)

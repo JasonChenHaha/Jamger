@@ -9,7 +9,7 @@ import (
 
 // ------------------------- outside -------------------------
 
-var Mysql *jmysql.Mysql
+var Mysql *jmysql.Jmysql
 var Mongo *jmongo.Mongo
 var Redis *jredis.Redis
 

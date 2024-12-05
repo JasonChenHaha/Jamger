@@ -12,6 +12,8 @@ type Redis struct {
 	client *redis.Client
 }
 
+// ------------------------- outside -------------------------
+
 func NewRedis() *Redis {
 	return &Redis{}
 }

@@ -3,8 +3,15 @@ package jexample
 import (
 	jdb "jamger/db"
 	jmongo "jamger/db/mongo"
+	jdebug "jamger/debug"
+	jglobal "jamger/global"
 	jlog "jamger/log"
+	jnet "jamger/net"
+	jkcp "jamger/net/kcp"
+	jtcp "jamger/net/tcp"
+	jweb "jamger/net/web"
 	"reflect"
+	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 )
@@ -15,8 +22,25 @@ type DDD struct {
 }
 
 func Run() {
-	mongo()
-	redis()
+	// network()
+	// mongo()
+	// redis()
+	schedule()
+}
+
+func network() {
+	jnet.Tcp.RegisterHandler(1, func(id uint64, pack *jtcp.Pack) {
+		jlog.Debug(jdebug.StructToString(pack))
+		jnet.Tcp.Send(id, 1, []byte("ok!"))
+	})
+	jnet.Kcp.RegisterHandler(2, func(id uint64, pack *jkcp.Pack) {
+		jlog.Debug(jdebug.StructToString(pack))
+		jnet.Kcp.Send(id, 1, []byte("ok!"))
+	})
+	jnet.Web.RegisterHandler(1, func(id uint64, pack *jweb.Pack) {
+		jlog.Debug(jdebug.StructToString(pack))
+		jnet.Kcp.Send(id, 1, []byte("ok!"))
+	})
 }
 
 func mongo() {
@@ -29,20 +53,12 @@ func mongo() {
 	in = &jmongo.Input{
 		Col: "test",
 	}
-	count, err := jdb.Mongo.EstimatedDocumentCount(in)
-	if err != nil {
-		jlog.Error(err)
-	}
+	count, _ := jdb.Mongo.EstimatedDocumentCount(in)
 	jlog.Debug(count)
-	count, err = jdb.Mongo.CountDocuments(in)
-	if err != nil {
-		jlog.Error(err)
-	}
+	count, _ = jdb.Mongo.CountDocuments(in)
 	jlog.Debug(count)
 	ou = &DDD{}
-	if err := jdb.Mongo.FindOne(in, ou); err != nil {
-		jlog.Error(err)
-	}
+	jdb.Mongo.FindOne(in, ou)
 	jlog.Debug(ou)
 	in = &jmongo.Input{
 		Col:    "test",
@@ -51,17 +67,13 @@ func mongo() {
 		Limit:  1,
 	}
 	ou = &[]*DDD{}
-	if err := jdb.Mongo.FindMany(in, ou); err != nil {
-		jlog.Error(err)
-	}
+	jdb.Mongo.FindMany(in, ou)
 	jlog.Debug(ou)
 	in = &jmongo.Input{
 		Col:    "test",
 		Insert: &DDD{2, "2"},
 	}
-	if err := jdb.Mongo.InsertOne(in); err != nil {
-		jlog.Error(err)
-	}
+	jdb.Mongo.InsertOne(in)
 	in = &jmongo.Input{
 		Col: "test",
 		InsertMany: []any{
@@ -69,59 +81,52 @@ func mongo() {
 			&DDD{Uin: 4, Name: "4"},
 		},
 	}
-	if err := jdb.Mongo.InsertMany(in); err != nil {
-		jlog.Error(err)
-	}
+	jdb.Mongo.InsertMany(in)
 	in = &jmongo.Input{
 		Col:    "test",
 		Filter: bson.M{"uin": 2},
 		Update: bson.M{"$set": bson.M{"name": "2"}},
 	}
-	if err := jdb.Mongo.UpdateOne(in); err != nil {
-		jlog.Error(err)
-	}
+	jdb.Mongo.UpdateOne(in)
 	in = &jmongo.Input{
 		Col:    "test",
 		Filter: bson.M{"uin": 2},
 		Update: bson.M{"$set": bson.M{"name": "2"}},
 	}
-	if err := jdb.Mongo.UpdateMany(in); err != nil {
-		jlog.Error(err)
-	}
+	jdb.Mongo.UpdateMany(in)
 	in = &jmongo.Input{
 		Col:    "test",
 		Filter: bson.M{"uin": 4},
 	}
-	if err := jdb.Mongo.DeleteOne(in); err != nil {
-		jlog.Error(err)
-	}
+	jdb.Mongo.DeleteOne(in)
 	in = &jmongo.Input{
 		Col:    "test",
 		Filter: bson.M{"uin": 3},
 	}
-	if err := jdb.Mongo.DeleteMany(in); err != nil {
-		jlog.Error(err)
-	}
+	jdb.Mongo.DeleteMany(in)
 }
 
 func redis() {
-	res, err := jdb.Redis.Do("SET", "jamger", "123", "EX", 3)
-	if err != nil {
-		jlog.Error(err)
-	}
+	res, _ := jdb.Redis.Do("SET", "jamger", "123", "EX", 3)
 	jlog.Debug(res)
-	res, err = jdb.Redis.Do("GET", "jamger")
-	if err != nil {
-		jlog.Error(err)
-	}
+	res, _ = jdb.Redis.Do("GET", "jamger")
 	jlog.Debug(reflect.TypeOf(res).Kind())
 	scr := `
 		local value = redis.call('GET', KEYS[1])
 		return value
 	`
-	res, err = jdb.Redis.DoScript(scr, []string{"jamger"})
-	if err != nil {
-		jlog.Error(err)
-	}
+	res, _ = jdb.Redis.DoScript(scr, []string{"jamger"})
 	jlog.Debug(res)
+}
+
+func schedule() {
+	id := jglobal.Schedule.DoEvery("* * * * * *", func() {
+		jlog.Debug("doevery")
+	})
+
+	id2 := jglobal.Schedule.DoAt(3*time.Second, func() {
+		jlog.Debug("doat")
+	})
+	jglobal.Schedule.Stop(id)
+	jglobal.Schedule.Stop(id2)
 }

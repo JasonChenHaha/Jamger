@@ -20,7 +20,7 @@ func main() {
 
 	jmeta.Init()
 
-	jwork.Run()
+	jwork.Init()
 
 	jexample.Run()
 

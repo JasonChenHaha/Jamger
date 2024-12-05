@@ -14,15 +14,17 @@ import (
 	"gorm.io/gorm/schema"
 )
 
-type Mysql struct {
+type Jmysql struct {
 	*gorm.DB
 }
 
-func NewMysql() *Mysql {
-	return &Mysql{}
+// ------------------------- outside -------------------------
+
+func NewMysql() *Jmysql {
+	return &Jmysql{}
 }
 
-func (ms *Mysql) Run() {
+func (ms *Jmysql) Run() {
 	st := &schema.NamingStrategy{
 		SingularTable: false, // 开启表名复数形式
 		NoLowerCase:   false, // 开启自动转小写

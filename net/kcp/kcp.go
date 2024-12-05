@@ -52,7 +52,7 @@ func (kc *Kcp) Send(id uint64, cmd uint16, data []byte) {
 	obj.(*Ses).send(makePack(cmd, data))
 }
 
-// ------------------------- debug -------------------------
+// ------------------------- inside -------------------------
 
 func (kc *Kcp) accept(listener *kcp.Listener) {
 	for {

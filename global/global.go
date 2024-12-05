@@ -7,3 +7,19 @@ const (
 	CMD_PING      = 3
 	CMD_PONG      = 4
 )
+
+type AllInt interface {
+	~int | ~uint | ~int8 | ~uint8 | ~int16 | ~uint16 | ~int32 | ~uint32 | ~int64 | ~uint64
+}
+
+type AllSInt interface {
+	~int | ~int8 | ~int16 | ~int32 | ~int64
+}
+
+type AllUInt interface {
+	~uint | ~uint8 | ~uint16 | ~uint32 | ~uint64
+}
+
+type AllFloat interface {
+	~float32 | ~float64
+}

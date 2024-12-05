@@ -5,11 +5,11 @@ go 1.23.2
 require (
 	github.com/gorilla/websocket v1.5.3
 	github.com/redis/go-redis/v9 v9.7.0
+	github.com/robfig/cron/v3 v3.0.0
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/viper v1.19.0
 	github.com/xtaci/kcp-go v5.4.20+incompatible
 	go.mongodb.org/mongo-driver v1.17.1
-	google.golang.org/protobuf v1.33.0
 	gorm.io/driver/mysql v1.5.7
 	gorm.io/gorm v1.25.12
 )

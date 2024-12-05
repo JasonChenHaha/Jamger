@@ -2,14 +2,16 @@ package jconfig
 
 import (
 	"fmt"
+	jglobal "jamger/global"
 	jlog "jamger/log"
-	"jamger/util"
 	"os"
 
 	"github.com/spf13/viper"
 )
 
 var g_cfg = viper.New()
+
+// ------------------------- inside -------------------------
 
 func init() {
 	path, err := os.Getwd()
@@ -32,7 +34,7 @@ func formatCfg() {
 		for k, v := range cfg {
 			switch o := v.(type) {
 			case string:
-				if num, ok := util.TransTimeStrToUint64(o); ok {
+				if num, ok := jglobal.TransTimeStrToUint64(o); ok {
 					if len(path) == 0 {
 						g_cfg.Set(k, num)
 					} else {
@@ -50,6 +52,8 @@ func formatCfg() {
 	}
 	fu("", g_cfg.AllSettings())
 }
+
+// ------------------------- outside -------------------------
 
 func Get(key string) any {
 	return g_cfg.Get(key)
