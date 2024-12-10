@@ -1,7 +1,7 @@
 package jglobal
 
 import (
-	jlog "jamger/log"
+	"jlog"
 	"regexp"
 	"strconv"
 	"time"

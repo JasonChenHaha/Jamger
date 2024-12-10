@@ -1,6 +1,6 @@
 package jmeta
 
-import jdb "jamger/db"
+import "jdb"
 
 // ------------------------- outside -------------------------
 

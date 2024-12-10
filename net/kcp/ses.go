@@ -1,9 +1,9 @@
 package jkcp
 
 import (
-	jconfig "jamger/config"
-	jglobal "jamger/global"
-	jlog "jamger/log"
+	"jconfig"
+	"jglobal"
+	"jlog"
 	"time"
 
 	"github.com/xtaci/kcp-go"

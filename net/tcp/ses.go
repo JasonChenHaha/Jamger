@@ -1,9 +1,9 @@
 package jtcp
 
 import (
-	jconfig "jamger/config"
-	jglobal "jamger/global"
-	jlog "jamger/log"
+	"jconfig"
+	"jglobal"
+	"jlog"
 	"net"
 	"time"
 )

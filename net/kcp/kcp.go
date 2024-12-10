@@ -1,8 +1,8 @@
 package jkcp
 
 import (
-	jconfig "jamger/config"
-	jlog "jamger/log"
+	"jconfig"
+	"jlog"
 	"log"
 	"sync"
 	"sync/atomic"
@@ -26,7 +26,7 @@ func NewKcp() *Kcp {
 	return &Kcp{handler: make(map[uint16]Handler)}
 }
 
-func (kc *Kcp) RegisterHandler(id uint16, handler Handler) {
+func (kc *Kcp) Register(id uint16, handler Handler) {
 	kc.handler[id] = handler
 }
 
@@ -93,7 +93,7 @@ func (kc *Kcp) receive(id uint64, pack *Pack) {
 // ------------------------- debug -------------------------
 
 func (kc *Kcp) watch() {
-	ticker := time.NewTicker(3 * time.Second)
+	ticker := time.NewTicker(10 * time.Second)
 	for range ticker.C {
 		jlog.Debug("connecting ", kc.counter)
 	}

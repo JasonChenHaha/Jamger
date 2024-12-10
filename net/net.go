@@ -1,11 +1,11 @@
 package jnet
 
 import (
-	jconfig "jamger/config"
-	jhttp "jamger/net/http"
-	jkcp "jamger/net/kcp"
-	jtcp "jamger/net/tcp"
-	jweb "jamger/net/web"
+	"jconfig"
+	"jhttp"
+	"jkcp"
+	"jtcp"
+	"jweb"
 )
 
 // ------------------------- outside -------------------------

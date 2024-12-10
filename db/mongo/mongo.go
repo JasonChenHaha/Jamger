@@ -2,8 +2,8 @@ package jmongo
 
 import (
 	"context"
-	jconfig "jamger/config"
-	jlog "jamger/log"
+	"jconfig"
+	"jlog"
 	"sync"
 	"time"
 

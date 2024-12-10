@@ -2,8 +2,8 @@ package jredis
 
 import (
 	"context"
-	jconfig "jamger/config"
-	jlog "jamger/log"
+	"jconfig"
+	"jlog"
 
 	"github.com/redis/go-redis/v9"
 )

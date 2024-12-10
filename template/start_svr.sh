@@ -1,5 +1,4 @@
 cd $(dirname "$0")
 
-SVR_NAME=svr_name
-
-./$SVR_NAME
+mkdir -p log
+nohup ./jamger config.yml  >> ./log/jamger.log 2>&1 &

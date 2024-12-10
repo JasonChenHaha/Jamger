@@ -1,7 +1,7 @@
 package jglobal
 
 import (
-	jlog "jamger/log"
+	"jlog"
 	"time"
 
 	"github.com/robfig/cron/v3"

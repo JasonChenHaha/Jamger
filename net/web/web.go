@@ -1,8 +1,8 @@
 package jweb
 
 import (
-	jconfig "jamger/config"
-	jlog "jamger/log"
+	"jconfig"
+	"jlog"
 	"net/http"
 	"sync"
 	"sync/atomic"
@@ -27,7 +27,7 @@ func NewWeb() *Web {
 	return &Web{handler: make(map[uint16]Handler)}
 }
 
-func (web *Web) RegisterHandler(id uint16, handler Handler) {
+func (web *Web) Register(id uint16, handler Handler) {
 	web.handler[id] = handler
 }
 
@@ -102,7 +102,7 @@ func (web *Web) receive(id uint64, pack *Pack) {
 // ------------------------- debug -------------------------
 
 func (web *Web) watch() {
-	ticker := time.NewTicker(3 * time.Second)
+	ticker := time.NewTicker(10 * time.Second)
 	for range ticker.C {
 		jlog.Debug("connecting ", web.counter)
 	}

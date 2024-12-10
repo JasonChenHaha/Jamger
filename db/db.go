@@ -1,10 +1,10 @@
 package jdb
 
 import (
-	jconfig "jamger/config"
-	jmongo "jamger/db/mongo"
-	jmysql "jamger/db/mysql"
-	jredis "jamger/db/redis"
+	"jconfig"
+	"jmongo"
+	"jmysql"
+	"jredis"
 )
 
 // ------------------------- outside -------------------------

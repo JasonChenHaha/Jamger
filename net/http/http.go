@@ -2,8 +2,8 @@ package jhttp
 
 import (
 	"fmt"
-	jconfig "jamger/config"
-	jlog "jamger/log"
+	"jconfig"
+	"jlog"
 	"time"
 
 	"net/http"

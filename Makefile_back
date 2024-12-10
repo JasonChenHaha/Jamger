@@ -1,0 +1,40 @@
+ROOT=$(shell pwd)
+EXCLUDE_DIRS = out test
+
+all:
+
+install:
+	@echo install...
+	@dirs=""; \
+	for dir in $(shell find . -type d -not -path '*/.*' -not -path '.'); do \
+		exclude=0; \
+		for exclude_dir in $(EXCLUDE_DIRS); do \
+			if echo "$$dir" | grep -q "$$exclude_dir"; then \
+				exclude=1; \
+				break; \
+			fi; \
+		done; \
+		if [[ "$$dir" != */.* && $$exclude -eq 0 ]]; then \
+			dirs="$$dirs $$dir"; \
+			cd $(ROOT)/$(patsubst ./%,%,$$dir); \
+			if [[ ! -f ./go.mod ]]; then \
+				if [[ "$$dir" == *"project"* ]]; then \
+					go mod init "$$(basename $$dir)"; \
+				else \
+					go mod init "j$$(basename $$dir)"; \
+				fi; \
+			fi; \
+			go mod tidy; \
+		fi; \
+	done; \
+	cd $(ROOT); \
+	rm -f go.work go.work.sum; \
+	go work init $$dirs; \
+
+clean:
+	@echo clean...
+	@rm -f go.work go.work.sum
+	@find ./ \( -name "go.mod" -o -name "go.sum" \) -delete
+	@rm -rf out
+
+.PHONY: all install clean

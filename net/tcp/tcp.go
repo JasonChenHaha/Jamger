@@ -1,8 +1,8 @@
 package jtcp
 
 import (
-	jconfig "jamger/config"
-	jlog "jamger/log"
+	"jconfig"
+	"jlog"
 	"net"
 	"sync"
 	"sync/atomic"
@@ -24,7 +24,7 @@ func NewTcp() *Tcp {
 	return &Tcp{handler: make(map[uint16]Handler)}
 }
 
-func (tcp *Tcp) RegisterHandler(id uint16, handler Handler) {
+func (tcp *Tcp) Register(id uint16, handler Handler) {
 	tcp.handler[id] = handler
 }
 
@@ -92,7 +92,7 @@ func (tcp *Tcp) receive(id uint64, pack *Pack) {
 // ------------------------- debug -------------------------
 
 func (tcp *Tcp) watch() {
-	ticker := time.NewTicker(3 * time.Second)
+	ticker := time.NewTicker(10 * time.Second)
 	for range ticker.C {
 		jlog.Debug("connecting ", tcp.counter)
 	}

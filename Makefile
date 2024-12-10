@@ -1,48 +1,43 @@
-SVR_NAME = jamger
-OUT_PATH = ./out
-TEST_PATH = ./test
+ROOT=$(shell pwd)
+EXCLUDE=out test project
 
-all: install build
-
-run: install build start
+all:
 
 install:
 	@echo install...
-ifneq ($(shell test -f go.mod && echo 1 || echo 0), 1)
-	@go mod init $(SVR_NAME)
-endif
-	@go mod tidy
-	@mkdir -p $(OUT_PATH)
-	@cp ./template/start_svr.sh $(OUT_PATH); chmod +x $(OUT_PATH)/start_svr.sh; sed -i 's/svr_name/$(SVR_NAME)/' $(OUT_PATH)/start_svr.sh
-	@cp ./template/stop_svr.sh $(OUT_PATH); chmod +x $(OUT_PATH)/stop_svr.sh; sed -i 's/svr_name/$(SVR_NAME)/' $(OUT_PATH)/stop_svr.sh
-	@cp ./template/config.yml $(OUT_PATH)
+	@./script/init_go.sh
 
-build: install
-	@echo build...
-	@make install
-	@go build -o $(OUT_PATH)
-
-pb:
-	@echo pb...
-	@cd ./pb && protoc --go_out=./ *.proto
+other:
+	# @dirs=""; \
+	# for dir in $(shell find . -type d -not -path '*/.*' -not -path '.'); do \
+	# 	exclude=0; \
+	# 	for ex in $(EXCLUDE); do \
+	# 		if echo "$$dir" | grep -q "$$ex"; then \
+	# 			exclude=1; \
+	# 			break; \
+	# 		fi; \
+	# 	done; \
+	# 	if [[ $$exclude -eq 0 ]]; then \
+	# 		cd $(ROOT)/$(patsubst ./%,%,$$dir); \
+	# 		if [[ ! -f ./go.mod ]]; then \
+	# 			go mod init "j$$(basename $$dir)"; \
+	# 		fi; \
+	# 		go mod tidy; \
+	# 	fi; \
+	# done; \
+	# for dir in $(shell find ./project -type d -not -path '*/.*' -not -path '.' -not -path './project'); do \
+	# 	cd $(ROOT)/$(patsubst ./%,%,$$dir); \
+	# 	if [[ $$(echo $$dir | tr -cd '/' | wc -c) -eq 2 ]]; then \
+	# 		project=$$(basename $$dir); \
+	# 		go mod init "$$project"; \
+	# 	else \
+	# 		go mod init "$$project$$(basename $$dir)"; \
+	# 	fi; \
+	# done;
 
 clean:
 	@echo clean...
-	@rm -rf ./pb/*.pb.go
-	@rm -rf $(OUT_PATH)
-	@rm -rf ./test/config.yml
+	@find ./ \( -name "go.mod" -o -name "go.sum" -o -name "go.work" -o -name "go.work.sum" \) -delete
+	@rm -rf out
 
-start:
-	@echo start...
-	@$(OUT_PATH)/start_svr.sh
-
-stop:
-	@echo stop...
-	@$(OUT_PATH)/stop_svr.sh
-
-test:
-	@echo test...
-	@cp ./template/config.yml $(TEST_PATH)
-	@cd $(TEST_PATH) && go run ./
-
-.PHONY: all install build pb clean start stop test
+.PHONY: all install clean

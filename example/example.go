@@ -1,15 +1,15 @@
 package jexample
 
 import (
-	jdb "jamger/db"
-	jmongo "jamger/db/mongo"
-	jdebug "jamger/debug"
-	jglobal "jamger/global"
-	jlog "jamger/log"
-	jnet "jamger/net"
-	jkcp "jamger/net/kcp"
-	jtcp "jamger/net/tcp"
-	jweb "jamger/net/web"
+	"jdb"
+	"jdebug"
+	"jglobal"
+	"jkcp"
+	"jlog"
+	"jmongo"
+	"jnet"
+	"jtcp"
+	"jweb"
 	"reflect"
 	"time"
 
@@ -25,19 +25,20 @@ func Run() {
 	// network()
 	// mongo()
 	// redis()
+	event()
 	schedule()
 }
 
 func network() {
-	jnet.Tcp.RegisterHandler(1, func(id uint64, pack *jtcp.Pack) {
+	jnet.Tcp.Register(1, func(id uint64, pack *jtcp.Pack) {
 		jlog.Debug(jdebug.StructToString(pack))
 		jnet.Tcp.Send(id, 1, []byte("ok!"))
 	})
-	jnet.Kcp.RegisterHandler(2, func(id uint64, pack *jkcp.Pack) {
+	jnet.Kcp.Register(2, func(id uint64, pack *jkcp.Pack) {
 		jlog.Debug(jdebug.StructToString(pack))
 		jnet.Kcp.Send(id, 1, []byte("ok!"))
 	})
-	jnet.Web.RegisterHandler(1, func(id uint64, pack *jweb.Pack) {
+	jnet.Web.Register(1, func(id uint64, pack *jweb.Pack) {
 		jlog.Debug(jdebug.StructToString(pack))
 		jnet.Kcp.Send(id, 1, []byte("ok!"))
 	})
@@ -122,11 +123,20 @@ func redis() {
 func schedule() {
 	id := jglobal.Schedule.DoEvery("* * * * * *", func() {
 		jlog.Debug("doevery")
+		jglobal.Event.Emit(jglobal.EVENT_TEST, nil)
 	})
 
-	id2 := jglobal.Schedule.DoAt(3*time.Second, func() {
+	jglobal.Schedule.DoAt(20*time.Second, func() {
 		jlog.Debug("doat")
+		jglobal.Schedule.Stop(id)
 	})
-	jglobal.Schedule.Stop(id)
-	jglobal.Schedule.Stop(id2)
+}
+
+func event() {
+	jglobal.Event.Register(jglobal.EVENT_TEST, func(context any) {
+		jlog.Debug("recv event test1")
+	})
+	jglobal.Event.Register(jglobal.EVENT_TEST, func(context any) {
+		jlog.Debug("recv event test2")
+	})
 }

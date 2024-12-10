@@ -2,8 +2,8 @@ package jconfig
 
 import (
 	"fmt"
-	jglobal "jamger/global"
-	jlog "jamger/log"
+	"jglobal"
+	"jlog"
 	"os"
 
 	"github.com/spf13/viper"
@@ -19,7 +19,7 @@ func init() {
 		jlog.Panic(err)
 	}
 	g_cfg.AddConfigPath(path)
-	g_cfg.SetConfigName("config")
+	g_cfg.SetConfigName(os.Args[1])
 	g_cfg.SetConfigType("yml")
 	if err = g_cfg.ReadInConfig(); err != nil {
 		jlog.Panic(err)

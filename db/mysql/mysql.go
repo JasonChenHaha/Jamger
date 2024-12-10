@@ -4,8 +4,8 @@ package jmysql
 // https://learnku.com/docs/gorm/v2
 
 import (
-	jconfig "jamger/config"
-	jlog "jamger/log"
+	"jconfig"
+	"jlog"
 	"time"
 
 	"gorm.io/driver/mysql"
