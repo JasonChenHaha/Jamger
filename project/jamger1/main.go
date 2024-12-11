@@ -1,23 +1,30 @@
 package main
 
 import (
+	jwork "jamger1work"
+	"jconfig"
+	"jdb"
+	"jexample"
+	"jglobal"
 	"jlog"
+	"jmeta"
+	"jnet"
 )
 
 func main() {
 	jlog.Info(">jamger start<")
-	// jdb.Run()
+	jdb.Run()
 
-	// jnet.Run()
+	jnet.Run()
 
-	// jmeta.Init()
+	jmeta.Init()
 
-	// jwork.Init()
+	jwork.Init()
 
-	// if jconfig.GetBool("debug") {
-	// 	jexample.Run()
-	// }
+	if jconfig.GetBool("debug") {
+		jexample.Run()
+	}
 
-	// jglobal.Keep()
-	// jlog.Info(">jamger stop<")
+	jglobal.Keep()
+	jlog.Info(">jamger stop<")
 }

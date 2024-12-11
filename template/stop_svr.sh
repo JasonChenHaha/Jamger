@@ -1,1 +1,1 @@
-pkill -f jamger
+pkill -SIGINT -f './jamger'

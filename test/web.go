@@ -2,11 +2,11 @@ package main
 
 import (
 	"encoding/binary"
-	jconfig "jamger/config"
-	jdebug "jamger/debug"
-	jglobal "jamger/global"
-	jlog "jamger/log"
-	jweb "jamger/net/web"
+	"jconfig"
+	"jdebug"
+	"jglobal"
+	"jlog"
+	"jweb"
 	"strings"
 	"time"
 

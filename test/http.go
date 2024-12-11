@@ -2,7 +2,7 @@ package main
 
 import (
 	"io"
-	jlog "jamger/log"
+	"jlog"
 	"net/http"
 )
 

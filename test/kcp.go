@@ -3,11 +3,11 @@ package main
 import (
 	"encoding/binary"
 	"io"
-	jconfig "jamger/config"
-	jdebug "jamger/debug"
-	jglobal "jamger/global"
-	jlog "jamger/log"
-	jkcp "jamger/net/kcp"
+	"jconfig"
+	"jdebug"
+	"jglobal"
+	"jkcp"
+	"jlog"
 	"strings"
 	"time"
 
