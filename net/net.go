@@ -15,24 +15,20 @@ var Kcp *jkcp.Kcp
 var Web *jweb.Web
 var Http *jhttp.Http
 
-func Run() {
+func Init() {
 	if jconfig.Get("tcp") != nil {
 		Tcp = jtcp.NewTcp()
-		Tcp.Run()
 	}
 
 	if jconfig.Get("kcp") != nil {
 		Kcp = jkcp.NewKcp()
-		Kcp.Run()
 	}
 
 	if jconfig.Get("web") != nil {
 		Web = jweb.NewWeb()
-		Web.Run()
 	}
 
 	if jconfig.Get("http") != nil {
 		Http = jhttp.NewHttp()
-		Http.Run()
 	}
 }

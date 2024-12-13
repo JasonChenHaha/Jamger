@@ -5,6 +5,8 @@ import (
 	"os/signal"
 )
 
+var SVR_NAME = os.Args[0][2:]
+
 const (
 	CMD_OK        = 0
 	CMD_CLOSE     = 1
@@ -14,7 +16,8 @@ const (
 )
 
 const (
-	EVENT_TEST = iota
+	EVENT_TEST_1 = 0
+	EVENT_TEST_2 = "jamger"
 )
 
 type AllInt interface {

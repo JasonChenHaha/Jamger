@@ -15,16 +15,14 @@ type Redis struct {
 // ------------------------- outside -------------------------
 
 func NewRedis() *Redis {
-	return &Redis{}
-}
-
-func (re *Redis) Run() {
+	re := &Redis{}
 	client := redis.NewClient(&redis.Options{
 		Addr:     jconfig.GetString("redis.addr"),
 		Password: jconfig.GetString("redis.password"),
 	})
 	jlog.Info("connect to redis")
 	re.client = client
+	return re
 }
 
 func (re *Redis) Do(args ...any) (any, error) {

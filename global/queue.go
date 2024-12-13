@@ -7,6 +7,8 @@ type Queue[T any] struct {
 	lock sync.RWMutex
 }
 
+// ------------------------- outside -------------------------
+
 func (que *Queue[T]) Push(data T) {
 	que.lock.Lock()
 	defer que.lock.Unlock()

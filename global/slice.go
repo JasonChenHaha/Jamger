@@ -1,5 +1,7 @@
 package jglobal
 
+// ------------------------- outside -------------------------
+
 // 查找元素
 func SliceFind[T comparable](s []T, val T) bool {
 	for _, v := range s {

@@ -21,14 +21,7 @@ type Tcp struct {
 // ------------------------- outside -------------------------
 
 func NewTcp() *Tcp {
-	return &Tcp{handler: make(map[uint16]Handler)}
-}
-
-func (tcp *Tcp) Register(id uint16, handler Handler) {
-	tcp.handler[id] = handler
-}
-
-func (tcp *Tcp) Run() {
+	tcp := &Tcp{handler: make(map[uint16]Handler)}
 	addr := jconfig.GetString("tcp.addr")
 	listener, err := net.Listen("tcp", addr)
 	if err != nil {
@@ -39,6 +32,11 @@ func (tcp *Tcp) Run() {
 	if jconfig.GetBool("debug") {
 		go tcp.watch()
 	}
+	return tcp
+}
+
+func (tcp *Tcp) Register(id uint16, handler Handler) {
+	tcp.handler[id] = handler
 }
 
 func (tcp *Tcp) Send(id uint64, cmd uint16, data []byte) {

@@ -7,6 +7,8 @@ import (
 	"time"
 )
 
+// ------------------------- outside -------------------------
+
 // 将带时间后缀的值，全部转成以毫秒单位的数值
 func TransTimeStrToUint64(str string) (uint64, bool) {
 	var scale uint64

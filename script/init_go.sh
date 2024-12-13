@@ -1,5 +1,5 @@
 root=`pwd`
-exclude_paths=("./project" "./script" "./template" "./test")
+exclude_paths=("./project" "./out" "./script" "./template" "./test")
 temp_file=$(mktemp)
 temp_file2=$(mktemp)
 
@@ -27,20 +27,19 @@ find ./project -maxdepth 1 ! -path './project' -type d -print | while read dir; 
     cd $root/${dir#./}
     if [[ ! -f ./go.mod ]]; then
         go mod init $project
-        go work init $all_dirs
-        go work use "./"
     fi
     go mod tidy
+    rm -f go.work go.work.sum
+    go work init $all_dirs
+    go work use "./"
     find . -path '*/.*' -prune -o ! -path '.' -type d -print | while read dir2; do
         cd $root/project/$project/${dir2#./}
         if [[ ! -f ./go.mod ]]; then
             go mod init $project$(basename $dir2)
             go mod tidy
-            cd $root/${dir#./}
-            go work use $dir2
-        else
-            go mod tidy
         fi
+        cd $root/${dir#./}
+        go work use $dir2
     done
     cd $root
 done

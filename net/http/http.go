@@ -14,10 +14,7 @@ type Http struct{}
 // ------------------------- outside -------------------------
 
 func NewHttp() *Http {
-	return &Http{}
-}
-
-func (htp *Http) Run() {
+	htp := &Http{}
 	go func() {
 		addr := jconfig.GetString("http.addr")
 		mux := http.NewServeMux()
@@ -33,6 +30,7 @@ func (htp *Http) Run() {
 			jlog.Fatal(err)
 		}
 	}()
+	return htp
 }
 
 // ------------------------- inside -------------------------

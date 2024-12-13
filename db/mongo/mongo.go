@@ -32,10 +32,7 @@ type Mongo struct {
 // ------------------------- outside -------------------------
 
 func NewMongo(base string) *Mongo {
-	return &Mongo{base: base}
-}
-
-func (mog *Mongo) Run() {
+	mog := &Mongo{base: base}
 	opts := options.Client().
 		ApplyURI(jconfig.GetString("mongo.uri")).
 		SetSocketTimeout(time.Duration(jconfig.GetInt("mongo.socketTimeout")) * time.Millisecond)
@@ -45,15 +42,16 @@ func (mog *Mongo) Run() {
 	}
 	jlog.Info("connect to mongo")
 	mog.Client = client
+	return mog
 }
 
 func (mog *Mongo) EstimatedDocumentCount(in *Input) (int64, error) {
-	co := mog.GetCollection(in.Col)
+	co := mog.getCollection(in.Col)
 	return co.EstimatedDocumentCount(context.Background())
 }
 
 func (mog *Mongo) CountDocuments(in *Input) (int64, error) {
-	co := mog.GetCollection(in.Col)
+	co := mog.getCollection(in.Col)
 	opts := options.Count()
 	if in.Filter == nil {
 		in.Filter = bson.M{}
@@ -64,7 +62,7 @@ func (mog *Mongo) CountDocuments(in *Input) (int64, error) {
 
 // out需要为结构体指针 *struct
 func (mog *Mongo) FindOne(in *Input, out any) error {
-	co := mog.GetCollection(in.Col)
+	co := mog.getCollection(in.Col)
 	opts := options.FindOne()
 	opts.SetProjection(in.Project)
 	return co.FindOne(context.Background(), in.Filter, opts).Decode(out)
@@ -72,7 +70,7 @@ func (mog *Mongo) FindOne(in *Input, out any) error {
 
 // out需要为结构体指针切片的指针 *[]*struct
 func (mog *Mongo) FindMany(in *Input, out any) error {
-	co := mog.GetCollection(in.Col)
+	co := mog.getCollection(in.Col)
 	opts := options.Find()
 	opts.SetProjection(in.Project)
 	opts.SetSort(in.Sort)
@@ -85,44 +83,44 @@ func (mog *Mongo) FindMany(in *Input, out any) error {
 }
 
 func (mog *Mongo) InsertOne(in *Input) error {
-	co := mog.GetCollection(in.Col)
+	co := mog.getCollection(in.Col)
 	_, err := co.InsertOne(context.Background(), in.Insert)
 	return err
 }
 
 func (mog *Mongo) InsertMany(in *Input) error {
-	co := mog.GetCollection(in.Col)
+	co := mog.getCollection(in.Col)
 	_, err := co.InsertMany(context.Background(), in.InsertMany)
 	return err
 }
 
 func (mog *Mongo) UpdateOne(in *Input) error {
-	co := mog.GetCollection(in.Col)
+	co := mog.getCollection(in.Col)
 	_, err := co.UpdateOne(context.Background(), in.Filter, in.Update)
 	return err
 }
 
 func (mog *Mongo) UpdateMany(in *Input) error {
-	co := mog.GetCollection(in.Col)
+	co := mog.getCollection(in.Col)
 	_, err := co.UpdateMany(context.Background(), in.Filter, in.Update)
 	return err
 }
 
 func (mog *Mongo) DeleteOne(in *Input) error {
-	co := mog.GetCollection(in.Col)
+	co := mog.getCollection(in.Col)
 	_, err := co.DeleteOne(context.Background(), in.Filter)
 	return err
 }
 
 func (mog *Mongo) DeleteMany(in *Input) error {
-	co := mog.GetCollection(in.Col)
+	co := mog.getCollection(in.Col)
 	_, err := co.DeleteMany(context.Background(), in.Filter)
 	return err
 }
 
 // ------------------------- inside -------------------------
 
-func (mog *Mongo) GetCollection(col string) *mongo.Collection {
+func (mog *Mongo) getCollection(col string) *mongo.Collection {
 	co, ok := mog.coll.Load(col)
 	if !ok {
 		co = mog.Database(mog.base).Collection(col)

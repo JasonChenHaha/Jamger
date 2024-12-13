@@ -21,13 +21,13 @@ clean:
 
 start:
 	@echo start...
-	@../../out/$(PROJ_NAME)/start_svr.sh
+	@../../out/$(PROJ_NAME)/start_svr.sh -s
 
 info:
 	@ps ux | grep './$(PROJ_NAME)' | grep -v grep || true
 
 stop:
 	@echo stop...
-	@../../out/$(PROJ_NAME)/stop_svr.sh
+	@../../out/$(PROJ_NAME)/stop_svr.sh -s
 
 .PHONY: all build clean start info stop

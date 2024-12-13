@@ -15,4 +15,14 @@ func main() {
 	// testKcp()
 	// testWeb()
 	// testHttp()
+	a := &ABC{}
+	var e error
+	e = a
+	jlog.Debug(e.Error())
+}
+
+type ABC struct{}
+
+func (a *ABC) Error() string {
+	return "hello world"
 }

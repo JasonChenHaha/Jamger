@@ -24,14 +24,7 @@ type Web struct {
 // ------------------------- outside -------------------------
 
 func NewWeb() *Web {
-	return &Web{handler: make(map[uint16]Handler)}
-}
-
-func (web *Web) Register(id uint16, handler Handler) {
-	web.handler[id] = handler
-}
-
-func (web *Web) Run() {
+	web := &Web{handler: make(map[uint16]Handler)}
 	web.upgrader = &websocket.Upgrader{
 		CheckOrigin: func(r *http.Request) bool {
 			return true
@@ -53,6 +46,11 @@ func (web *Web) Run() {
 	if jconfig.GetBool("debug") {
 		go web.watch()
 	}
+	return web
+}
+
+func (web *Web) Register(id uint16, handler Handler) {
+	web.handler[id] = handler
 }
 
 func (web *Web) Send(id uint64, cmd uint16, data []byte) {

@@ -3,6 +3,7 @@ package jexample
 import (
 	"jdb"
 	"jdebug"
+	"jevent"
 	"jglobal"
 	"jkcp"
 	"jlog"
@@ -13,6 +14,7 @@ import (
 	"reflect"
 	"time"
 
+	"github.com/nsqio/go-nsq"
 	"go.mongodb.org/mongo-driver/bson"
 )
 
@@ -21,13 +23,17 @@ type DDD struct {
 	Name string
 }
 
-func Run() {
+// ------------------------- outside -------------------------
+
+func Init() {
 	// network()
 	// mongo()
 	// redis()
-	event()
-	schedule()
+	// schedule()
+	// event()
 }
+
+// ------------------------- inside -------------------------
 
 func network() {
 	jnet.Tcp.Register(1, func(id uint64, pack *jtcp.Pack) {
@@ -123,7 +129,10 @@ func redis() {
 func schedule() {
 	id := jglobal.Schedule.DoEvery("* * * * * *", func() {
 		jlog.Debug("doevery")
-		jglobal.Event.Emit(jglobal.EVENT_TEST, nil)
+		jevent.LocalPublish(jglobal.EVENT_TEST_1, nil)
+		if jglobal.SVR_NAME == "jamger1" {
+			jevent.RemotePublish(jglobal.EVENT_TEST_2, []byte("recv remote event"))
+		}
 	})
 
 	jglobal.Schedule.DoAt(20*time.Second, func() {
@@ -133,10 +142,14 @@ func schedule() {
 }
 
 func event() {
-	jglobal.Event.Register(jglobal.EVENT_TEST, func(context any) {
-		jlog.Debug("recv event test1")
+	jevent.LocalRegister(jglobal.EVENT_TEST_1, func(context any) {
+		jlog.Debug("recv local event")
 	})
-	jglobal.Event.Register(jglobal.EVENT_TEST, func(context any) {
-		jlog.Debug("recv event test2")
+	jevent.LocalRegister(jglobal.EVENT_TEST_1, func(context any) {
+		jlog.Debug("recv local event")
+	})
+	jevent.RemoteRegister(jglobal.EVENT_TEST_2, func(msg *nsq.Message) error {
+		jlog.Debug(jglobal.SVR_NAME, string(msg.Body))
+		return nil
 	})
 }

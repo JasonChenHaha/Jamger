@@ -1,3 +1,5 @@
+group: game                 # 服务所属的组
+
 tcp:
     addr: 0.0.0.0:10000
     noDelay: false          # 延迟发送
@@ -24,9 +26,12 @@ web:
     sBufferSize: 10
 
 http:
-    addr: 0.0.0.0:8080
+    addr: 0.0.0.0:40000
     rTimeout: 10s
     sTimeout: 5s
+
+grpc:
+    addr: 0.0.0.0:50000
 
 mysql:
     dsn: mmog:mmog@tcp(192.168.4.14:3306)/boomboat?charset=utf8mb4&parseTime=true&loc=Local
@@ -39,5 +44,15 @@ mongo:
 redis:
     addr: 192.168.4.14:6379
     password: "123456"
+
+nsq:
+    addr: 192.168.4.60:4150
+    lookupAddr: 192.168.4.60:4161
+
+etcd:
+    addr: 127.0.0.1:2379
+    timeout: 3s
+    keepalive: 15s          # 键的过期时间
+    update: 10s             # 刷新间隔
 
 debug: true

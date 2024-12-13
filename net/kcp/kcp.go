@@ -23,14 +23,7 @@ type Kcp struct {
 // ------------------------- outside -------------------------
 
 func NewKcp() *Kcp {
-	return &Kcp{handler: make(map[uint16]Handler)}
-}
-
-func (kc *Kcp) Register(id uint16, handler Handler) {
-	kc.handler[id] = handler
-}
-
-func (kc *Kcp) Run() {
+	kc := &Kcp{handler: make(map[uint16]Handler)}
 	addr := jconfig.GetString("kcp.addr")
 	listener, err := kcp.ListenWithOptions(addr, nil, jconfig.GetInt("kcp.dataShards"), jconfig.GetInt("kcp.parityShards"))
 	if err != nil {
@@ -41,6 +34,11 @@ func (kc *Kcp) Run() {
 	if jconfig.GetBool("debug") {
 		go kc.watch()
 	}
+	return kc
+}
+
+func (kc *Kcp) Register(id uint16, handler Handler) {
+	kc.handler[id] = handler
 }
 
 func (kc *Kcp) Send(id uint64, cmd uint16, data []byte) {

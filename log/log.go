@@ -40,7 +40,7 @@ func init() {
 
 // ------------------------- outside -------------------------
 
-func GetLog() *Log {
+func Logger() *Log {
 	return g_log
 }
 
@@ -147,4 +147,19 @@ func Panicf(format string, args ...any) {
 func Panicln(args ...any) {
 	g_log.skip = 8
 	g_log.Panicln(args...)
+}
+
+// for nsq
+func (log *Log) Output(calldepth int, s string) error {
+	switch s[:3] {
+	case "DEG":
+		Debug(s[9:])
+	case "INF":
+		Info(s[9:])
+	case "WRN":
+		Warn(s[9:])
+	case "ERR":
+		Error(s[9:])
+	}
+	return nil
 }
