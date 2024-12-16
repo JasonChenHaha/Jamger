@@ -1,13 +1,22 @@
-package jglobal
+package jtrash
 
 import (
 	"jlog"
+	"os"
+	"os/signal"
 	"regexp"
 	"strconv"
 	"time"
 )
 
 // ------------------------- outside -------------------------
+
+// 阻塞进程
+func Keep() {
+	mainC := make(chan os.Signal, 1)
+	signal.Notify(mainC, os.Interrupt)
+	<-mainC
+}
 
 // 将带时间后缀的值，全部转成以毫秒单位的数值
 func TransTimeStrToUint64(str string) (uint64, bool) {

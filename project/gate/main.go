@@ -1,7 +1,7 @@
 package main
 
 import (
-	jwork "jamger2work"
+	jwork "jamger1work"
 	"jconfig"
 	"jdb"
 	"jetcd"
@@ -10,11 +10,15 @@ import (
 	"jlog"
 	"jmeta"
 	"jnet"
+	"jrpc"
+	"jtrash"
 )
 
 func main() {
 	jlog.Info(">jamger start<")
+	jglobal.Init()
 	jetcd.Init()
+	jrpc.Init()
 	jdb.Init()
 	jnet.Init()
 	jmeta.Init()
@@ -22,6 +26,6 @@ func main() {
 	if jconfig.GetBool("debug") {
 		jexample.Init()
 	}
-	jglobal.Keep()
+	jtrash.Keep()
 	jlog.Info(">jamger stop<")
 }

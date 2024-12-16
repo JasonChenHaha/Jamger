@@ -33,7 +33,7 @@ func SliceDeleteMultiPos[T1 any, T2 AllInt](s *[]T1, idx []T2, o *[]T1) {
 	tmp := *s
 	(*s) = (*s)[:0]
 	for i, v := range tmp {
-		if _, ok := m[T2(i)]; !ok {
+		if m[T2(i)] == nil {
 			*s = append(*s, v)
 		} else if o != nil {
 			*o = append(*o, v)

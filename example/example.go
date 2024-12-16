@@ -9,6 +9,7 @@ import (
 	"jlog"
 	"jmongo"
 	"jnet"
+	"jschedule"
 	"jtcp"
 	"jweb"
 	"reflect"
@@ -127,29 +128,29 @@ func redis() {
 }
 
 func schedule() {
-	id := jglobal.Schedule.DoEvery("* * * * * *", func() {
+	id := jschedule.DoEvery("* * * * * *", func() {
 		jlog.Debug("doevery")
-		jevent.LocalPublish(jglobal.EVENT_TEST_1, nil)
-		if jglobal.SVR_NAME == "jamger1" {
-			jevent.RemotePublish(jglobal.EVENT_TEST_2, []byte("recv remote event"))
+		jevent.LocalPublish(jevent.EVENT_TEST_1, nil)
+		if jglobal.SERVER == "jamger1" {
+			jevent.RemotePublish(jevent.EVENT_TEST_2, []byte("recv remote event"))
 		}
 	})
 
-	jglobal.Schedule.DoAt(20*time.Second, func() {
+	jschedule.DoAt(20*time.Second, func() {
 		jlog.Debug("doat")
-		jglobal.Schedule.Stop(id)
+		jschedule.Stop(id)
 	})
 }
 
 func event() {
-	jevent.LocalRegister(jglobal.EVENT_TEST_1, func(context any) {
+	jevent.LocalRegister(jevent.EVENT_TEST_1, func(context any) {
 		jlog.Debug("recv local event")
 	})
-	jevent.LocalRegister(jglobal.EVENT_TEST_1, func(context any) {
+	jevent.LocalRegister(jevent.EVENT_TEST_1, func(context any) {
 		jlog.Debug("recv local event")
 	})
-	jevent.RemoteRegister(jglobal.EVENT_TEST_2, func(msg *nsq.Message) error {
-		jlog.Debug(jglobal.SVR_NAME, string(msg.Body))
+	jevent.RemoteRegister(jevent.EVENT_TEST_2, func(msg *nsq.Message) error {
+		jlog.Debug(jglobal.SERVER, string(msg.Body))
 		return nil
 	})
 }

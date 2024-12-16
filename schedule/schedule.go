@@ -1,4 +1,4 @@
-package jglobal
+package jschedule
 
 import (
 	"jlog"
@@ -7,7 +7,7 @@ import (
 	"github.com/robfig/cron/v3"
 )
 
-var Schedule *schedule
+var sch *schedule
 
 type schedule struct {
 	cron *cron.Cron
@@ -16,14 +16,14 @@ type schedule struct {
 // ------------------------- inside -------------------------
 
 func init() {
-	Schedule = &schedule{cron: cron.New(cron.WithSeconds())}
-	Schedule.cron.Start()
+	sch = &schedule{cron: cron.New(cron.WithSeconds())}
+	sch.cron.Start()
 }
 
 // ------------------------- outside -------------------------
 
 // 定时t时间后触发cmd
-func (sch *schedule) DoAt(t time.Duration, cmd func()) any {
+func DoAt(t time.Duration, cmd func()) any {
 	timer := time.NewTimer(t)
 	go func() {
 		<-timer.C
@@ -33,7 +33,7 @@ func (sch *schedule) DoAt(t time.Duration, cmd func()) any {
 }
 
 // 定时固定间隔触发cmd
-func (sch *schedule) DoEvery(format string, cmd func()) any {
+func DoEvery(format string, cmd func()) any {
 	id, err := sch.cron.AddFunc(format, cmd)
 	if err != nil {
 		jlog.Panic(err)
@@ -41,7 +41,7 @@ func (sch *schedule) DoEvery(format string, cmd func()) any {
 	return id
 }
 
-func (sch *schedule) Stop(id any) {
+func Stop(id any) {
 	switch v := id.(type) {
 	case cron.EntryID:
 		sch.cron.Remove(v)

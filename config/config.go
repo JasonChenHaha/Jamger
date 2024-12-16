@@ -2,8 +2,8 @@ package jconfig
 
 import (
 	"fmt"
-	"jglobal"
 	"jlog"
+	"jtrash"
 	"os"
 
 	"github.com/spf13/viper"
@@ -34,7 +34,7 @@ func formatCfg() {
 		for k, v := range cfg {
 			switch o := v.(type) {
 			case string:
-				if num, ok := jglobal.TransTimeStrToUint64(o); ok {
+				if num, ok := jtrash.TransTimeStrToUint64(o); ok {
 					if len(path) == 0 {
 						g_cfg.Set(k, num)
 					} else {

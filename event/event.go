@@ -9,9 +9,14 @@ import (
 	"github.com/nsqio/go-nsq"
 )
 
+const (
+	EVENT_TEST_1 = 0
+	EVENT_TEST_2 = "jamger"
+)
+
 var ev *event
 
-type LocalHandler func(context any)
+type LocalHandler func(context any) // handler有义务将高耗时逻辑放入协程中处理，防止delay后续事件
 
 type RemoteHandler func(message *nsq.Message) error
 
@@ -32,7 +37,6 @@ func init() {
 
 // ------------------------- outside -------------------------
 
-// handler有义务将高耗时逻辑放入协程中处理，防止delay后续事件
 func LocalRegister(id uint32, handler LocalHandler) {
 	ev.localHandler[id] = append(ev.localHandler[id], handler)
 }
@@ -46,7 +50,7 @@ func LocalPublish(id uint32, context any) {
 }
 
 func RemoteRegister(id string, handler RemoteHandler) {
-	consumer, err := nsq.NewConsumer(id, jglobal.SVR_NAME, nsq.NewConfig())
+	consumer, err := nsq.NewConsumer(id, jglobal.SERVER, nsq.NewConfig())
 	if err != nil {
 		jlog.Panic(err)
 	}

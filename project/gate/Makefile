@@ -13,7 +13,7 @@ build:
 	@sed -i 's/jamger/$(PROJ_NAME)/g' ../../out/$(PROJ_NAME)/start_svr.sh
 	@sed -i 's/jamger/$(PROJ_NAME)/g' ../../out/$(PROJ_NAME)/stop_svr.sh
 	@cp config.yml ../../out/$(PROJ_NAME)
-	@go build -o ../../out/$(PROJ_NAME)
+	go build -o ../../out/$(PROJ_NAME)/$(PROJ_NAME)
 
 clean:
 	@echo clean...
