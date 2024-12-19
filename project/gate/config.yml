@@ -57,4 +57,4 @@ etcd:
     keepalive: 15s          # 键的过期时间
     update: 10s             # 刷新间隔
 
-debug: true
+debug: false

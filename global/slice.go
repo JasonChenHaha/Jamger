@@ -40,3 +40,57 @@ func SliceDeleteMultiPos[T1 any, T2 AllInt](s *[]T1, idx []T2, o *[]T1) {
 		}
 	}
 }
+
+func NewHashSlice[T1 AllIntString, T2 comparable]() *HashSlice[T1, T2] {
+	return &HashSlice[T1, T2]{
+		hash:  map[T1]T2{},
+		slice: []T2{},
+	}
+}
+
+type HashSlice[T1 AllIntString, T2 comparable] struct {
+	hash  map[T1]T2
+	slice []T2
+}
+
+func (hs *HashSlice[T1, T2]) Insert(key T1, data T2) {
+	hs.hash[key] = data
+	hs.slice = append(hs.slice, data)
+}
+
+func (hs *HashSlice[T1, T2]) Len() int {
+	return len(hs.slice)
+}
+
+func (hs *HashSlice[T1, T2]) IndexOf(idx int) T2 {
+	if idx < len(hs.slice) {
+		return hs.slice[idx]
+	}
+	var zero T2
+	return zero
+}
+
+func (hs *HashSlice[T1, T2]) Keys() []T1 {
+	i, o := 0, make([]T1, len(hs.hash))
+	for k := range hs.hash {
+		o[i] = k
+	}
+	return o
+}
+
+func (hs *HashSlice[T1, T2]) Get(key T1) T2 {
+	return hs.hash[key]
+}
+
+func (hs *HashSlice[T1, T2]) Del(key T1) {
+	if _, ok := hs.hash[key]; !ok {
+		return
+	}
+	for k, v := range hs.slice {
+		if hs.hash[key] == v {
+			hs.slice = append(hs.slice[:k], hs.slice[k+1:]...)
+			break
+		}
+	}
+	delete(hs.hash, key)
+}

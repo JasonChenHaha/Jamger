@@ -4,6 +4,7 @@ EXCLUDE=out test project
 install:
 	@echo install...
 	@./script/init_go.sh
+	@./script/init_global.sh
 
 clean:
 	@echo clean...

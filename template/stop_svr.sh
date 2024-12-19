@@ -1,1 +1,1 @@
-pkill -SIGINT -f './jamger'
+pkill -SIGINT -f 'jamger-' || true

@@ -1,5 +1,7 @@
 package jschedule
 
+// schedule内定时器在协程内触发，所有cmd需要注意并发安全
+
 import (
 	"jlog"
 	"time"

@@ -1,0 +1,14 @@
+syntax = "proto3";
+option go_package = "./;pb";
+
+message RequestGate {
+    string name = 1;
+}
+
+message GateResponse {
+    string message = 1;
+}
+
+service Gate {
+    rpc SayHello(RequestGate) returns (GateResponse);
+}

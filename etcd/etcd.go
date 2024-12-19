@@ -20,7 +20,7 @@ var etc *etcd
 type etcd struct {
 	*clientv3.Client
 	lease      *clientv3.LeaseGrantResponse
-	servers    map[string]map[string]string
+	server     map[string]map[string]string
 	joinWatch  map[string][]Handler
 	leaveWatch map[string][]Handler
 }
@@ -29,7 +29,7 @@ type etcd struct {
 
 func Init() {
 	etc = &etcd{
-		servers:    map[string]map[string]string{},
+		server:     map[string]map[string]string{},
 		joinWatch:  map[string][]Handler{},
 		leaveWatch: map[string][]Handler{},
 	}
@@ -53,12 +53,9 @@ func Init() {
 	jschedule.DoEvery(fmt.Sprintf("*/%d * * * * *", jconfig.GetInt("etcd.update")/1000), update)
 }
 
-func WatchJoin(group string, handler Handler) {
-	etc.joinWatch[group] = append(etc.joinWatch[group], handler)
-}
-
-func WatchLeave(group string, handler Handler) {
-	etc.leaveWatch[group] = append(etc.leaveWatch[group], handler)
+func Watch(group string, join Handler, leave Handler) {
+	etc.joinWatch[group] = append(etc.joinWatch[group], join)
+	etc.leaveWatch[group] = append(etc.leaveWatch[group], leave)
 }
 
 // ------------------------- inside -------------------------
@@ -85,14 +82,14 @@ func update() {
 		}
 		info := string(kv.Value)
 		tmp[group][server] = info
-		if etc.servers[group] == nil || etc.servers[group][server] == "" {
+		if etc.server[group] == nil || etc.server[group][server] == "" {
 			// join
 			for _, f := range etc.joinWatch[group] {
 				f(group, server, info)
 			}
 		}
 	}
-	for group, v := range etc.servers {
+	for group, v := range etc.server {
 		for server, info := range v {
 			if tmp[group] == nil || tmp[group][server] == "" {
 				// leave
@@ -102,5 +99,5 @@ func update() {
 			}
 		}
 	}
-	etc.servers = tmp
+	etc.server = tmp
 }

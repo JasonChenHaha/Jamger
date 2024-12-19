@@ -1,0 +1,14 @@
+syntax = "proto3";
+option go_package = "./;pb";
+
+message RequestGame {
+    string name = 1;
+}
+
+message GameResponse {
+    string message = 1;
+}
+
+service Game {
+    rpc SayHello(RequestGame) returns (GameResponse);
+}

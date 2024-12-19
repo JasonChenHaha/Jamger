@@ -15,4 +15,7 @@ func main() {
 	// testKcp()
 	// testWeb()
 	// testHttp()
+	a := make([]int, 3)
+	a = append(a, 1)
+	jlog.Debug(a)
 }

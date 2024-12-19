@@ -11,6 +11,13 @@ var GROUP string
 var SERVER string
 
 const (
+	SVR_BEGIN = "nil"
+    SVR_GATE = "gate"
+    SVR_GAME = "game"
+    SVR_END = "nil"
+)
+
+const (
 	CMD_OK        = 0
 	CMD_CLOSE     = 1
 	CMD_HEARTBEAT = 2
@@ -32,6 +39,10 @@ type AllUInt interface {
 
 type AllFloat interface {
 	~float32 | ~float64
+}
+
+type AllIntString interface {
+	AllInt | string
 }
 
 func Init() {

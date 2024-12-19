@@ -24,7 +24,7 @@ start:
 	@../../out/$(PROJ_NAME)/start_svr.sh -s
 
 info:
-	@ps ux | grep './$(PROJ_NAME)' | grep -v grep || true
+	@ps ux | grep '$(PROJ_NAME)-' | grep -v grep || true
 
 stop:
 	@echo stop...

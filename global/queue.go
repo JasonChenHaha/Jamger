@@ -3,21 +3,21 @@ package jglobal
 import "sync"
 
 type Queue[T any] struct {
-	Data []T
-	lock sync.RWMutex
+	Data  []T
+	mutex sync.RWMutex
 }
 
 // ------------------------- outside -------------------------
 
 func (que *Queue[T]) Push(data T) {
-	que.lock.Lock()
-	defer que.lock.Unlock()
+	que.mutex.Lock()
+	defer que.mutex.Unlock()
 	que.Data = append(que.Data, data)
 }
 
 func (que *Queue[T]) Pick() T {
-	que.lock.Lock()
-	defer que.lock.Unlock()
+	que.mutex.Lock()
+	defer que.mutex.Unlock()
 	if len(que.Data) == 0 {
 		var zero T
 		return zero
@@ -28,8 +28,8 @@ func (que *Queue[T]) Pick() T {
 }
 
 func (que *Queue[T]) PickAll() any {
-	que.lock.Lock()
-	defer que.lock.Unlock()
+	que.mutex.Lock()
+	defer que.mutex.Unlock()
 	data := que.Data
 	que.Data = nil
 	return data
