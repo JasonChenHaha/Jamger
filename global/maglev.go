@@ -1,6 +1,8 @@
 package jglobal
 
 import (
+	"jlog"
+
 	"github.com/dchest/siphash"
 )
 
@@ -73,4 +75,10 @@ func (ml *Maglev) genLookupTable() {
 			break
 		}
 	}
+	// for test
+	s := map[string]int{}
+	for _, v := range ml.lookup {
+		s[v]++
+	}
+	jlog.Debug(s)
 }

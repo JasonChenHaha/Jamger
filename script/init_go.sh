@@ -1,11 +1,11 @@
 root=`pwd`
-exclude_paths=("./project" "./out" "./script" "./template" "./test")
-temp_file=$(mktemp)
-temp_file2=$(mktemp)
+exclude_paths=("./group" "./out" "./script" "./template" "./test")
+tmpFile=$(mktemp)
+tmpFile2=$(mktemp)
 
 find . $(for path in "${exclude_paths[@]}"; do echo -n "-path $path -prune -o "; done) -path '*/.*' -prune -o ! -path '.' -type d -print | while read dir; do
-    echo "../../$dir" >> $temp_file
-    echo "../$dir" >> $temp_file2
+    echo "../../$dir" >> $tmpFile
+    echo "../$dir" >> $tmpFile2
     cd $root/${dir#./}
     if [[ ! -f ./go.mod ]]; then
         go mod init j$(basename $dir)
@@ -16,26 +16,26 @@ done
 
 while IFS= read -r dir; do
     all_dirs="$all_dirs $dir"
-done < "$temp_file"
+done < "$tmpFile"
 
 while IFS= read -r dir; do
-    all_dirs2="$all_dirs2 $dir"
-done < "$temp_file2"
+    all="$all $dir"
+done < "$tmpFile2"
 
-find ./project -maxdepth 1 ! -path './project' -type d -print | while read dir; do
-    project=$(basename $dir)
+find ./group -maxdepth 1 ! -path './group' -type d -print | while read dir; do
+    group=$(basename $dir)
     cd $root/${dir#./}
     if [[ ! -f ./go.mod ]]; then
-        go mod init $project
+        go mod init $group
     fi
     go mod tidy
     rm -f go.work go.work.sum
     go work init $all_dirs
     go work use "./"
     find . -path '*/.*' -prune -o ! -path '.' -type d -print | while read dir2; do
-        cd $root/project/$project/${dir2#./}
+        cd $root/group/$group/${dir2#./}
         if [[ ! -f ./go.mod ]]; then
-            go mod init $project$(basename $dir2)
+            go mod init $group$(basename $dir2)
             go mod tidy
         fi
         cd $root/${dir#./}
@@ -47,14 +47,14 @@ done
 cd $root/test
 if [[ ! -f ./go.mod ]]; then
     go mod init test
-    go work init $all_dirs2
+    go work init $all
     go work use "./"
 fi
 go mod tidy
 find . -path '*/.*' -prune -o ! -path '.' -type d -print | while read dir; do
     cd $root/test/${dir#./}
     if [[ ! -f ./go.mod ]]; then
-        go mod init $project$(basename $dir)
+        go mod init $group$(basename $dir)
         go mod tidy
         cd $root/test
         go work use $dir
@@ -63,3 +63,6 @@ find . -path '*/.*' -prune -o ! -path '.' -type d -print | while read dir; do
     fi
 done
 cd $root
+
+rm -f $tmpFile
+rm -f $tmpFile2

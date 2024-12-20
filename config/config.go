@@ -5,23 +5,21 @@ import (
 	"jlog"
 	"jtrash"
 	"os"
+	"strings"
 
 	"github.com/spf13/viper"
 )
 
-var g_cfg = viper.New()
+var config = viper.New()
 
 // ------------------------- inside -------------------------
 
 func init() {
-	path, err := os.Getwd()
-	if err != nil {
-		jlog.Panic(err)
-	}
-	g_cfg.AddConfigPath(path)
-	g_cfg.SetConfigName(os.Args[1])
-	g_cfg.SetConfigType("yml")
-	if err = g_cfg.ReadInConfig(); err != nil {
+	index := strings.LastIndex(os.Args[1], "/")
+	config.AddConfigPath(os.Args[1][:index])
+	config.SetConfigName(os.Args[1][index+1:])
+	config.SetConfigType("yml")
+	if err := config.ReadInConfig(); err != nil {
 		jlog.Panic(err)
 	}
 	formatCfg()
@@ -36,9 +34,9 @@ func formatCfg() {
 			case string:
 				if num, ok := jtrash.TransTimeStrToUint64(o); ok {
 					if len(path) == 0 {
-						g_cfg.Set(k, num)
+						config.Set(k, num)
 					} else {
-						g_cfg.Set(fmt.Sprintf("%s.%s", path, k), num)
+						config.Set(fmt.Sprintf("%s.%s", path, k), num)
 					}
 				}
 			case map[string]any:
@@ -50,23 +48,23 @@ func formatCfg() {
 			}
 		}
 	}
-	fu("", g_cfg.AllSettings())
+	fu("", config.AllSettings())
 }
 
 // ------------------------- outside -------------------------
 
 func Get(key string) any {
-	return g_cfg.Get(key)
+	return config.Get(key)
 }
 
 func GetInt(key string) int {
-	return g_cfg.GetInt(key)
+	return config.GetInt(key)
 }
 
 func GetString(key string) string {
-	return g_cfg.GetString(key)
+	return config.GetString(key)
 }
 
 func GetBool(key string) bool {
-	return g_cfg.GetBool(key)
+	return config.GetBool(key)
 }

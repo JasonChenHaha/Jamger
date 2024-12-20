@@ -9,24 +9,26 @@ install:
 clean:
 	@echo clean...
 	@find ./ \( -name "go.mod" -o -name "go.sum" -o -name "go.work" -o -name "go.work.sum" \) -delete
-	@find ./project -type f -name 'Makefile' -execdir $(MAKE) -s clean \;
 	@rm -rf out
 	@cd ./pb && make -s clean;
 
 build:
-	@find ./project -type f -name 'Makefile' -execdir $(MAKE) -s build \;
+	@find ./group -type f -name 'Makefile' -execdir $(MAKE) -s build \;
+	@cp ./template/config.yml ./out/config.yml
+	@cp ./template/serverList ./out/serverList
+	@cp ./template/ctrl.sh ./out/ctrl.sh
 
-run:
-	@find ./project -type f -name 'Makefile' -execdir $(MAKE) -s run \;
+run: build
+	@./out/ctrl.sh start
 
 start:
-	@find ./project -type f -name 'Makefile' -execdir $(MAKE) -s start \;
+	@./out/ctrl.sh start
 
 info:
-	@find ./project -type f -name 'Makefile' -execdir $(MAKE) -s info \;
+	@./out/ctrl.sh info
 
 stop:
-	@find ./project -type f -name 'Makefile' -execdir $(MAKE) -s stop \;
+	@./out/ctrl.sh stop
 
 pb:
 	@cd ./pb && make -s;

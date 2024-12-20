@@ -3,7 +3,6 @@ package jglobal
 import (
 	"fmt"
 	"jconfig"
-	"os"
 )
 
 var ZONE string
@@ -47,6 +46,6 @@ type AllIntString interface {
 
 func Init() {
 	ZONE = jconfig.GetString("zone")
-	GROUP = os.Args[0][2:]
+	GROUP = jconfig.GetString("group")
 	SERVER = fmt.Sprintf("%s-%s", GROUP, jconfig.GetString("index"))
 }

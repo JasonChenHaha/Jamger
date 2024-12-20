@@ -10,7 +10,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var g_log *Log
+var log *Log
 
 type LogFormater struct{}
 
@@ -24,129 +24,129 @@ type Log struct {
 func (format *LogFormater) Format(entry *logrus.Entry) ([]byte, error) {
 	t := entry.Time.Format("2006-01-02 15:04:05.000")
 	lv := strings.ToUpper(entry.Level.String())
-	_, file, line, _ := runtime.Caller(g_log.skip)
+	_, file, line, _ := runtime.Caller(log.skip)
 	file = filepath.Base(file)
 	return []byte(fmt.Sprintf("[%s][%s][%s.%d] %s\n", t, lv, file, line, entry.Message)), nil
 }
 
 func init() {
-	g_log = &Log{}
-	g_log.Logger = logrus.New()
-	g_log.Out = os.Stdout
-	g_log.SetLevel(logrus.TraceLevel)
-	g_log.SetReportCaller(true)
-	g_log.SetFormatter(&LogFormater{})
+	log = &Log{}
+	log.Logger = logrus.New()
+	log.Out = os.Stdout
+	log.SetLevel(logrus.TraceLevel)
+	log.SetReportCaller(true)
+	log.SetFormatter(&LogFormater{})
 }
 
 // ------------------------- outside -------------------------
 
 func Logger() *Log {
-	return g_log
+	return log
 }
 
 func Trace(args ...any) {
-	g_log.skip = 7
-	g_log.Trace(args...)
+	log.skip = 7
+	log.Trace(args...)
 }
 
 func Tracef(format string, args ...any) {
-	g_log.skip = 8
-	g_log.Tracef(format, args...)
+	log.skip = 8
+	log.Tracef(format, args...)
 }
 
 func Traceln(args ...any) {
-	g_log.skip = 8
-	g_log.Traceln(args...)
+	log.skip = 8
+	log.Traceln(args...)
 }
 
 func Debug(args ...any) {
-	g_log.skip = 7
-	g_log.Debug(args...)
+	log.skip = 7
+	log.Debug(args...)
 }
 
 func Debugf(format string, args ...any) {
-	g_log.skip = 8
-	g_log.Debugf(format, args...)
+	log.skip = 8
+	log.Debugf(format, args...)
 }
 
 func Debugln(args ...any) {
-	g_log.skip = 8
-	g_log.Debugln(args...)
+	log.skip = 8
+	log.Debugln(args...)
 }
 
 func Info(args ...any) {
-	g_log.skip = 7
-	g_log.Info(args...)
+	log.skip = 7
+	log.Info(args...)
 }
 
 func Infof(format string, args ...any) {
-	g_log.skip = 8
-	g_log.Infof(format, args...)
+	log.skip = 8
+	log.Infof(format, args...)
 }
 
 func Infoln(args ...any) {
-	g_log.skip = 8
-	g_log.Infoln(args...)
+	log.skip = 8
+	log.Infoln(args...)
 }
 
 func Warn(args ...any) {
-	g_log.skip = 7
-	g_log.Warn(args...)
+	log.skip = 7
+	log.Warn(args...)
 }
 
 func Warnf(format string, args ...any) {
-	g_log.skip = 8
-	g_log.Warnf(format, args...)
+	log.skip = 8
+	log.Warnf(format, args...)
 }
 
 func Warnln(args ...any) {
-	g_log.skip = 8
-	g_log.Warnln(args...)
+	log.skip = 8
+	log.Warnln(args...)
 }
 
 func Error(args ...any) {
-	g_log.skip = 7
-	g_log.Error(args...)
+	log.skip = 7
+	log.Error(args...)
 }
 
 func Errorf(format string, args ...any) {
-	g_log.skip = 8
-	g_log.Errorf(format, args...)
+	log.skip = 8
+	log.Errorf(format, args...)
 }
 
 func Errorln(args ...any) {
-	g_log.skip = 8
-	g_log.Errorln(args...)
+	log.skip = 8
+	log.Errorln(args...)
 }
 
 func Fatal(args ...any) {
-	g_log.skip = 7
-	g_log.Fatal(args...)
+	log.skip = 7
+	log.Fatal(args...)
 }
 
 func Fatalf(format string, args ...any) {
-	g_log.skip = 8
-	g_log.Fatalf(format, args...)
+	log.skip = 8
+	log.Fatalf(format, args...)
 }
 
 func Fatalln(args ...any) {
-	g_log.skip = 8
-	g_log.Fatalln(args...)
+	log.skip = 8
+	log.Fatalln(args...)
 }
 
 func Panic(args ...any) {
-	g_log.skip = 7
-	g_log.Panic(args...)
+	log.skip = 7
+	log.Panic(args...)
 }
 
 func Panicf(format string, args ...any) {
-	g_log.skip = 8
-	g_log.Panicf(format, args...)
+	log.skip = 8
+	log.Panicf(format, args...)
 }
 
 func Panicln(args ...any) {
-	g_log.skip = 8
-	g_log.Panicln(args...)
+	log.skip = 8
+	log.Panicln(args...)
 }
 
 // for nsq

@@ -81,7 +81,9 @@ func GetConsistentHashTarget(group string, key int) any {
 	Rpc.mutex.RLock()
 	defer Rpc.mutex.RUnlock()
 	if ml, ok := Rpc.maglev[group]; ok {
-		return ml.Get(key)
+		server := ml.Get(key)
+		jlog.Debug(server)
+		return Rpc.server[group].Get(server)
 	}
 	return nil
 }
@@ -89,6 +91,7 @@ func GetConsistentHashTarget(group string, key int) any {
 // ------------------------- inside -------------------------
 
 func join(group string, server string, info string) {
+	jlog.Debug("join")
 	Rpc.mutex.Lock()
 	defer Rpc.mutex.Unlock()
 	con, err := grpc.NewClient(info, grpc.WithTransportCredentials(insecure.NewCredentials()))
