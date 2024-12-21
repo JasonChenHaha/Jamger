@@ -8,7 +8,6 @@ import (
 	"jglobal"
 	"jkcp"
 	"jlog"
-	"strings"
 	"time"
 
 	"github.com/xtaci/kcp-go"
@@ -21,8 +20,8 @@ type Kcp struct {
 func testKcp() *Kcp {
 	jlog.Info("<test kcp>")
 	kc := &Kcp{}
-	addr := strings.Split(jconfig.GetString("kcp.addr"), ":")
-	con, _ := kcp.DialWithOptions("127.0.0.1:"+addr[1], nil, jconfig.GetInt("kcp.dataShards"), jconfig.GetInt("kcp.parityShards"))
+	addr := jconfig.GetString("kcp.addr")
+	con, _ := kcp.DialWithOptions(addr, nil, jconfig.GetInt("kcp.dataShards"), jconfig.GetInt("kcp.parityShards"))
 	jlog.Info("connect to server ", addr)
 	kc.con = con
 

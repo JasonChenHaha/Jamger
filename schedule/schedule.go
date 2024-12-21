@@ -34,8 +34,18 @@ func DoAt(t time.Duration, cmd func()) any {
 	return timer
 }
 
+func DoEvery(t time.Duration, cmd func()) any {
+	ticker := time.NewTicker(t)
+	go func() {
+		for range ticker.C {
+			cmd()
+		}
+	}()
+	return ticker
+}
+
 // 定时固定间隔触发cmd
-func DoEvery(format string, cmd func()) any {
+func DoCron(format string, cmd func()) any {
 	id, err := sch.cron.AddFunc(format, cmd)
 	if err != nil {
 		jlog.Panic(err)
@@ -45,9 +55,11 @@ func DoEvery(format string, cmd func()) any {
 
 func Stop(id any) {
 	switch v := id.(type) {
-	case cron.EntryID:
-		sch.cron.Remove(v)
 	case *time.Timer:
 		v.Stop()
+	case *time.Ticker:
+		v.Stop()
+	case cron.EntryID:
+		sch.cron.Remove(v)
 	}
 }

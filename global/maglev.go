@@ -1,41 +1,42 @@
 package jglobal
 
 import (
-	"jlog"
-
 	"github.com/dchest/siphash"
 )
 
 const THE_NUM = 65537
 
 type Maglev struct {
-	node   []string
-	lookup []string
+	lookup []any
 }
 
 // ------------------------- outside -------------------------
 
-func NewMaglev(node []string) *Maglev {
-	m := &Maglev{
-		node:   node,
-		lookup: make([]string, THE_NUM),
-	}
-	m.genLookupTable()
+func NewMaglev(node map[string]any) *Maglev {
+	m := &Maglev{lookup: make([]any, THE_NUM)}
+	m.genLookupTable(node)
 	return m
 }
 
-func (ml *Maglev) Get(key any) string {
+func (ml *Maglev) Get(key any) any {
 	var id uint64
 	switch o := key.(type) {
 	case string:
 		id = siphash.Hash(0, 0, []byte(o))
 	case int:
+		id = uint64(o)
 	case uint:
+		id = uint64(o)
 	case int16:
+		id = uint64(o)
 	case uint16:
+		id = uint64(o)
 	case int32:
+		id = uint64(o)
 	case uint32:
+		id = uint64(o)
 	case int64:
+		id = uint64(o)
 	case uint64:
 		id = uint64(o)
 	}
@@ -44,15 +45,15 @@ func (ml *Maglev) Get(key any) string {
 
 // ------------------------- inside -------------------------
 
-func (ml *Maglev) genLookupTable() {
+func (ml *Maglev) genLookupTable(node map[string]any) {
 	permutation := map[string][]uint64{}
-	for _, v := range ml.node {
-		permutation[v] = make([]uint64, THE_NUM)
+	for k := range node {
+		permutation[k] = make([]uint64, THE_NUM)
 		for i := 0; i < THE_NUM; i++ {
-			by := []byte(v)
+			by := []byte(k)
 			offset := siphash.Hash(0, 0, by) % THE_NUM
 			ship := siphash.Hash(1, 1, by)%(THE_NUM-1) + 1
-			permutation[v][i] = (offset + uint64(i)*ship) % THE_NUM
+			permutation[k][i] = (offset + uint64(i)*ship) % THE_NUM
 		}
 	}
 	n := uint64(0)
@@ -61,8 +62,8 @@ func (ml *Maglev) genLookupTable() {
 			for len(permutation[k]) > 0 {
 				idx := permutation[k][0]
 				permutation[k] = permutation[k][1:]
-				if ml.lookup[idx] == "" {
-					ml.lookup[idx] = k
+				if ml.lookup[idx] == nil {
+					ml.lookup[idx] = node[k]
 					n++
 					break
 				}
@@ -71,14 +72,8 @@ func (ml *Maglev) genLookupTable() {
 				delete(permutation, k)
 			}
 		}
-		if n == THE_NUM {
+		if len(permutation) == 0 || n == THE_NUM {
 			break
 		}
 	}
-	// for test
-	s := map[string]int{}
-	for _, v := range ml.lookup {
-		s[v]++
-	}
-	jlog.Debug(s)
 }

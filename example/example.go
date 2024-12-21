@@ -1,6 +1,8 @@
 package jexample
 
 import (
+	"context"
+	"fmt"
 	"jdb"
 	"jdebug"
 	"jevent"
@@ -9,6 +11,8 @@ import (
 	"jlog"
 	"jmongo"
 	"jnet"
+	pb "jpb"
+	"jrpc"
 	"jschedule"
 	"jtcp"
 	"jweb"
@@ -24,6 +28,26 @@ type DDD struct {
 	Name string
 }
 
+type GateServer struct {
+	pb.GateServer
+}
+
+func (svr *GateServer) SayHello(ctx context.Context, req *pb.RequestGate) (*pb.GateResponse, error) {
+	return &pb.GateResponse{
+		Message: fmt.Sprintf("hello %s, this is %s", req.GetName(), jglobal.SERVER),
+	}, nil
+}
+
+type GameServer struct {
+	pb.GameServer
+}
+
+func (svr *GameServer) SayHello(ctx context.Context, req *pb.RequestGame) (*pb.GameResponse, error) {
+	return &pb.GameResponse{
+		Message: fmt.Sprintf("hello %s, this is %s", req.GetName(), jglobal.SERVER),
+	}, nil
+}
+
 // ------------------------- outside -------------------------
 
 func Init() {
@@ -32,6 +56,7 @@ func Init() {
 	// redis()
 	// schedule()
 	// event()
+	// rpc()
 }
 
 // ------------------------- inside -------------------------
@@ -57,7 +82,7 @@ func mongo() {
 		Filter:  bson.M{"uin": 1},
 		Project: bson.M{"name": 1},
 	}
-	var ou any
+	var out any
 	in = &jmongo.Input{
 		Col: "test",
 	}
@@ -65,18 +90,18 @@ func mongo() {
 	jlog.Debug(count)
 	count, _ = jdb.Mongo.CountDocuments(in)
 	jlog.Debug(count)
-	ou = &DDD{}
-	jdb.Mongo.FindOne(in, ou)
-	jlog.Debug(ou)
+	out = &DDD{}
+	jdb.Mongo.FindOne(in, out)
+	jlog.Debug(out)
 	in = &jmongo.Input{
 		Col:    "test",
 		Filter: bson.M{"uin": 0},
 		Sort:   bson.M{"uin": 1},
 		Limit:  1,
 	}
-	ou = &[]*DDD{}
-	jdb.Mongo.FindMany(in, ou)
-	jlog.Debug(ou)
+	out = &[]*DDD{}
+	jdb.Mongo.FindMany(in, out)
+	jlog.Debug(out)
 	in = &jmongo.Input{
 		Col:    "test",
 		Insert: &DDD{2, "2"},
@@ -128,18 +153,23 @@ func redis() {
 }
 
 func schedule() {
-	id := jschedule.DoEvery("* * * * * *", func() {
+	id := jschedule.DoEvery(1*time.Second, func() {
 		jlog.Debug("doevery")
+	})
+	jschedule.Stop(id)
+	id = jschedule.DoCron("* * * * * *", func() {
+		jlog.Debug("docron")
 		jevent.LocalPublish(jevent.EVENT_TEST_1, nil)
 		if jglobal.SERVER == "jamger1" {
 			jevent.RemotePublish(jevent.EVENT_TEST_2, []byte("recv remote event"))
 		}
 	})
-
-	jschedule.DoAt(20*time.Second, func() {
+	jschedule.Stop(id)
+	id = jschedule.DoAt(20*time.Second, func() {
 		jlog.Debug("doat")
-		jschedule.Stop(id)
+
 	})
+	jschedule.Stop(id)
 }
 
 func event() {
@@ -153,4 +183,42 @@ func event() {
 		jlog.Debug(jglobal.SERVER, string(msg.Body))
 		return nil
 	})
+}
+
+func rpc() {
+	f := func(target any) {
+		res, err := target.(pb.GateClient).SayHello(context.Background(), &pb.RequestGate{
+			Name: jglobal.SERVER,
+		})
+		if err != nil {
+			jlog.Error(err)
+		} else {
+			jlog.Debug(res.Message)
+		}
+	}
+
+	if jglobal.GROUP == jglobal.SVR_ALPHA {
+		jrpc.Server(&pb.Game_ServiceDesc, &GameServer{})
+		jrpc.Connect(jglobal.SVR_BETA, pb.NewGateClient)
+		i := 0
+		jschedule.DoCron("*/5 * * * * *", func() {
+			if target := jrpc.GetTarget(jglobal.SVR_BETA, "gate-01"); target != nil {
+				f(target)
+			}
+			if target := jrpc.GetFixHashTarget(jglobal.SVR_BETA, i); target != nil {
+				f(target)
+			}
+			if target := jrpc.GetRoundRobinTarget(jglobal.SVR_BETA); target != nil {
+				f(target)
+			}
+			if target := jrpc.GetConsistentHashTarget(jglobal.SVR_BETA, i); target != nil {
+				f(target)
+			}
+			i++
+		})
+	}
+	if jglobal.GROUP == jglobal.SVR_BETA {
+		jrpc.Server(&pb.Gate_ServiceDesc, &GateServer{})
+		jrpc.Connect(jglobal.SVR_ALPHA, pb.NewGameClient)
+	}
 }

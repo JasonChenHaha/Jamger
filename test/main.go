@@ -15,7 +15,12 @@ func main() {
 	// testKcp()
 	// testWeb()
 	// testHttp()
-	a := make([]int, 3)
-	a = append(a, 1)
-	jlog.Debug(a)
+	k := test().(*ABC)
+	jlog.Debug(k)
+}
+
+type ABC struct{}
+
+func test() any {
+	return nil
 }

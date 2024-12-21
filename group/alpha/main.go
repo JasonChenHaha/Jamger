@@ -1,8 +1,6 @@
 package main
 
 import (
-	jwork "gatework"
-	"jconfig"
 	"jdb"
 	"jetcd"
 	"jexample"
@@ -14,16 +12,13 @@ import (
 )
 
 func main() {
-	jlog.Info(">gate start<")
 	jglobal.Init()
+	jlog.Infof(">%s start<", jglobal.SERVER)
 	jetcd.Init()
 	jdb.Init()
 	jnet.Init()
 	jmeta.Init()
-	jwork.Init()
-	if jconfig.GetBool("debug") {
-		jexample.Init()
-	}
+	jexample.Init()
 	jtrash.Keep()
-	jlog.Info(">gate stop<")
+	jlog.Infof(">%s stop<", jglobal.SERVER)
 }

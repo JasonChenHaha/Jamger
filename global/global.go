@@ -11,8 +11,8 @@ var SERVER string
 
 const (
 	SVR_BEGIN = "nil"
-    SVR_GATE = "gate"
-    SVR_GAME = "game"
+    SVR_BETA = "beta"
+    SVR_ALPHA = "alpha"
     SVR_END = "nil"
 )
 

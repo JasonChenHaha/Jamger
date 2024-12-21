@@ -9,7 +9,6 @@ import (
 	"jlog"
 	"jtcp"
 	"net"
-	"strings"
 	"time"
 )
 
@@ -20,8 +19,8 @@ type Tcp struct {
 func testTcp() *Tcp {
 	jlog.Info("<test tcp>")
 	tcp := &Tcp{}
-	addr := strings.Split(jconfig.GetString("tcp.addr"), ":")
-	con, _ := net.Dial("tcp", "127.0.0.1:"+addr[1])
+	addr := jconfig.GetString("tcp.addr")
+	con, _ := net.Dial("tcp", addr)
 	jlog.Info("connect to server ", addr)
 	tcp.con = con
 

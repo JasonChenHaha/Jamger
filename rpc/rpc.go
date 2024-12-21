@@ -9,6 +9,7 @@ import (
 	"net"
 	"reflect"
 	"sync"
+	"time"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -17,19 +18,24 @@ import (
 var Rpc *rpc
 
 type rpc struct {
-	client map[string]any
-	server map[string]*jglobal.HashSlice[string, any]
-	maglev map[string]*jglobal.Maglev
-	mutex  sync.RWMutex
+	client     map[string]any
+	server     map[string]*jglobal.HashSlice[string, any]
+	maglev     map[string]*jglobal.Maglev
+	roundrobin map[string]uint
+	mutex      sync.RWMutex
 }
 
 // ------------------------- outside -------------------------
 
 func init() {
 	Rpc = &rpc{
-		client: map[string]any{},
-		server: map[string]*jglobal.HashSlice[string, any]{},
-		maglev: map[string]*jglobal.Maglev{},
+		client:     map[string]any{},
+		server:     map[string]*jglobal.HashSlice[string, any]{},
+		maglev:     map[string]*jglobal.Maglev{},
+		roundrobin: map[string]uint{},
+	}
+	if jconfig.GetBool("debug") {
+		go watch()
 	}
 }
 
@@ -66,6 +72,16 @@ func GetTarget(group string, server string) any {
 	return nil
 }
 
+// 轮询
+func GetRoundRobinTarget(group string) any {
+	if hs, ok := Rpc.server[group]; ok {
+		index := Rpc.roundrobin[group]
+		Rpc.roundrobin[group]++
+		return hs.IndexOf(int(index % uint(hs.Len())))
+	}
+	return nil
+}
+
 // 固定哈希
 func GetFixHashTarget(group string, key int) any {
 	Rpc.mutex.RLock()
@@ -81,9 +97,7 @@ func GetConsistentHashTarget(group string, key int) any {
 	Rpc.mutex.RLock()
 	defer Rpc.mutex.RUnlock()
 	if ml, ok := Rpc.maglev[group]; ok {
-		server := ml.Get(key)
-		jlog.Debug(server)
-		return Rpc.server[group].Get(server)
+		return ml.Get(key)
 	}
 	return nil
 }
@@ -91,7 +105,6 @@ func GetConsistentHashTarget(group string, key int) any {
 // ------------------------- inside -------------------------
 
 func join(group string, server string, info string) {
-	jlog.Debug("join")
 	Rpc.mutex.Lock()
 	defer Rpc.mutex.Unlock()
 	con, err := grpc.NewClient(info, grpc.WithTransportCredentials(insecure.NewCredentials()))
@@ -104,13 +117,38 @@ func join(group string, server string, info string) {
 	fn := reflect.ValueOf(Rpc.client[group])
 	arg := []reflect.Value{reflect.ValueOf(con)}
 	Rpc.server[group].Insert(server, fn.Call(arg)[0].Interface())
-	Rpc.maglev[group] = jglobal.NewMaglev(Rpc.server[group].Keys())
+	Rpc.maglev[group] = jglobal.NewMaglev(Rpc.server[group].KeyValues())
 }
 
 func leave(group string, server string, info string) {
 	Rpc.mutex.Lock()
 	defer Rpc.mutex.Unlock()
 	if Rpc.server[group] != nil {
-		Rpc.server[group].Del(server)
+		hs := Rpc.server[group]
+		hs.Del(server)
+		if hs.Len() > 0 {
+			Rpc.maglev[group] = jglobal.NewMaglev(Rpc.server[group].KeyValues())
+		} else {
+			delete(Rpc.server, group)
+			delete(Rpc.maglev, group)
+			delete(Rpc.roundrobin, group)
+		}
+	}
+}
+
+// ------------------------- inside -------------------------
+
+func watch() {
+	ticker := time.NewTicker(10 * time.Second)
+	for range ticker.C {
+		for k, v := range Rpc.server {
+			jlog.Debugf("server %s -> %d", k, v.Len())
+		}
+		for k := range Rpc.maglev {
+			jlog.Debug("maglev ", k)
+		}
+		for k, v := range Rpc.roundrobin {
+			jlog.Debugf("roundrobin %s -> %d", k, v)
+		}
 	}
 }

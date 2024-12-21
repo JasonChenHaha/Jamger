@@ -62,6 +62,10 @@ func (hs *HashSlice[T1, T2]) Len() int {
 	return len(hs.slice)
 }
 
+func (hs *HashSlice[T1, T2]) Get(key T1) T2 {
+	return hs.hash[key]
+}
+
 func (hs *HashSlice[T1, T2]) IndexOf(idx int) T2 {
 	if idx < len(hs.slice) {
 		return hs.slice[idx]
@@ -74,12 +78,17 @@ func (hs *HashSlice[T1, T2]) Keys() []T1 {
 	i, o := 0, make([]T1, len(hs.hash))
 	for k := range hs.hash {
 		o[i] = k
+		i++
 	}
 	return o
 }
 
-func (hs *HashSlice[T1, T2]) Get(key T1) T2 {
-	return hs.hash[key]
+func (hs *HashSlice[T1, T2]) Values() []T2 {
+	return hs.slice
+}
+
+func (hs *HashSlice[T1, T2]) KeyValues() map[T1]T2 {
+	return hs.hash
 }
 
 func (hs *HashSlice[T1, T2]) Del(key T1) {

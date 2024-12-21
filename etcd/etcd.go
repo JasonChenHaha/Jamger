@@ -50,7 +50,7 @@ func Init() {
 	if err != nil {
 		jlog.Fatal(err)
 	}
-	jschedule.DoEvery(fmt.Sprintf("*/%d * * * * *", jconfig.GetInt("etcd.update")/1000), update)
+	jschedule.DoEvery(time.Duration(jconfig.GetInt("etcd.update"))*time.Millisecond, update)
 }
 
 func Watch(group string, join Handler, leave Handler) {
@@ -74,6 +74,7 @@ func update() {
 		jlog.Error(err)
 	}
 	tmp := map[string]map[string]string{}
+	join := []string{}
 	for _, kv := range rsp.Kvs {
 		parts := strings.Split(string(kv.Key), "/")
 		group, server := parts[2], parts[3]
@@ -83,20 +84,25 @@ func update() {
 		info := string(kv.Value)
 		tmp[group][server] = info
 		if etc.server[group] == nil || etc.server[group][server] == "" {
-			// join
-			for _, f := range etc.joinWatch[group] {
-				f(group, server, info)
-			}
+			join = append(join, group, server, info)
 		}
 	}
+	for i := 0; i < len(join); i += 3 {
+		for _, f := range etc.joinWatch[join[i]] {
+			go f(join[i], join[i+1], join[i+2])
+		}
+	}
+	leave := []string{}
 	for group, v := range etc.server {
 		for server, info := range v {
 			if tmp[group] == nil || tmp[group][server] == "" {
-				// leave
-				for _, f := range etc.leaveWatch[group] {
-					f(group, server, info)
-				}
+				leave = append(leave, group, server, info)
 			}
+		}
+	}
+	for i := 0; i < len(leave); i += 3 {
+		for _, f := range etc.leaveWatch[leave[i]] {
+			go f(leave[i], leave[i+1], leave[i+2])
 		}
 	}
 	etc.server = tmp

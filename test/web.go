@@ -7,7 +7,6 @@ import (
 	"jglobal"
 	"jlog"
 	"jweb"
-	"strings"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -20,8 +19,8 @@ type Web struct {
 func testWeb() *Web {
 	jlog.Info("<test web>")
 	web := &Web{}
-	addr := strings.Split(jconfig.GetString("web.addr"), ":")
-	con, _, _ := websocket.DefaultDialer.Dial("ws://127.0.0.1:"+addr[1]+"/ws", nil)
+	addr := jconfig.GetString("web.addr")
+	con, _, _ := websocket.DefaultDialer.Dial("ws://"+addr+"/ws", nil)
 	jlog.Info("connect to server ", addr)
 	web.con = con
 
