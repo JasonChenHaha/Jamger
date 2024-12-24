@@ -8,12 +8,12 @@ import (
 	"jweb"
 )
 
-// ------------------------- outside -------------------------
-
 var Tcp *jtcp.Tcp
 var Kcp *jkcp.Kcp
 var Web *jweb.Web
 var Http *jhttp.Http
+
+// ------------------------- inside -------------------------
 
 func Init() {
 	if jconfig.Get("tcp") != nil {

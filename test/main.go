@@ -10,17 +10,10 @@ const (
 )
 
 func main() {
+	jlog.Init()
 	jlog.Info("<test start>")
 	// testTcp()
 	// testKcp()
 	// testWeb()
 	// testHttp()
-	k := test().(*ABC)
-	jlog.Debug(k)
-}
-
-type ABC struct{}
-
-func test() any {
-	return nil
 }

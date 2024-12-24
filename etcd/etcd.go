@@ -25,7 +25,7 @@ type etcd struct {
 	leaveWatch map[string][]Handler
 }
 
-// ------------------------- outside -------------------------
+// ------------------------- inside -------------------------
 
 func Init() {
 	etc = &etcd{
@@ -52,13 +52,6 @@ func Init() {
 	}
 	jschedule.DoEvery(time.Duration(jconfig.GetInt("etcd.update"))*time.Millisecond, update)
 }
-
-func Watch(group string, join Handler, leave Handler) {
-	etc.joinWatch[group] = append(etc.joinWatch[group], join)
-	etc.leaveWatch[group] = append(etc.leaveWatch[group], leave)
-}
-
-// ------------------------- inside -------------------------
 
 func update() {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(jconfig.GetInt("etcd.timeout"))*time.Second)
@@ -106,4 +99,11 @@ func update() {
 		}
 	}
 	etc.server = tmp
+}
+
+// ------------------------- outside -------------------------
+
+func Watch(group string, join Handler, leave Handler) {
+	etc.joinWatch[group] = append(etc.joinWatch[group], join)
+	etc.leaveWatch[group] = append(etc.leaveWatch[group], leave)
 }

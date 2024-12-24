@@ -2,9 +2,9 @@ package jconfig
 
 import (
 	"fmt"
-	"jlog"
-	"jtrash"
 	"os"
+	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/spf13/viper"
@@ -14,13 +14,13 @@ var config = viper.New()
 
 // ------------------------- inside -------------------------
 
-func init() {
+func Init() {
 	index := strings.LastIndex(os.Args[1], "/")
 	config.AddConfigPath(os.Args[1][:index])
 	config.SetConfigName(os.Args[1][index+1:])
 	config.SetConfigType("yml")
 	if err := config.ReadInConfig(); err != nil {
-		jlog.Panic(err)
+		panic(err)
 	}
 	formatCfg()
 }
@@ -32,7 +32,7 @@ func formatCfg() {
 		for k, v := range cfg {
 			switch o := v.(type) {
 			case string:
-				if num, ok := jtrash.TransTimeStrToUint64(o); ok {
+				if num, err := transTimeStrToUint64(o); err == nil {
 					if len(path) == 0 {
 						config.Set(k, num)
 					} else {
@@ -49,6 +49,27 @@ func formatCfg() {
 		}
 	}
 	fu("", config.AllSettings())
+}
+
+// 将带时间后缀的值，全部转成以毫秒单位的数值
+func transTimeStrToUint64(str string) (uint64, error) {
+	var scale uint64
+	re := regexp.MustCompile(`[a-zA-Z]+$`)
+	u := re.FindString(str)
+	switch u {
+	case "h":
+		scale = 3600000
+	case "m":
+		scale = 60000
+	case "s":
+		scale = 1000
+	case "ms":
+		scale = 1
+	default:
+		return 0, fmt.Errorf("suffix is invalid")
+	}
+	num, err := strconv.ParseUint(str[:len(str)-len(u)], 10, 64)
+	return num * scale, err
 }
 
 // ------------------------- outside -------------------------

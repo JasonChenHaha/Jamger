@@ -17,7 +17,7 @@ type schedule struct {
 
 // ------------------------- inside -------------------------
 
-func init() {
+func Init() {
 	sch = &schedule{cron: cron.New(cron.WithSeconds())}
 	sch.cron.Start()
 }

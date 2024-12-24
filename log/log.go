@@ -2,12 +2,14 @@ package jlog
 
 import (
 	"fmt"
-	"os"
+	"jconfig"
+	"jglobal"
 	"path/filepath"
 	"runtime"
 	"strings"
 
 	"github.com/sirupsen/logrus"
+	"gopkg.in/natefinch/lumberjack.v2"
 )
 
 var log *Log
@@ -29,13 +31,20 @@ func (format *LogFormater) Format(entry *logrus.Entry) ([]byte, error) {
 	return []byte(fmt.Sprintf("[%s][%s][%s.%d] %s\n", t, lv, file, line, entry.Message)), nil
 }
 
-func init() {
+func Init() {
 	log = &Log{}
 	log.Logger = logrus.New()
-	log.Out = os.Stdout
 	log.SetLevel(logrus.TraceLevel)
 	log.SetReportCaller(true)
 	log.SetFormatter(&LogFormater{})
+	output := &lumberjack.Logger{
+		Filename:   "./log/" + jglobal.SERVER + ".log",
+		MaxSize:    jconfig.GetInt("log.maxSize"),
+		MaxBackups: jconfig.GetInt("log.maxBackup"),
+		MaxAge:     jconfig.GetInt("log.maxAge"),
+		Compress:   jconfig.GetBool("log.compress"),
+	}
+	log.SetOutput(output)
 }
 
 // ------------------------- outside -------------------------

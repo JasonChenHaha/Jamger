@@ -36,7 +36,6 @@ start:
 	@./out/ctrl.sh start
 
 info:
-	@echo info...
 	@./out/ctrl.sh info
 
 stop:

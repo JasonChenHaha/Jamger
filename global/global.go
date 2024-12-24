@@ -11,9 +11,9 @@ var SERVER string
 
 const (
 	SVR_BEGIN = "nil"
-    SVR_BETA = "beta"
-    SVR_ALPHA = "alpha"
-    SVR_END = "nil"
+	SVR_BETA  = "beta"
+	SVR_ALPHA = "alpha"
+	SVR_END   = "nil"
 )
 
 const (
@@ -43,6 +43,8 @@ type AllFloat interface {
 type AllIntString interface {
 	AllInt | string
 }
+
+// ------------------------- inside -------------------------
 
 func Init() {
 	ZONE = jconfig.GetString("zone")

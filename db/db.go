@@ -7,11 +7,11 @@ import (
 	"jredis"
 )
 
-// ------------------------- outside -------------------------
-
 var Mysql *jmysql.Jmysql
 var Mongo *jmongo.Mongo
 var Redis *jredis.Redis
+
+// ------------------------- inside -------------------------
 
 func Init() {
 	if jconfig.Get("mysql") != nil {

@@ -48,7 +48,7 @@ func (svr *GameServer) SayHello(ctx context.Context, req *pb.RequestGame) (*pb.G
 	}, nil
 }
 
-// ------------------------- outside -------------------------
+// ------------------------- inside -------------------------
 
 func Init() {
 	// network()
@@ -58,8 +58,6 @@ func Init() {
 	// event()
 	// rpc()
 }
-
-// ------------------------- inside -------------------------
 
 func network() {
 	jnet.Tcp.Register(1, func(id uint64, pack *jtcp.Pack) {

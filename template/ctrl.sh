@@ -14,8 +14,10 @@ if [ "$1" == "start" ]; then
             grpc="${arr[7]#*=}"
             server=$group-$index
             if [[ `ps ux | grep $server | grep -v grep | grep -v 'tail' | wc -l` -eq 0 ]]; then
-                sed -e "s/\$ZONE/\"$zone\"/g" -e "s/\$GROUP/\"$group\"/g" -e "s/\$INDEX/\"$index\"/g" -e "s/\$TCP/$tcp/g" -e "s/\$KCP/$kcp/g" -e "s/\$WEB/$web/g" -e "s/\$HTTP/$http/g" -e "s/\$GRPC/$grpc/g" ./config.yml > ./$group/.config.yml
-                exec -a "$server" ./$group/$group ./$group/.config.yml >> ./$group/log/$server.log 2>&1 &
+                cd ./$group
+                sed -e "s/\$ZONE/\"$zone\"/g" -e "s/\$GROUP/\"$group\"/g" -e "s/\$INDEX/\"$index\"/g" -e "s/\$TCP/$tcp/g" -e "s/\$KCP/$kcp/g" -e "s/\$WEB/$web/g" -e "s/\$HTTP/$http/g" -e "s/\$GRPC/$grpc/g" ../config.yml > .config.yml
+                exec -a "$server" ./$group ./.config.yml >> ./log/$server.log 2>&1 &
+                cd ..
             fi
         fi
     done < "./serverList"

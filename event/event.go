@@ -28,7 +28,7 @@ type event struct {
 
 // ------------------------- inside -------------------------
 
-func init() {
+func Init() {
 	ev = &event{
 		localHandler: map[uint32][]LocalHandler{},
 		consumer:     map[string]*nsq.Consumer{},

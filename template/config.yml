@@ -4,6 +4,12 @@ group: $GROUP               # 服务组
 
 index: $INDEX               # 服务索引
 
+log:
+    maxSize: 10             # 文件容量(M)
+    # maxBackup: 10           # 最大日志文件数
+    maxAge: 30              # 日志文件过期删除天数
+    compress: false         # 压缩
+
 tcp:
     addr: $TCP
     noDelay: false          # 延迟发送
