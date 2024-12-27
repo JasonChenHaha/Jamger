@@ -47,7 +47,6 @@ pb:
 	@cd ./pb && make -s;
 
 test:
-	@echo test...
 	@cd ./test && make -s;
 
 .PHONY: install clean build run start stop pb test

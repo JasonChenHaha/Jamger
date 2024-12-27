@@ -1,10 +1,13 @@
 package jtrash
 
 import (
+	"context"
 	"jlog"
 	"os"
 	"os/signal"
 	"time"
+
+	"google.golang.org/grpc"
 )
 
 // ------------------------- outside -------------------------
@@ -20,6 +23,15 @@ func Keep() {
 	mainC := make(chan os.Signal, 1)
 	signal.Notify(mainC, os.Interrupt)
 	<-mainC
+}
+
+// grpc拦截器
+func TimeoutInterceptor(timeout time.Duration) grpc.UnaryClientInterceptor {
+	return func(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
+		ctx, cancel := context.WithTimeout(ctx, timeout)
+		defer cancel()
+		return invoker(ctx, method, req, reply, cc, opts...)
+	}
 }
 
 // 今天0点的时刻

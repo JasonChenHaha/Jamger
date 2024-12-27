@@ -1,0 +1,14 @@
+syntax = "proto3";
+option go_package = "./;pb";
+
+message BetaReq {
+    string name = 1;
+}
+
+message BetaRsp {
+    string message = 1;
+}
+
+service Beta {
+    rpc SayHello(BetaReq) returns (BetaRsp);
+}

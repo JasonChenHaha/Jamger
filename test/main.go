@@ -1,7 +1,9 @@
 package main
 
 import (
-	"jlog"
+	"fmt"
+	"jconfig"
+	"jglobal"
 )
 
 const (
@@ -10,10 +12,16 @@ const (
 )
 
 func main() {
-	jlog.Init()
-	jlog.Info("<test start>")
+	jconfig.Init()
+	jglobal.Init()
 	// testTcp()
 	// testKcp()
 	// testWeb()
 	// testHttp()
+	var a []int
+	test(a...)
+}
+
+func test(b ...int) {
+	fmt.Println(len(b))
 }

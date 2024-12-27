@@ -2,6 +2,7 @@ package jexample
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"jdb"
 	"jdebug"
@@ -21,6 +22,7 @@ import (
 
 	"github.com/nsqio/go-nsq"
 	"go.mongodb.org/mongo-driver/bson"
+	"gorm.io/gorm"
 )
 
 type DDD struct {
@@ -28,22 +30,28 @@ type DDD struct {
 	Name string
 }
 
-type GateServer struct {
-	pb.GateServer
+type User struct {
+	Id   int `gorm:"primaryKey"`
+	Name string
+	gorm.Model
 }
 
-func (svr *GateServer) SayHello(ctx context.Context, req *pb.RequestGate) (*pb.GateResponse, error) {
-	return &pb.GateResponse{
+type AlphaServer struct {
+	pb.AlphaServer
+}
+
+func (svr *AlphaServer) SayHello(ctx context.Context, req *pb.AlphaReq) (*pb.AlphaRsp, error) {
+	return &pb.AlphaRsp{
 		Message: fmt.Sprintf("hello %s, this is %s", req.GetName(), jglobal.SERVER),
 	}, nil
 }
 
-type GameServer struct {
-	pb.GameServer
+type BetaServer struct {
+	pb.BetaServer
 }
 
-func (svr *GameServer) SayHello(ctx context.Context, req *pb.RequestGame) (*pb.GameResponse, error) {
-	return &pb.GameResponse{
+func (svr *BetaServer) SayHello(ctx context.Context, req *pb.BetaReq) (*pb.BetaRsp, error) {
+	return &pb.BetaRsp{
 		Message: fmt.Sprintf("hello %s, this is %s", req.GetName(), jglobal.SERVER),
 	}, nil
 }
@@ -52,6 +60,7 @@ func (svr *GameServer) SayHello(ctx context.Context, req *pb.RequestGame) (*pb.G
 
 func Init() {
 	// network()
+	// mysql()
 	// mongo()
 	// redis()
 	// schedule()
@@ -72,6 +81,65 @@ func network() {
 		jlog.Debug(jdebug.StructToString(pack))
 		jnet.Kcp.Send(id, 1, []byte("ok!"))
 	})
+}
+
+func mysql() {
+	var res *gorm.DB
+	var n int64
+	user := &User{
+		Id:   8,
+		Name: "ddd",
+	}
+	users := &[]User{
+		{Id: 0, Name: "abc"},
+		{Id: 2, Name: "kkk"},
+	}
+	users2 := &map[string]any{}
+	var name string
+	names := &[]string{}
+
+	jdb.Mysql.Create(user)
+	jdb.Mysql.Select("name").Create(user)
+	jdb.Mysql.Omit("id").Create(user)
+	jdb.Mysql.CreateInBatches(users, 2)
+
+	jdb.Mysql.Table("users").Count(&n)
+
+	res = jdb.Mysql.First(user)
+	res = jdb.Mysql.Take(user)
+	res = jdb.Mysql.Last(user)
+	res = jdb.Mysql.Select("id", "name").Find(users)
+	res = jdb.Mysql.Table("users").Take(user)
+	res = jdb.Mysql.Model(user).Take(users2)
+	res = jdb.Mysql.Where("name = ?", "kkk").First(user)
+	res = jdb.Mysql.Not("name = ?", "abc").First(user)
+	res = jdb.Mysql.Order("name desc").Find(users)
+	res = jdb.Mysql.Limit(1).Offset(1).Find(users)
+	res = jdb.Mysql.Group("name").Having("id = 1").Find(users)
+	res = jdb.Mysql.Distinct("name").Find(users)
+	res = jdb.Mysql.Table("users").Pluck("name", names)
+	jdb.Mysql.OriginSql().Raw("select * from users").Scan(users)
+	rows, _ := jdb.Mysql.OriginSql().Raw("select name from users").Rows()
+	for rows.Next() {
+		rows.Scan(&name)
+		jdb.Mysql.ScanRows(rows, names)
+	}
+
+	res = jdb.Mysql.Table("users").Where("name = ?", "kkk").Update("name", "k")
+	res = jdb.Mysql.Table("users").Where("name = ?", "k").Updates(map[string]any{"name": "kkk"})
+	res = jdb.Mysql.Save(user)
+
+	res = jdb.Mysql.Delete(user)
+	if res != nil {
+		jlog.Debug(res.RowsAffected)
+		jlog.Debug(errors.Is(res.Error, gorm.ErrRecordNotFound))
+	}
+	jlog.Debug(n)
+	jlog.Debug(name)
+	jlog.Debug(names)
+	jlog.Debug(user)
+	jlog.Debug(users)
+	jlog.Debug(users2)
 }
 
 func mongo() {
@@ -185,7 +253,8 @@ func event() {
 
 func rpc() {
 	f := func(target any) {
-		res, err := target.(pb.GateClient).SayHello(context.Background(), &pb.RequestGate{
+		jlog.Debug("call")
+		res, err := target.(pb.BetaClient).SayHello(context.Background(), &pb.BetaReq{
 			Name: jglobal.SERVER,
 		})
 		if err != nil {
@@ -196,27 +265,27 @@ func rpc() {
 	}
 
 	if jglobal.GROUP == jglobal.SVR_ALPHA {
-		jrpc.Server(&pb.Game_ServiceDesc, &GameServer{})
-		jrpc.Connect(jglobal.SVR_BETA, pb.NewGateClient)
+		jrpc.Server(&pb.Alpha_ServiceDesc, &AlphaServer{})
+		jrpc.Connect(jglobal.SVR_BETA, pb.NewBetaClient)
 		i := 0
 		jschedule.DoCron("*/5 * * * * *", func() {
-			if target := jrpc.GetTarget(jglobal.SVR_BETA, "gate-01"); target != nil {
+			if target := jrpc.GetTarget(jglobal.SVR_BETA, "beta-01"); target != nil {
 				f(target)
 			}
-			if target := jrpc.GetFixHashTarget(jglobal.SVR_BETA, i); target != nil {
-				f(target)
-			}
-			if target := jrpc.GetRoundRobinTarget(jglobal.SVR_BETA); target != nil {
-				f(target)
-			}
-			if target := jrpc.GetConsistentHashTarget(jglobal.SVR_BETA, i); target != nil {
-				f(target)
-			}
+			// if target := jrpc.GetFixHashTarget(jglobal.SVR_BETA, i); target != nil {
+			// 	f(target)
+			// }
+			// if target := jrpc.GetRoundRobinTarget(jglobal.SVR_BETA); target != nil {
+			// 	f(target)
+			// }
+			// if target := jrpc.GetConsistentHashTarget(jglobal.SVR_BETA, i); target != nil {
+			// 	f(target)
+			// }
 			i++
 		})
 	}
 	if jglobal.GROUP == jglobal.SVR_BETA {
-		jrpc.Server(&pb.Gate_ServiceDesc, &GateServer{})
-		jrpc.Connect(jglobal.SVR_ALPHA, pb.NewGameClient)
+		jrpc.Server(&pb.Beta_ServiceDesc, &BetaServer{})
+		jrpc.Connect(jglobal.SVR_ALPHA, pb.NewAlphaClient)
 	}
 }

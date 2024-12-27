@@ -5,6 +5,7 @@ import (
 	"jetcd"
 	"jglobal"
 	"jlog"
+	"jtrash"
 	"log"
 	"net"
 	"reflect"
@@ -42,7 +43,11 @@ func Init() {
 func join(group string, server string, info string) {
 	Rpc.mutex.Lock()
 	defer Rpc.mutex.Unlock()
-	con, err := grpc.NewClient(info, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	options := []grpc.DialOption{
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithUnaryInterceptor(jtrash.TimeoutInterceptor(time.Duration(jconfig.GetInt("grpc.timeout")) * time.Millisecond)),
+	}
+	con, err := grpc.NewClient(info, options...)
 	if err != nil {
 		jlog.Fatal(err)
 	}
