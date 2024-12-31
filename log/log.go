@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"jconfig"
 	"jglobal"
+	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -34,17 +35,22 @@ func (format *LogFormater) Format(entry *logrus.Entry) ([]byte, error) {
 func Init() {
 	log = &Log{}
 	log.Logger = logrus.New()
-	log.SetLevel(logrus.TraceLevel)
 	log.SetReportCaller(true)
 	log.SetFormatter(&LogFormater{})
-	output := &lumberjack.Logger{
-		Filename:   "./log/" + jglobal.SERVER + ".log",
-		MaxSize:    jconfig.GetInt("log.maxSize"),
-		MaxBackups: jconfig.GetInt("log.maxBackup"),
-		MaxAge:     jconfig.GetInt("log.maxAge"),
-		Compress:   jconfig.GetBool("log.compress"),
+	if jconfig.Get("log") != nil {
+		log.SetLevel(logrus.Level(jconfig.GetInt("log.level")))
+		output := &lumberjack.Logger{
+			Filename:   "./log/" + jglobal.SERVER + ".log",
+			MaxSize:    jconfig.GetInt("log.maxSize"),
+			MaxBackups: jconfig.GetInt("log.maxBackup"),
+			MaxAge:     jconfig.GetInt("log.maxAge"),
+			Compress:   jconfig.GetBool("log.compress"),
+		}
+		log.SetOutput(output)
+	} else {
+		log.SetLevel(logrus.TraceLevel)
+		log.SetOutput(os.Stdout)
 	}
-	log.SetOutput(output)
 }
 
 // ------------------------- outside -------------------------

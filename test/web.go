@@ -16,7 +16,7 @@ type Web struct {
 	con *websocket.Conn
 }
 
-func testWeb() *Web {
+func testWeb() {
 	jlog.Info("<test web>")
 	web := &Web{}
 	addr := jconfig.GetString("web.addr")
@@ -28,8 +28,6 @@ func testWeb() *Web {
 
 	web.send(jglobal.CMD_PING, []byte{})
 	web.recv()
-
-	return web
 }
 
 func (web *Web) heartbeat() {

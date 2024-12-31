@@ -3,7 +3,7 @@ cd $(dirname "$0")
 if [ "$1" == "start" ]; then
     while IFS= read -r line || [ -n "$line" ]; do
         read -a arr <<< $line
-        if [[ ! "$line" =~ ^[[:space:]]*$ ]]; then
+        if [[ (! "$line" =~ ^[[:space:]]*$) && (! "$line" == \#*) ]]; then
             zone="${arr[0]#*=}"
             group="${arr[1]#*=}"
             index="${arr[2]#*=}"

@@ -1,9 +1,9 @@
 package main
 
 import (
-	"fmt"
 	"jconfig"
 	"jglobal"
+	"jlog"
 )
 
 const (
@@ -11,17 +11,15 @@ const (
 	gCmdSize  = 2
 )
 
+type A struct {
+}
+
 func main() {
 	jconfig.Init()
 	jglobal.Init()
-	// testTcp()
+	jlog.Init()
+	testTcp()
 	// testKcp()
 	// testWeb()
 	// testHttp()
-	var a []int
-	test(a...)
-}
-
-func test(b ...int) {
-	fmt.Println(len(b))
 }

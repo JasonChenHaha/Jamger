@@ -17,7 +17,7 @@ type Kcp struct {
 	con *kcp.UDPSession
 }
 
-func testKcp() *Kcp {
+func testKcp() {
 	jlog.Info("<test kcp>")
 	kc := &Kcp{}
 	addr := jconfig.GetString("kcp.addr")
@@ -29,8 +29,6 @@ func testKcp() *Kcp {
 
 	kc.send(jglobal.CMD_PING, []byte{})
 	kc.recv()
-
-	return kc
 }
 
 func (kc *Kcp) heartbeat() {

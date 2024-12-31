@@ -5,18 +5,13 @@ import (
 	"errors"
 	"fmt"
 	"jdb"
-	"jdebug"
 	"jevent"
 	"jglobal"
-	"jkcp"
 	"jlog"
 	"jmongo"
-	"jnet"
 	pb "jpb"
 	"jrpc"
 	"jschedule"
-	"jtcp"
-	"jweb"
 	"reflect"
 	"time"
 
@@ -69,18 +64,18 @@ func Init() {
 }
 
 func network() {
-	jnet.Tcp.Register(1, func(id uint64, pack *jtcp.Pack) {
-		jlog.Debug(jdebug.StructToString(pack))
-		jnet.Tcp.Send(id, 1, []byte("ok!"))
-	})
-	jnet.Kcp.Register(2, func(id uint64, pack *jkcp.Pack) {
-		jlog.Debug(jdebug.StructToString(pack))
-		jnet.Kcp.Send(id, 1, []byte("ok!"))
-	})
-	jnet.Web.Register(1, func(id uint64, pack *jweb.Pack) {
-		jlog.Debug(jdebug.StructToString(pack))
-		jnet.Kcp.Send(id, 1, []byte("ok!"))
-	})
+	// jnet.Tcp.Register(1, func(id uint64, pack *jtcp.Pack) {
+	// 	jlog.Debug(jdebug.StructToString(pack))
+	// 	jnet.Tcp.Send(id, 1, []byte("ok!"))
+	// })
+	// jnet.Kcp.Register(2, func(id uint64, pack *jkcp.Pack) {
+	// 	jlog.Debug(jdebug.StructToString(pack))
+	// 	jnet.Kcp.Send(id, 1, []byte("ok!"))
+	// })
+	// jnet.Web.Register(1, func(id uint64, pack *jweb.Pack) {
+	// 	jlog.Debug(jdebug.StructToString(pack))
+	// 	jnet.Kcp.Send(id, 1, []byte("ok!"))
+	// })
 }
 
 func mysql() {

@@ -35,7 +35,7 @@ find ./group -maxdepth 1 ! -path './group' -type d -print | while read dir; do
     find . -path '*/.*' -prune -o ! -path '.' -type d -print | while read dir2; do
         cd $root/group/$group/${dir2#./}
         if [[ ! -f ./go.mod ]]; then
-            go mod init $group$(basename $dir2)
+            go mod init $(basename $dir2)
             go mod tidy
         fi
         cd $root/${dir#./}

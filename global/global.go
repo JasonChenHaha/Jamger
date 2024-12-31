@@ -10,10 +10,11 @@ var GROUP string
 var SERVER string
 
 const (
-	SVR_BEGIN = "nil"
-    SVR_BETA = "beta"
-    SVR_ALPHA = "alpha"
-    SVR_END = "nil"
+	SVR_BEGIN    = "nil"
+	SVR_BETA     = "beta"
+	SVR_ALPHA    = "alpha"
+	SVR_LOGINSVR = "loginsvr"
+	SVR_END      = "nil"
 )
 
 const (
@@ -22,6 +23,11 @@ const (
 	CMD_HEARTBEAT = 2
 	CMD_PING      = 3
 	CMD_PONG      = 4
+
+	CMD_SIGN_UP_REQ = 5
+	CMD_SIGN_UP_RSP = 6
+	CMD_SIGN_IN_REQ = 7
+	CMD_SIGN_IN_RSP = 8
 )
 
 type AllInt interface {

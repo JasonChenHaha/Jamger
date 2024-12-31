@@ -49,4 +49,4 @@ pb:
 test:
 	@cd ./test && make -s;
 
-.PHONY: install clean build run start stop pb test
+.PHONY: all install clean build run start stop pb test

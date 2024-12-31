@@ -1,0 +1,12 @@
+syntax = "proto3";
+option go_package = "./;pb";
+
+enum CMD {
+    SIGN_OUT_REQ = 0;
+    SIGN_OUT_RSP = 1;
+}
+
+enum CODE {
+    OK = 0;
+    ERR = 1;
+}

@@ -1,4 +1,6 @@
-zone=1 group=alpha index=01 tcp=0.0.0.0:10000 kcp=0.0.0.0:20000 web=0.0.0.0:30000 http=0.0.0.0:40000 grpc=0.0.0.0:50000
-zone=1 group=alpha index=02 tcp=0.0.0.0:10001 kcp=0.0.0.0:20001 web=0.0.0.0:30001 http=0.0.0.0:40001 grpc=0.0.0.0:50001
-zone=1 group=beta index=01 tcp=0.0.0.0:10100 kcp=0.0.0.0:20100 web=0.0.0.0:30100 http=0.0.0.0:40100 grpc=0.0.0.0:50100
-zone=1 group=beta index=02 tcp=0.0.0.0:10101 kcp=0.0.0.0:20101 web=0.0.0.0:30101 http=0.0.0.0:40101 grpc=0.0.0.0:50101
+#zone=1 group=alpha index=01 tcp=0.0.0.0:10000 kcp=0.0.0.0:20000 web=0.0.0.0:30000 http=0.0.0.0:40000 grpc=0.0.0.0:50000
+#zone=1 group=alpha index=02 tcp=0.0.0.0:10001 kcp=0.0.0.0:20001 web=0.0.0.0:30001 http=0.0.0.0:40001 grpc=0.0.0.0:50001
+#zone=1 group=beta index=01 tcp=0.0.0.0:10100 kcp=0.0.0.0:20100 web=0.0.0.0:30100 http=0.0.0.0:40100 grpc=0.0.0.0:50100
+#zone=1 group=beta index=02 tcp=0.0.0.0:10101 kcp=0.0.0.0:20101 web=0.0.0.0:30101 http=0.0.0.0:40101 grpc=0.0.0.0:50101
+
+zone=1 group=loginsvr index=01 tcp=0.0.0.0:10000 kcp=0.0.0.0:20000 web=0.0.0.0:30000 http=0.0.0.0:40000 grpc=0.0.0.0:50000

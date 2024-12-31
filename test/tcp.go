@@ -1,22 +1,29 @@
 package main
 
 import (
+	"crypto/rsa"
 	"encoding/binary"
+	"hash/crc32"
 	"io"
 	"jconfig"
 	"jdebug"
 	"jglobal"
 	"jlog"
+	pb "jpb"
 	"jtcp"
+	"jtrash"
 	"net"
 	"time"
+
+	"google.golang.org/protobuf/proto"
 )
 
 type Tcp struct {
-	con net.Conn
+	con    net.Conn
+	pubKey *rsa.PublicKey
 }
 
-func testTcp() *Tcp {
+func testTcp() {
 	jlog.Info("<test tcp>")
 	tcp := &Tcp{}
 	addr := jconfig.GetString("tcp.addr")
@@ -24,32 +31,46 @@ func testTcp() *Tcp {
 	jlog.Info("connect to server ", addr)
 	tcp.con = con
 
-	go tcp.heartbeat()
+	pubKey, err := jtrash.RSALoadPublicKey(jconfig.GetString("rsa.publicKey"))
+	if err != nil {
+		jlog.Fatal(err)
+	}
+	tcp.pubKey = pubKey
 
-	tcp.send(jglobal.CMD_PING, []byte{})
-	tcp.recv()
+	// go tcp.heartbeat()
 
-	return tcp
+	tcp.send(jglobal.CMD_SIGN_UP_REQ, &pb.SignUpReq{
+		Id:  "nihaoya",
+		Pwd: "123456",
+	})
+	// tcp.recv()
 }
 
 func (tcp *Tcp) heartbeat() {
 	ticker := time.NewTicker(5 * time.Second)
 	for range ticker.C {
-		tcp.send(jglobal.CMD_HEARTBEAT, []byte{})
+		tcp.send(jglobal.CMD_HEARTBEAT, nil)
 	}
 }
 
-func (tcp *Tcp) send(cmd uint16, data []byte) {
+func (tcp *Tcp) send(cmd uint16, msg proto.Message) {
+	data := []byte{}
+	if msg != nil {
+		data, _ = proto.Marshal(msg)
+	}
 	pack := &jtcp.Pack{
 		Cmd:  cmd,
 		Data: data,
 	}
 	bodySize := gCmdSize + len(pack.Data)
-	size := gHeadSize + bodySize
+	size := gHeadSize + bodySize + 4
 	buffer := make([]byte, size)
 	binary.LittleEndian.PutUint16(buffer, uint16(bodySize))
 	binary.LittleEndian.PutUint16(buffer[gHeadSize:], pack.Cmd)
 	copy(buffer[gHeadSize+gCmdSize:], pack.Data)
+	checksum := crc32.ChecksumIEEE(buffer)
+	binary.LittleEndian.PutUint32(buffer[size-4:], checksum)
+
 	for pos := 0; pos < size; {
 		n, err := tcp.con.Write(buffer)
 		if err != nil {

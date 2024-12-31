@@ -1,27 +1,44 @@
 package jtcp
 
 import (
+	"crypto/rsa"
 	"jconfig"
 	"jlog"
+	"jtrash"
 	"net"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"google.golang.org/protobuf/proto"
 )
 
-type Handler func(id uint64, pack *Pack)
+type Callback func(id uint64, cmd uint16, msg proto.Message)
+
+type Handler struct {
+	cb  Callback
+	obj proto.Message
+}
 
 type Tcp struct {
-	idc     uint64
-	ses     sync.Map
-	counter uint64
-	handler map[uint16]Handler
+	idc        uint64
+	ses        sync.Map
+	counter    uint64
+	handler    map[uint16]*Handler
+	privateKey *rsa.PrivateKey
 }
 
 // ------------------------- outside -------------------------
 
 func NewTcp() *Tcp {
-	tcp := &Tcp{handler: make(map[uint16]Handler)}
+	key, err := jtrash.RSALoadPrivateKey(jconfig.GetString("rsa.privateKey"))
+	if err != nil {
+		jlog.Fatal(err)
+	}
+	tcp := &Tcp{
+		handler:    make(map[uint16]*Handler),
+		privateKey: key,
+	}
 	addr := jconfig.GetString("tcp.addr")
 	listener, err := net.Listen("tcp", addr)
 	if err != nil {
@@ -35,8 +52,11 @@ func NewTcp() *Tcp {
 	return tcp
 }
 
-func (tcp *Tcp) Register(id uint16, handler Handler) {
-	tcp.handler[id] = handler
+func (tcp *Tcp) Register(id uint16, cb Callback, obj proto.Message) {
+	tcp.handler[id] = &Handler{
+		cb:  cb,
+		obj: obj,
+	}
 }
 
 func (tcp *Tcp) Send(id uint64, cmd uint16, data []byte) {
@@ -46,6 +66,30 @@ func (tcp *Tcp) Send(id uint64, cmd uint16, data []byte) {
 		return
 	}
 	obj.(*Ses).send(makePack(cmd, data))
+}
+
+// ------------------------- package -------------------------
+
+func (tcp *Tcp) receive(id uint64, pack *Pack) {
+	han, ok := tcp.handler[pack.Cmd]
+	if !ok {
+		jlog.Warn("cmd not exist, ", pack.Cmd)
+		tcp.delete(id)
+		return
+	}
+	data, err := jtrash.RSADecrypt(tcp.privateKey, pack.Data)
+	if err != nil {
+		jlog.Warnf("%s, %d", err, pack.Cmd)
+		tcp.delete(id)
+		return
+	}
+	err = proto.Unmarshal(data, han.obj)
+	if err != nil {
+		jlog.Warnf("%s, %d", err, pack.Cmd)
+		tcp.delete(id)
+		return
+	}
+	han.cb(id, pack.Cmd, han.obj)
 }
 
 // ------------------------- inside -------------------------
@@ -76,15 +120,6 @@ func (tcp *Tcp) delete(id uint64) {
 		tcp.counter--
 		obj.(*Ses).close()
 	}
-}
-
-func (tcp *Tcp) receive(id uint64, pack *Pack) {
-	fu, ok := tcp.handler[pack.Cmd]
-	if !ok {
-		jlog.Warn("cmd not exist, ", pack.Cmd)
-		return
-	}
-	fu(id, pack)
 }
 
 // ------------------------- debug -------------------------
