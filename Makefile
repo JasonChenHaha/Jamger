@@ -27,6 +27,12 @@ build:
 	@cp ./template/serverList ./out/serverList
 	@cp ./template/ctrl.sh ./out/ctrl.sh
 
+buildraw:
+	@find ./group -type f -name 'Makefile' -execdir $(MAKE) -s buildraw \;
+	@cp ./template/config.yml ./out/config.yml
+	@cp ./template/serverList ./out/serverList
+	@cp ./template/ctrl.sh ./out/ctrl.sh
+
 run: build
 	@echo run...
 	@./out/ctrl.sh start

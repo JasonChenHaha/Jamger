@@ -3,7 +3,6 @@ package jlog
 import (
 	"fmt"
 	"jconfig"
-	"jglobal"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -32,7 +31,7 @@ func (format *LogFormater) Format(entry *logrus.Entry) ([]byte, error) {
 	return []byte(fmt.Sprintf("[%s][%s][%s.%d] %s\n", t, lv, file, line, entry.Message)), nil
 }
 
-func Init() {
+func Init(server string) {
 	log = &Log{}
 	log.Logger = logrus.New()
 	log.SetReportCaller(true)
@@ -40,7 +39,7 @@ func Init() {
 	if jconfig.Get("log") != nil {
 		log.SetLevel(logrus.Level(jconfig.GetInt("log.level")))
 		output := &lumberjack.Logger{
-			Filename:   "./log/" + jglobal.SERVER + ".log",
+			Filename:   "./log/" + server + ".log",
 			MaxSize:    jconfig.GetInt("log.maxSize"),
 			MaxBackups: jconfig.GetInt("log.maxBackup"),
 			MaxAge:     jconfig.GetInt("log.maxAge"),

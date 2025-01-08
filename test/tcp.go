@@ -62,15 +62,19 @@ func (tcp *Tcp) send(cmd uint16, msg proto.Message) {
 		Cmd:  cmd,
 		Data: data,
 	}
-	bodySize := gCmdSize + len(pack.Data)
-	size := gHeadSize + bodySize + 4
-	buffer := make([]byte, size)
-	binary.LittleEndian.PutUint16(buffer, uint16(bodySize))
+	size := len(pack.Data)
+	raw := make([]byte, size+4)
+	copy(raw, pack.Data)
+	binary.LittleEndian.PutUint32(raw[size:], crc32.ChecksumIEEE(pack.Data))
+	secret, err := jtrash.RSAEncrypt(tcp.pubKey, raw)
+	if err != nil {
+		jlog.Fatal(err)
+	}
+	size = gCmdSize + len(secret)
+	buffer := make([]byte, gHeadSize+size)
+	binary.LittleEndian.PutUint16(buffer, uint16(size))
 	binary.LittleEndian.PutUint16(buffer[gHeadSize:], pack.Cmd)
-	copy(buffer[gHeadSize+gCmdSize:], pack.Data)
-	checksum := crc32.ChecksumIEEE(buffer)
-	binary.LittleEndian.PutUint32(buffer[size-4:], checksum)
-
+	copy(buffer[gHeadSize+gCmdSize:], secret)
 	for pos := 0; pos < size; {
 		n, err := tcp.con.Write(buffer)
 		if err != nil {

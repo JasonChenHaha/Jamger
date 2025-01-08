@@ -19,7 +19,7 @@ func main() {
 	defer jtrash.Rcover()
 	jconfig.Init()
 	jglobal.Init()
-	jlog.Init()
+	jlog.Init(jglobal.SERVER)
 	jlog.Infof(">%s start<", jglobal.SERVER)
 	jevent.Init()
 	jschedule.Init()

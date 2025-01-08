@@ -1,6 +1,7 @@
 package jtcp
 
 import (
+	"io"
 	"jconfig"
 	"jglobal"
 	"jlog"
@@ -63,13 +64,16 @@ func (ses *Ses) recvGoro() {
 			}
 			pack, err := recvPack(ses.con)
 			if err != nil {
+				if err != io.EOF {
+					jlog.Warn(err)
+				}
 				ses.tcp.delete(ses.id)
 				return
 			}
 			switch pack.Cmd {
 			case jglobal.CMD_HEARTBEAT:
 			case jglobal.CMD_PING:
-				ses.tcp.Send(ses.id, jglobal.CMD_PONG, []byte{})
+				ses.tcp.Send(ses.id, jglobal.CMD_PONG, nil)
 			default:
 				ses.tcp.receive(ses.id, pack)
 			}

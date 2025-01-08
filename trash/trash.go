@@ -8,7 +8,6 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
-	"jconfig"
 	"jlog"
 	"os"
 	"os/signal"
@@ -114,7 +113,7 @@ func RSALoadPublicKey(publicKey string) (*rsa.PublicKey, error) {
 
 // RSA加载私钥
 func RSALoadPrivateKey(privateKey string) (*rsa.PrivateKey, error) {
-	block, _ := pem.Decode([]byte(jconfig.GetString("rsa.privateKey")))
+	block, _ := pem.Decode([]byte(privateKey))
 	if block == nil {
 		return nil, fmt.Errorf("decode privateKey failed.")
 	}

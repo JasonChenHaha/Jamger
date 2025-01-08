@@ -16,5 +16,6 @@ func Init() {
 func signUp(id uint64, cmd uint16, msg proto.Message) {
 	req := msg.(*pb.SignUpReq)
 	jlog.Debug(req)
-	// jnet.Tcp.Send(id, jglobal.CMD_SIGN_UP_RSP, []byte("ok!"))
+	rsp := &pb.SignUpRsp{Code: jglobal.CMD_OK}
+	jnet.Tcp.Send(id, jglobal.CMD_SIGN_UP_RSP, rsp)
 }

@@ -1,10 +1,8 @@
 package jtcp
 
 import (
-	"crypto/rsa"
 	"jconfig"
 	"jlog"
-	"jtrash"
 	"net"
 	"sync"
 	"sync/atomic"
@@ -17,27 +15,21 @@ type Callback func(id uint64, cmd uint16, msg proto.Message)
 
 type Handler struct {
 	cb  Callback
-	obj proto.Message
+	msg proto.Message
 }
 
 type Tcp struct {
-	idc        uint64
-	ses        sync.Map
-	counter    uint64
-	handler    map[uint16]*Handler
-	privateKey *rsa.PrivateKey
+	idc     uint64
+	ses     sync.Map
+	counter uint64
+	handler map[uint16]*Handler
 }
 
 // ------------------------- outside -------------------------
 
 func NewTcp() *Tcp {
-	key, err := jtrash.RSALoadPrivateKey(jconfig.GetString("rsa.privateKey"))
-	if err != nil {
-		jlog.Fatal(err)
-	}
 	tcp := &Tcp{
-		handler:    make(map[uint16]*Handler),
-		privateKey: key,
+		handler: make(map[uint16]*Handler),
 	}
 	addr := jconfig.GetString("tcp.addr")
 	listener, err := net.Listen("tcp", addr)
@@ -52,20 +44,20 @@ func NewTcp() *Tcp {
 	return tcp
 }
 
-func (tcp *Tcp) Register(id uint16, cb Callback, obj proto.Message) {
+func (tcp *Tcp) Register(id uint16, cb Callback, msg proto.Message) {
 	tcp.handler[id] = &Handler{
 		cb:  cb,
-		obj: obj,
+		msg: msg,
 	}
 }
 
-func (tcp *Tcp) Send(id uint64, cmd uint16, data []byte) {
+func (tcp *Tcp) Send(id uint64, cmd uint16, msg proto.Message) {
 	obj, ok := tcp.ses.Load(id)
 	if !ok {
 		jlog.Errorf("session %d not found", id)
 		return
 	}
-	obj.(*Ses).send(makePack(cmd, data))
+	obj.(*Ses).send(cmd, msg)
 }
 
 // ------------------------- package -------------------------
@@ -77,19 +69,13 @@ func (tcp *Tcp) receive(id uint64, pack *Pack) {
 		tcp.delete(id)
 		return
 	}
-	data, err := jtrash.RSADecrypt(tcp.privateKey, pack.Data)
-	if err != nil {
-		jlog.Warnf("%s, %d", err, pack.Cmd)
+	msg := proto.Clone(han.msg)
+	if err := proto.Unmarshal(pack.Data, msg); err != nil {
+		jlog.Warn("%s, %d", err, pack.Cmd)
 		tcp.delete(id)
 		return
 	}
-	err = proto.Unmarshal(data, han.obj)
-	if err != nil {
-		jlog.Warnf("%s, %d", err, pack.Cmd)
-		tcp.delete(id)
-		return
-	}
-	han.cb(id, pack.Cmd, han.obj)
+	han.cb(id, pack.Cmd, msg)
 }
 
 // ------------------------- inside -------------------------
