@@ -2,8 +2,8 @@ package jweb
 
 import (
 	"jconfig"
-	"jglobal"
 	"jlog"
+	pb "jpb"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -66,9 +66,9 @@ func (ses *Ses) recvGoro() {
 			}
 			pack := unserializeData(data)
 			switch pack.Cmd {
-			case jglobal.CMD_HEARTBEAT:
-			case jglobal.CMD_PING:
-				ses.web.Send(ses.id, jglobal.CMD_PONG, []byte{})
+			case pb.CMD_HEARTBEAT:
+			case pb.CMD_PING:
+				ses.web.Send(ses.id, pb.CMD_PONG, []byte{})
 			default:
 				ses.web.receive(ses.id, pack)
 			}

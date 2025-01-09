@@ -18,7 +18,7 @@ func Init() {
 		Mysql = jmysql.NewMysql()
 	}
 	if jconfig.Get("mongo") != nil {
-		Mongo = jmongo.NewMongo("boomboat")
+		Mongo = jmongo.NewMongo(jconfig.GetString("mongo.db"))
 	}
 	if jconfig.Get("redis") != nil {
 		Redis = jredis.NewRedis()

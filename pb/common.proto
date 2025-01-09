@@ -1,0 +1,24 @@
+syntax = "proto3";
+option go_package = "./;pb";
+
+enum CMD {
+    CLOSE = 0;
+    HEARTBEAT = 1;
+    PING = 2;
+    PONG = 3;
+    SIGN_UP_REQ = 4;
+    SIGN_UP_RSP = 5;
+    SIGN_IN_REQ = 6;
+    SIGN_IN_RSP = 7;
+}
+
+enum CODE {
+    OK = 0;
+    ERR = 1;
+    AESKEY_ERR = 2;         // 重复的AESKey
+    ACCOUNT_EXIST = 3;      // 账号已存在
+}
+
+message Error {
+    CODE code = 1;
+}

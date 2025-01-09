@@ -1,10 +1,10 @@
 package jtcp
 
 import (
-	"io"
+	"bytes"
 	"jconfig"
-	"jglobal"
 	"jlog"
+	pb "jpb"
 	"net"
 	"time"
 )
@@ -13,6 +13,7 @@ type Ses struct {
 	tcp      *Tcp
 	con      *net.TCPConn
 	id       uint64
+	aesKey   []byte
 	rTimeout time.Duration
 	sTimeout time.Duration
 	sChan    chan *Pack
@@ -62,19 +63,28 @@ func (ses *Ses) recvGoro() {
 			if ses.rTimeout > 0 {
 				ses.con.SetReadDeadline(time.Now().Add(ses.rTimeout))
 			}
-			pack, err := recvPack(ses.con)
+			pack, err := recvPack(ses)
 			if err != nil {
-				if err != io.EOF {
-					jlog.Warn(err)
-				}
 				ses.tcp.delete(ses.id)
 				return
 			}
 			switch pack.Cmd {
-			case jglobal.CMD_HEARTBEAT:
-			case jglobal.CMD_PING:
-				ses.tcp.Send(ses.id, jglobal.CMD_PONG, nil)
+			case pb.CMD_HEARTBEAT:
+			case pb.CMD_PING:
+				ses.tcp.Send(ses.id, pb.CMD_PONG, nil)
+			case pb.CMD_SIGN_UP_REQ, pb.CMD_SIGN_IN_REQ:
+				aesKey, err := parseRSAPack(pack)
+				if err != nil || bytes.Equal(aesKey, ses.aesKey) {
+					ses.tcp.delete(ses.id)
+					return
+				}
+				ses.aesKey = aesKey
+				ses.tcp.receive(ses.id, pack)
 			default:
+				if err := parseAESpack(ses.aesKey, pack); err != nil {
+					ses.tcp.delete(ses.id)
+					return
+				}
 				ses.tcp.receive(ses.id, pack)
 			}
 		}
@@ -96,7 +106,7 @@ func (ses *Ses) sendGoro() {
 			if ses.sTimeout > 0 {
 				ses.con.SetWriteDeadline(time.Now().Add(ses.sTimeout))
 			}
-			if err := sendPack(ses.con, pack); err != nil {
+			if err := sendPack(ses, pack); err != nil {
 				jlog.Error(err)
 				ses.tcp.delete(ses.id)
 				return

@@ -53,6 +53,7 @@ mysql:
 
 mongo:
     uri: "mongodb://root:mmog@192.168.4.14:27017"
+    db: "test"
     socketTimeout: 5s       # 读写超时
 
 redis:

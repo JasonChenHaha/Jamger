@@ -3,6 +3,7 @@ package jkcp
 import (
 	"encoding/binary"
 	"io"
+	pb "jpb"
 
 	"github.com/xtaci/kcp-go"
 )
@@ -20,26 +21,19 @@ import (
 // |    2     |   ...    |    2     |   ...    |
 
 const (
-	gHeadSize = 2
-	gCmdSize  = 2
+	HeadSize = 2
+	CmdSize  = 2
 )
 
 type Pack struct {
-	Cmd  uint16
+	Cmd  pb.CMD
 	Data []byte
 }
 
 // ------------------------- package -------------------------
 
-func makePack(cmd uint16, data []byte) *Pack {
-	return &Pack{
-		Cmd:  cmd,
-		Data: data,
-	}
-}
-
 func recvPack(con *kcp.UDPSession) (pack *Pack, err error) {
-	buffer := make([]byte, gHeadSize)
+	buffer := make([]byte, HeadSize)
 	if _, err = io.ReadFull(con, buffer); err != nil {
 		return
 	}
@@ -49,19 +43,19 @@ func recvPack(con *kcp.UDPSession) (pack *Pack, err error) {
 		return
 	}
 	pack = &Pack{
-		Cmd:  binary.LittleEndian.Uint16(buffer),
-		Data: buffer[gCmdSize:],
+		Cmd:  pb.CMD(binary.LittleEndian.Uint16(buffer)),
+		Data: buffer[CmdSize:],
 	}
 	return
 }
 
 func sendPack(con *kcp.UDPSession, pack *Pack) error {
-	bodySize := gCmdSize + len(pack.Data)
-	size := gHeadSize + bodySize
+	bodySize := CmdSize + len(pack.Data)
+	size := HeadSize + bodySize
 	buffer := make([]byte, size)
 	binary.LittleEndian.PutUint16(buffer, uint16(bodySize))
-	binary.LittleEndian.PutUint16(buffer[gHeadSize:], pack.Cmd)
-	copy(buffer[gHeadSize+gCmdSize:], pack.Data)
+	binary.LittleEndian.PutUint16(buffer[HeadSize:], uint16(pack.Cmd))
+	copy(buffer[HeadSize+CmdSize:], pack.Data)
 	for pos := 0; pos < size; {
 		n, err := con.Write(buffer)
 		if err != nil {

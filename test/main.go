@@ -1,48 +1,24 @@
 package main
 
 import (
-	"fmt"
+	"jconfig"
+	"jglobal"
+	"jlog"
 )
 
 const (
-	gHeadSize = 2
-	gCmdSize  = 2
+	HeadSize     = 2
+	CmdSize      = 2
+	ChecksumSize = 4
+	AesKeySize   = 16
 )
 
-type A struct {
-	a int
-}
-
-func (a *A) Add() {
-	a.a++
-}
-
-func (a *A) Show() {
-	fmt.Print(a.a)
-}
-
-type kkk interface {
-	Add()
-	Show()
-}
-
 func main() {
-	// jconfig.Init()
-	// jglobal.Init()
-	// jlog.Init("")
-	// testTcp()
+	jconfig.Init()
+	jglobal.Init()
+	jlog.Init("")
+	testTcp()
 	// testKcp()
 	// testWeb()
 	// testHttp()
-	a := 0
-	fmt.Println(GetDigitCnt(a))
-}
-
-func GetDigitCnt(n int) int {
-	c := 0
-	for n != 0 {
-		c++
-		n /= 10
-	}
-	return c
 }

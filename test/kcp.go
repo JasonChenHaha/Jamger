@@ -5,9 +5,9 @@ import (
 	"io"
 	"jconfig"
 	"jdebug"
-	"jglobal"
 	"jkcp"
 	"jlog"
+	pb "jpb"
 	"time"
 
 	"github.com/xtaci/kcp-go"
@@ -27,33 +27,33 @@ func testKcp() {
 
 	go kc.heartbeat()
 
-	kc.send(jglobal.CMD_PING, []byte{})
+	kc.send(pb.CMD_PING, []byte{})
 	kc.recv()
 }
 
 func (kc *Kcp) heartbeat() {
 	ticker := time.NewTicker(5 * time.Second)
 	for range ticker.C {
-		kc.send(jglobal.CMD_HEARTBEAT, []byte{})
+		kc.send(pb.CMD_HEARTBEAT, []byte{})
 	}
 }
 
 func (kc *Kcp) close() {
-	kc.send(jglobal.CMD_CLOSE, []byte{})
+	kc.send(pb.CMD_CLOSE, []byte{})
 	kc.con.Close()
 }
 
-func (kc *Kcp) send(cmd uint16, data []byte) {
+func (kc *Kcp) send(cmd pb.CMD, data []byte) {
 	pack := &jkcp.Pack{
 		Cmd:  cmd,
 		Data: data,
 	}
-	bodySize := gCmdSize + len(pack.Data)
-	size := gHeadSize + bodySize
+	bodySize := CmdSize + len(pack.Data)
+	size := HeadSize + bodySize
 	buffer := make([]byte, size)
 	binary.LittleEndian.PutUint16(buffer, uint16(bodySize))
-	binary.LittleEndian.PutUint16(buffer[gHeadSize:], pack.Cmd)
-	copy(buffer[gHeadSize+gCmdSize:], pack.Data)
+	binary.LittleEndian.PutUint16(buffer[HeadSize:], uint16(pack.Cmd))
+	copy(buffer[HeadSize+CmdSize:], pack.Data)
 	for pos := 0; pos < size; {
 		n, err := kc.con.Write(buffer)
 		if err != nil {
@@ -64,14 +64,14 @@ func (kc *Kcp) send(cmd uint16, data []byte) {
 }
 
 func (kc *Kcp) recv() {
-	buffer := make([]byte, gHeadSize)
+	buffer := make([]byte, HeadSize)
 	io.ReadFull(kc.con, buffer)
 	bodySize := binary.LittleEndian.Uint16(buffer)
 	buffer = make([]byte, bodySize)
 	io.ReadFull(kc.con, buffer)
 	pack := jkcp.Pack{
-		Cmd:  binary.LittleEndian.Uint16(buffer),
-		Data: buffer[gCmdSize:],
+		Cmd:  pb.CMD(binary.LittleEndian.Uint16(buffer)),
+		Data: buffer[CmdSize:],
 	}
 	jlog.Info(jdebug.StructToString(pack))
 }

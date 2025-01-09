@@ -1,13 +1,17 @@
 package jtrash
 
 import (
+	"bytes"
 	"context"
+	"crypto/aes"
+	"crypto/cipher"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha256"
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	"io"
 	"jlog"
 	"os"
 	"os/signal"
@@ -125,19 +129,60 @@ func RSALoadPrivateKey(privateKey string) (*rsa.PrivateKey, error) {
 }
 
 // RSA公钥加密
-func RSAEncrypt(pubKey *rsa.PublicKey, data []byte) ([]byte, error) {
-	secret, err := rsa.EncryptOAEP(sha256.New(), rand.Reader, pubKey, data, nil)
-	if err != nil {
-		return nil, err
-	}
-	return secret, nil
+func RSAEncrypt(pubKey *rsa.PublicKey, data *[]byte) (err error) {
+	*data, err = rsa.EncryptOAEP(sha256.New(), rand.Reader, pubKey, *data, nil)
+	return
 }
 
 // RSA私钥解密
-func RSADecrypt(privKey *rsa.PrivateKey, secret []byte) ([]byte, error) {
-	unsecret, err := rsa.DecryptOAEP(sha256.New(), rand.Reader, privKey, secret, nil)
-	if err != nil {
+func RSADecrypt(privKey *rsa.PrivateKey, data *[]byte) (err error) {
+	*data, err = rsa.DecryptOAEP(sha256.New(), rand.Reader, privKey, *data, nil)
+	return
+}
+
+// AES生成密钥
+func AESGenerate(size int) ([]byte, error) {
+	key := make([]byte, size)
+	if _, err := rand.Read(key); err != nil {
 		return nil, err
 	}
-	return unsecret, nil
+	return key, nil
+}
+
+// AES加密
+func AESEncrypt(key []byte, data *[]byte) error {
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return err
+	}
+	blockSize := block.BlockSize()
+	padding := blockSize - len(*data)%blockSize
+	*data = append(*data, bytes.Repeat([]byte{byte(padding)}, padding)...)
+	secret := make([]byte, blockSize+len(*data))
+	iv := secret[:blockSize]
+	if _, err := io.ReadFull(rand.Reader, iv); err != nil {
+		return err
+	}
+	mode := cipher.NewCBCEncrypter(block, iv)
+	mode.CryptBlocks(secret[blockSize:], *data)
+	*data = secret
+	return nil
+}
+
+// AES解密
+func AESDecrypt(key []byte, data *[]byte) error {
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return err
+	}
+	blockSize := block.BlockSize()
+	if len(*data) < blockSize {
+		return fmt.Errorf("data too short.")
+	}
+	iv := (*data)[:blockSize]
+	*data = (*data)[blockSize:]
+	mode := cipher.NewCBCDecrypter(block, iv)
+	mode.CryptBlocks(*data, *data)
+	*data = (*data)[:len(*data)-int((*data)[len(*data)-1])]
+	return nil
 }

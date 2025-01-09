@@ -2,8 +2,8 @@ package jkcp
 
 import (
 	"jconfig"
-	"jglobal"
 	"jlog"
+	pb "jpb"
 	"time"
 
 	"github.com/xtaci/kcp-go"
@@ -68,12 +68,12 @@ func (ses *Ses) recvGoro() {
 				return
 			} else {
 				switch pack.Cmd {
-				case jglobal.CMD_HEARTBEAT:
-				case jglobal.CMD_CLOSE:
+				case pb.CMD_HEARTBEAT:
+				case pb.CMD_CLOSE:
 					ses.kcp.delete(ses.id)
 					return
-				case jglobal.CMD_PING:
-					ses.kcp.Send(ses.id, jglobal.CMD_PONG, []byte{})
+				case pb.CMD_PING:
+					ses.kcp.Send(ses.id, pb.CMD_PONG, []byte{})
 				default:
 					ses.kcp.receive(ses.id, pack)
 				}

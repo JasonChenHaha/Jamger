@@ -3,6 +3,7 @@ package jtcp
 import (
 	"jconfig"
 	"jlog"
+	pb "jpb"
 	"net"
 	"sync"
 	"sync/atomic"
@@ -11,7 +12,7 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-type Callback func(id uint64, cmd uint16, msg proto.Message)
+type Callback func(id uint64, cmd pb.CMD, msg proto.Message)
 
 type Handler struct {
 	cb  Callback
@@ -22,14 +23,14 @@ type Tcp struct {
 	idc     uint64
 	ses     sync.Map
 	counter uint64
-	handler map[uint16]*Handler
+	handler map[pb.CMD]*Handler
 }
 
 // ------------------------- outside -------------------------
 
 func NewTcp() *Tcp {
 	tcp := &Tcp{
-		handler: make(map[uint16]*Handler),
+		handler: make(map[pb.CMD]*Handler),
 	}
 	addr := jconfig.GetString("tcp.addr")
 	listener, err := net.Listen("tcp", addr)
@@ -44,20 +45,25 @@ func NewTcp() *Tcp {
 	return tcp
 }
 
-func (tcp *Tcp) Register(id uint16, cb Callback, msg proto.Message) {
+func (tcp *Tcp) Register(id pb.CMD, cb Callback, msg proto.Message) {
 	tcp.handler[id] = &Handler{
 		cb:  cb,
 		msg: msg,
 	}
 }
 
-func (tcp *Tcp) Send(id uint64, cmd uint16, msg proto.Message) {
+func (tcp *Tcp) Send(id uint64, cmd pb.CMD, msg proto.Message) {
 	obj, ok := tcp.ses.Load(id)
 	if !ok {
 		jlog.Errorf("session %d not found", id)
 		return
 	}
-	obj.(*Ses).send(cmd, msg)
+	data, err := proto.Marshal(msg)
+	if err != nil {
+		jlog.Errorf("%s, %d", err, cmd)
+		return
+	}
+	obj.(*Ses).send(&Pack{Cmd: cmd, Data: data})
 }
 
 // ------------------------- package -------------------------
@@ -101,6 +107,7 @@ func (tcp *Tcp) add(con net.Conn) {
 }
 
 func (tcp *Tcp) delete(id uint64) {
+	jlog.Debugln("close session", id)
 	if obj, ok := tcp.ses.Load(id); ok {
 		tcp.ses.Delete(id)
 		tcp.counter--

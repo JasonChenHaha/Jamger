@@ -4,8 +4,8 @@ import (
 	"encoding/binary"
 	"jconfig"
 	"jdebug"
-	"jglobal"
 	"jlog"
+	pb "jpb"
 	"jweb"
 	"time"
 
@@ -26,18 +26,18 @@ func testWeb() {
 
 	go web.heartbeat()
 
-	web.send(jglobal.CMD_PING, []byte{})
+	web.send(pb.CMD_PING, []byte{})
 	web.recv()
 }
 
 func (web *Web) heartbeat() {
 	ticker := time.NewTicker(5 * time.Second)
 	for range ticker.C {
-		web.send(jglobal.CMD_HEARTBEAT, []byte{})
+		web.send(pb.CMD_HEARTBEAT, []byte{})
 	}
 }
 
-func (web *Web) send(cmd uint16, data []byte) {
+func (web *Web) send(cmd pb.CMD, data []byte) {
 	pack := &jweb.Pack{
 		Cmd:  cmd,
 		Data: data,
@@ -54,15 +54,15 @@ func (web *Web) recv() {
 
 func (web *Web) unserializeToPack(data []byte) *jweb.Pack {
 	return &jweb.Pack{
-		Cmd:  binary.LittleEndian.Uint16(data),
-		Data: data[gCmdSize:],
+		Cmd:  pb.CMD(binary.LittleEndian.Uint16(data)),
+		Data: data[CmdSize:],
 	}
 }
 
 func (web *Web) serializePack(pack *jweb.Pack) []byte {
-	size := gCmdSize + len(pack.Data)
+	size := CmdSize + len(pack.Data)
 	buffer := make([]byte, size)
-	binary.LittleEndian.PutUint16(buffer, pack.Cmd)
-	copy(buffer[gCmdSize:], pack.Data)
+	binary.LittleEndian.PutUint16(buffer, uint16(pack.Cmd))
+	copy(buffer[CmdSize:], pack.Data)
 	return buffer
 }

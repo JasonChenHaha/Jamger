@@ -3,6 +3,7 @@ package jweb
 import (
 	"jconfig"
 	"jlog"
+	pb "jpb"
 	"net/http"
 	"sync"
 	"sync/atomic"
@@ -17,14 +18,14 @@ type Web struct {
 	idc      uint64
 	ses      sync.Map
 	counter  uint64
-	handler  map[uint16]Handler
+	handler  map[pb.CMD]Handler
 	upgrader *websocket.Upgrader
 }
 
 // ------------------------- outside -------------------------
 
 func NewWeb() *Web {
-	web := &Web{handler: make(map[uint16]Handler)}
+	web := &Web{handler: make(map[pb.CMD]Handler)}
 	web.upgrader = &websocket.Upgrader{
 		CheckOrigin: func(r *http.Request) bool {
 			return true
@@ -49,11 +50,11 @@ func NewWeb() *Web {
 	return web
 }
 
-func (web *Web) Register(id uint16, handler Handler) {
+func (web *Web) Register(id pb.CMD, handler Handler) {
 	web.handler[id] = handler
 }
 
-func (web *Web) Send(id uint64, cmd uint16, data []byte) {
+func (web *Web) Send(id uint64, cmd pb.CMD, data []byte) {
 	obj, ok := web.ses.Load(id)
 	if !ok {
 		jlog.Errorf("session %d not found", id)

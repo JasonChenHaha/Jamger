@@ -14,25 +14,15 @@ var SERVER string
 var RSA_PRIVATE_KEY *rsa.PrivateKey
 
 const (
-	SVR_BEGIN = "nil"
-    SVR_BETA = "beta"
-    SVR_ALPHA = "alpha"
-    SVR_LOGINSVR = "loginsvr"
-    SVR_END = "nil"
+	SVR_BEGIN    = "nil"
+	SVR_BETA     = "beta"
+	SVR_ALPHA    = "alpha"
+	SVR_LOGINSVR = "loginsvr"
+	SVR_END      = "nil"
 )
 
 const (
-	CMD_OK        = 0
-	CMD_ERR       = 1
-	CMD_CLOSE     = 2
-	CMD_HEARTBEAT = 3
-	CMD_PING      = 4
-	CMD_PONG      = 5
-
-	CMD_SIGN_UP_REQ = 100
-	CMD_SIGN_UP_RSP = 101
-	CMD_SIGN_IN_REQ = 102
-	CMD_SIGN_IN_RSP = 103
+	MONGO_ACCOUNT = "account"
 )
 
 type AllInt interface {
