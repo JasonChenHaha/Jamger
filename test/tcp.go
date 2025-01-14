@@ -6,9 +6,9 @@ import (
 	"hash/crc32"
 	"io"
 	"jconfig"
+	"jglobal"
 	"jlog"
-	pb "jpb"
-	"jtrash"
+	"jpb"
 	"net"
 	"time"
 
@@ -19,7 +19,7 @@ type Tcp struct {
 	con    net.Conn
 	pubKey *rsa.PublicKey
 	aesKey []byte
-	msg    proto.Message
+	rsp    proto.Message
 }
 
 func testTcp() {
@@ -30,37 +30,44 @@ func testTcp() {
 	jlog.Info("connect to server ", addr)
 	tcp.con = con
 
-	pubKey, err := jtrash.RSALoadPublicKey(jconfig.GetString("rsa.publicKey"))
+	pubKey, err := jglobal.RSALoadPublicKey(jconfig.GetString("rsa.publicKey"))
 	if err != nil {
 		jlog.Fatal(err)
 	}
 	tcp.pubKey = pubKey
 
-	tcp.aesKey, err = jtrash.AESGenerate(AesKeySize)
+	tcp.aesKey, err = jglobal.AESGenerate(AesKeySize)
 	if err != nil {
 		jlog.Fatal(err)
 	}
 
-	tcp.msg = &pb.SignUpRsp{}
-	tcp.sendWithRSA(pb.CMD_SIGN_UP_REQ, &pb.SignUpReq{
+	// tcp.rsp = &jpb.SignUpRsp{}
+	// tcp.sendWithRSA(jpb.CMD_SIGN_UP_REQ, &jpb.SignUpReq{
+	// 	Id:  "nihao",
+	// 	Pwd: "123456",
+	// })
+	// tcp.recv()
+
+	tcp.rsp = &jpb.SignInRsp{}
+	tcp.sendWithRSA(jpb.CMD_SIGN_IN_REQ, &jpb.SignInReq{
 		Id:  "nihao",
 		Pwd: "123456",
 	})
 	tcp.recv()
-	tcp.sendWithAES(pb.CMD_PING, nil)
-	tcp.recv()
+	// tcp.sendWithAES(jpb.CMD_PING, nil)
+	// tcp.recv()
 	// go tcp.heartbeat()
-	jtrash.Keep()
+	// jglobal.Keep()
 }
 
 func (tcp *Tcp) heartbeat() {
 	ticker := time.NewTicker(1 * time.Second)
 	for range ticker.C {
-		tcp.sendWithAES(pb.CMD_HEARTBEAT, nil)
+		tcp.sendWithAES(jpb.CMD_HEARTBEAT, nil)
 	}
 }
 
-func (tcp *Tcp) sendWithRSA(cmd pb.CMD, msg proto.Message) {
+func (tcp *Tcp) sendWithRSA(cmd jpb.CMD, msg proto.Message) {
 	data := []byte{}
 	if msg != nil {
 		data, _ = proto.Marshal(msg)
@@ -70,7 +77,7 @@ func (tcp *Tcp) sendWithRSA(cmd pb.CMD, msg proto.Message) {
 	copy(raw, data)
 	copy(raw[size:], tcp.aesKey)
 	binary.LittleEndian.PutUint32(raw[size+AesKeySize:], crc32.ChecksumIEEE(raw[:size+AesKeySize]))
-	if err := jtrash.RSAEncrypt(tcp.pubKey, &raw); err != nil {
+	if err := jglobal.RSAEncrypt(tcp.pubKey, &raw); err != nil {
 		jlog.Fatal(err)
 	}
 	size = CmdSize + len(raw)
@@ -87,7 +94,7 @@ func (tcp *Tcp) sendWithRSA(cmd pb.CMD, msg proto.Message) {
 	}
 }
 
-func (tcp *Tcp) sendWithAES(cmd pb.CMD, msg proto.Message) {
+func (tcp *Tcp) sendWithAES(cmd jpb.CMD, msg proto.Message) {
 	data := []byte{}
 	if msg != nil {
 		data, _ = proto.Marshal(msg)
@@ -95,7 +102,7 @@ func (tcp *Tcp) sendWithAES(cmd pb.CMD, msg proto.Message) {
 	size := len(data)
 	data = append(data, make([]byte, 4)...)
 	binary.LittleEndian.PutUint32(data[size:], crc32.ChecksumIEEE(data[:size]))
-	jtrash.AESEncrypt(tcp.aesKey, &data)
+	jglobal.AESEncrypt(tcp.aesKey, &data)
 	size = CmdSize + len(data)
 	buffer := make([]byte, HeadSize+size)
 	binary.LittleEndian.PutUint16(buffer, uint16(size))
@@ -120,9 +127,9 @@ func (tcp *Tcp) recv() {
 	bodySize := binary.LittleEndian.Uint16(buffer)
 	buffer = make([]byte, bodySize)
 	io.ReadFull(tcp.con, buffer)
-	cmd := pb.CMD(binary.LittleEndian.Uint16(buffer))
+	cmd := jpb.CMD(binary.LittleEndian.Uint16(buffer))
 	data := buffer[CmdSize:]
-	jtrash.AESDecrypt(tcp.aesKey, &data)
-	proto.Unmarshal(data[:len(data)-4], tcp.msg)
-	jlog.Infoln(cmd, tcp.msg)
+	jglobal.AESDecrypt(tcp.aesKey, &data)
+	proto.Unmarshal(data[:len(data)-4], tcp.rsp)
+	jlog.Infoln(cmd, tcp.rsp)
 }

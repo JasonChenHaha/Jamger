@@ -57,6 +57,8 @@ func transTimeStrToUint64(str string) (uint64, error) {
 	re := regexp.MustCompile(`[a-zA-Z]+$`)
 	u := re.FindString(str)
 	switch u {
+	case "d":
+		scale = 86400000
 	case "h":
 		scale = 3600000
 	case "m":

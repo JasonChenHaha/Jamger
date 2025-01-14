@@ -7,7 +7,6 @@ all:
 install:
 	@echo install...
 	@./script/init_go.sh
-	@./script/init_global.sh
 
 clean:
 	@echo clean...
@@ -17,21 +16,16 @@ clean:
 
 create: 
 	@echo create...
-	@mkdir ./group/$(p)
-	@cp ./template/main.go ./group/$(p)
-	@cp ./template/Makefile ./group/$(p)
+	@mkdir ./server/$(p)
+	@cp ./template/main.go ./server/$(p)
+	@cp ./template/Makefile ./server/$(p)
+	@./script/init_go.sh
 
 build:
-	@find ./group -type f -name 'Makefile' -execdir $(MAKE) -s build \;
-	@cp ./template/config.yml ./out/config.yml
-	@cp ./template/serverList ./out/serverList
-	@cp ./template/ctrl.sh ./out/ctrl.sh
+	@find ./server -type f -name 'Makefile' -execdir $(MAKE) -s build \;
 
 buildraw:
-	@find ./group -type f -name 'Makefile' -execdir $(MAKE) -s buildraw \;
-	@cp ./template/config.yml ./out/config.yml
-	@cp ./template/serverList ./out/serverList
-	@cp ./template/ctrl.sh ./out/ctrl.sh
+	@find ./server -type f -name 'Makefile' -execdir $(MAKE) -s buildraw \;
 
 run: build
 	@echo run...

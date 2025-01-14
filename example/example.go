@@ -9,7 +9,7 @@ import (
 	"jglobal"
 	"jlog"
 	"jmongo"
-	pb "jpb"
+	"jpb"
 	"jrpc"
 	"jschedule"
 	"reflect"
@@ -32,21 +32,21 @@ type User struct {
 }
 
 type AlphaServer struct {
-	pb.AlphaServer
+	jpb.AlphaServer
 }
 
-func (svr *AlphaServer) SayHello(ctx context.Context, req *pb.AlphaReq) (*pb.AlphaRsp, error) {
-	return &pb.AlphaRsp{
+func (svr *AlphaServer) SayHello(ctx context.Context, req *jpb.AlphaReq) (*jpb.AlphaRsp, error) {
+	return &jpb.AlphaRsp{
 		Message: fmt.Sprintf("hello %s, this is %s", req.GetName(), jglobal.SERVER),
 	}, nil
 }
 
 type BetaServer struct {
-	pb.BetaServer
+	jpb.BetaServer
 }
 
-func (svr *BetaServer) SayHello(ctx context.Context, req *pb.BetaReq) (*pb.BetaRsp, error) {
-	return &pb.BetaRsp{
+func (svr *BetaServer) SayHello(ctx context.Context, req *jpb.BetaReq) (*jpb.BetaRsp, error) {
+	return &jpb.BetaRsp{
 		Message: fmt.Sprintf("hello %s, this is %s", req.GetName(), jglobal.SERVER),
 	}, nil
 }
@@ -248,8 +248,7 @@ func event() {
 
 func rpc() {
 	f := func(target any) {
-		jlog.Debug("call")
-		res, err := target.(pb.BetaClient).SayHello(context.Background(), &pb.BetaReq{
+		res, err := target.(jpb.BetaClient).SayHello(context.Background(), &jpb.BetaReq{
 			Name: jglobal.SERVER,
 		})
 		if err != nil {
@@ -259,28 +258,28 @@ func rpc() {
 		}
 	}
 
-	if jglobal.GROUP == jglobal.SVR_ALPHA {
-		jrpc.Server(&pb.Alpha_ServiceDesc, &AlphaServer{})
-		jrpc.Connect(jglobal.SVR_BETA, pb.NewBetaClient)
+	if jglobal.GROUP == "alpha" {
+		jrpc.Server(&jpb.Alpha_ServiceDesc, &AlphaServer{})
+		jrpc.Connect("beta", jpb.NewBetaClient)
 		i := 0
 		jschedule.DoCron("*/5 * * * * *", func() {
-			if target := jrpc.GetTarget(jglobal.SVR_BETA, "beta-01"); target != nil {
+			if target := jrpc.GetTarget("beta", "beta-01"); target != nil {
 				f(target)
 			}
-			// if target := jrpc.GetFixHashTarget(jglobal.SVR_BETA, i); target != nil {
+			// if target := jrpc.GetFixHashTarget("beta", i); target != nil {
 			// 	f(target)
 			// }
-			// if target := jrpc.GetRoundRobinTarget(jglobal.SVR_BETA); target != nil {
+			// if target := jrpc.GetRoundRobinTarget("beta"); target != nil {
 			// 	f(target)
 			// }
-			// if target := jrpc.GetConsistentHashTarget(jglobal.SVR_BETA, i); target != nil {
+			// if target := jrpc.GetConsistentHashTarget("beta", i); target != nil {
 			// 	f(target)
 			// }
 			i++
 		})
 	}
-	if jglobal.GROUP == jglobal.SVR_BETA {
-		jrpc.Server(&pb.Beta_ServiceDesc, &BetaServer{})
-		jrpc.Connect(jglobal.SVR_ALPHA, pb.NewAlphaClient)
+	if jglobal.GROUP == "beta" {
+		jrpc.Server(&jpb.Beta_ServiceDesc, &BetaServer{})
+		jrpc.Connect("alpha", jpb.NewAlphaClient)
 	}
 }

@@ -1,0 +1,27 @@
+syntax = "proto3";
+option go_package = "./;jpb";
+
+import "common.proto";
+
+message SignUpReq {
+    string id = 1;
+    string pwd = 2;
+}
+
+message SignUpRsp {
+    CODE code = 1;
+}
+
+message SignInReq {
+    string id = 1;
+    string pwd = 2;
+}
+
+message SignInRsp {
+    CODE code = 1;
+    string token = 2;
+}
+
+service AuthSvr {
+    rpc Signup(SignUpReq) returns (SignUpRsp);
+}

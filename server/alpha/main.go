@@ -12,11 +12,10 @@ import (
 	"jnet"
 	"jrpc"
 	"jschedule"
-	"jtrash"
 )
 
 func main() {
-	defer jtrash.Rcover()
+	defer jglobal.Rcover()
 	jconfig.Init()
 	jglobal.Init()
 	jlog.Init(jglobal.SERVER)
@@ -29,6 +28,6 @@ func main() {
 	jetcd.Init()
 	jrpc.Init()
 	jexample.Init()
-	jtrash.Keep()
+	jglobal.Keep()
 	jlog.Infof(">%s stop<", jglobal.SERVER)
 }

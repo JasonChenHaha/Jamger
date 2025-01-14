@@ -3,7 +3,7 @@ package jkcp
 import (
 	"encoding/binary"
 	"io"
-	pb "jpb"
+	"jpb"
 
 	"github.com/xtaci/kcp-go"
 )
@@ -26,7 +26,7 @@ const (
 )
 
 type Pack struct {
-	Cmd  pb.CMD
+	Cmd  jpb.CMD
 	Data []byte
 }
 
@@ -43,7 +43,7 @@ func recvPack(con *kcp.UDPSession) (pack *Pack, err error) {
 		return
 	}
 	pack = &Pack{
-		Cmd:  pb.CMD(binary.LittleEndian.Uint16(buffer)),
+		Cmd:  jpb.CMD(binary.LittleEndian.Uint16(buffer)),
 		Data: buffer[CmdSize:],
 	}
 	return

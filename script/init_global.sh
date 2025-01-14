@@ -1,8 +1,8 @@
 tmpFile=$(mktemp)
 
-find ./group -maxdepth 1 ! -path './group' -type d -print | while read dir; do
-    group=$(basename $dir)
-    echo "SVR_`echo $group | tr 'a-z' 'A-Z'` = \"$group\"" >> $tmpFile
+find ./server -maxdepth 1 ! -path './server' -type d -print | while read dir; do
+    server=$(basename $dir)
+    echo "SVR_`echo $server | tr 'a-z' 'A-Z'` = \"$server\"" >> $tmpFile
 done
 
 str='SVR_BEGIN = "nil"\n'

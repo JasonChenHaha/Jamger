@@ -3,7 +3,7 @@ package jkcp
 import (
 	"jconfig"
 	"jlog"
-	pb "jpb"
+	"jpb"
 	"log"
 	"sync"
 	"sync/atomic"
@@ -18,13 +18,13 @@ type Kcp struct {
 	idc     uint64
 	ses     sync.Map
 	counter uint64
-	handler map[pb.CMD]Handler
+	handler map[jpb.CMD]Handler
 }
 
 // ------------------------- outside -------------------------
 
 func NewKcp() *Kcp {
-	kc := &Kcp{handler: make(map[pb.CMD]Handler)}
+	kc := &Kcp{handler: make(map[jpb.CMD]Handler)}
 	addr := jconfig.GetString("kcp.addr")
 	listener, err := kcp.ListenWithOptions(addr, nil, jconfig.GetInt("kcp.dataShards"), jconfig.GetInt("kcp.parityShards"))
 	if err != nil {
@@ -38,11 +38,11 @@ func NewKcp() *Kcp {
 	return kc
 }
 
-func (kc *Kcp) Register(id pb.CMD, handler Handler) {
+func (kc *Kcp) Register(id jpb.CMD, handler Handler) {
 	kc.handler[id] = handler
 }
 
-func (kc *Kcp) Send(id uint64, cmd pb.CMD, data []byte) {
+func (kc *Kcp) Send(id uint64, cmd jpb.CMD, data []byte) {
 	obj, ok := kc.ses.Load(id)
 	if !ok {
 		jlog.Errorf("session %d not found", id)

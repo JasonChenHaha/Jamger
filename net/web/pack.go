@@ -2,7 +2,7 @@ package jweb
 
 import (
 	"encoding/binary"
-	pb "jpb"
+	"jpb"
 )
 
 // websocket pack structure:
@@ -17,13 +17,13 @@ const (
 )
 
 type Pack struct {
-	Cmd  pb.CMD
+	Cmd  jpb.CMD
 	Data []byte
 }
 
 // ------------------------- package -------------------------
 
-func makePack(cmd pb.CMD, data []byte) *Pack {
+func makePack(cmd jpb.CMD, data []byte) *Pack {
 	return &Pack{
 		Cmd:  cmd,
 		Data: data,
@@ -32,7 +32,7 @@ func makePack(cmd pb.CMD, data []byte) *Pack {
 
 func unserializeData(data []byte) *Pack {
 	return &Pack{
-		Cmd:  pb.CMD(binary.LittleEndian.Uint16(data)),
+		Cmd:  jpb.CMD(binary.LittleEndian.Uint16(data)),
 		Data: data[CmdSize:],
 	}
 }

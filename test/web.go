@@ -5,7 +5,7 @@ import (
 	"jconfig"
 	"jdebug"
 	"jlog"
-	pb "jpb"
+	"jpb"
 	"jweb"
 	"time"
 
@@ -26,18 +26,18 @@ func testWeb() {
 
 	go web.heartbeat()
 
-	web.send(pb.CMD_PING, []byte{})
+	web.send(jpb.CMD_PING, []byte{})
 	web.recv()
 }
 
 func (web *Web) heartbeat() {
 	ticker := time.NewTicker(5 * time.Second)
 	for range ticker.C {
-		web.send(pb.CMD_HEARTBEAT, []byte{})
+		web.send(jpb.CMD_HEARTBEAT, []byte{})
 	}
 }
 
-func (web *Web) send(cmd pb.CMD, data []byte) {
+func (web *Web) send(cmd jpb.CMD, data []byte) {
 	pack := &jweb.Pack{
 		Cmd:  cmd,
 		Data: data,
@@ -54,7 +54,7 @@ func (web *Web) recv() {
 
 func (web *Web) unserializeToPack(data []byte) *jweb.Pack {
 	return &jweb.Pack{
-		Cmd:  pb.CMD(binary.LittleEndian.Uint16(data)),
+		Cmd:  jpb.CMD(binary.LittleEndian.Uint16(data)),
 		Data: data[CmdSize:],
 	}
 }

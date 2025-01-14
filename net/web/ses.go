@@ -3,7 +3,7 @@ package jweb
 import (
 	"jconfig"
 	"jlog"
-	pb "jpb"
+	"jpb"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -66,9 +66,9 @@ func (ses *Ses) recvGoro() {
 			}
 			pack := unserializeData(data)
 			switch pack.Cmd {
-			case pb.CMD_HEARTBEAT:
-			case pb.CMD_PING:
-				ses.web.Send(ses.id, pb.CMD_PONG, []byte{})
+			case jpb.CMD_HEARTBEAT:
+			case jpb.CMD_PING:
+				ses.web.Send(ses.id, jpb.CMD_PONG, []byte{})
 			default:
 				ses.web.receive(ses.id, pack)
 			}

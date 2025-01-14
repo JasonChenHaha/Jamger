@@ -5,7 +5,6 @@ import (
 	"jetcd"
 	"jglobal"
 	"jlog"
-	"jtrash"
 	"log"
 	"net"
 	"reflect"
@@ -40,14 +39,14 @@ func Init() {
 	}
 }
 
-func join(group string, server string, info string) {
+func join(group string, server string, info map[string]any) {
 	Rpc.mutex.Lock()
 	defer Rpc.mutex.Unlock()
 	options := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithUnaryInterceptor(jtrash.TimeoutInterceptor(time.Duration(jconfig.GetInt("grpc.timeout")) * time.Millisecond)),
+		grpc.WithUnaryInterceptor(jglobal.TimeoutInterceptor(time.Duration(jconfig.GetInt("grpc.timeout")) * time.Millisecond)),
 	}
-	con, err := grpc.NewClient(info, options...)
+	con, err := grpc.NewClient(info["addr"].(string), options...)
 	if err != nil {
 		jlog.Fatal(err)
 	}
@@ -60,7 +59,7 @@ func join(group string, server string, info string) {
 	Rpc.maglev[group] = jglobal.NewMaglev(Rpc.server[group].KeyValues())
 }
 
-func leave(group string, server string, info string) {
+func leave(group string, server string, info map[string]any) {
 	Rpc.mutex.Lock()
 	defer Rpc.mutex.Unlock()
 	if Rpc.server[group] != nil {

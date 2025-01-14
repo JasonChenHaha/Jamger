@@ -2,24 +2,15 @@ package jglobal
 
 import (
 	"crypto/rsa"
-	"fmt"
 	"jconfig"
 	"jlog"
-	"jtrash"
 )
 
 var ZONE string
 var GROUP string
+var INDEX string
 var SERVER string
 var RSA_PRIVATE_KEY *rsa.PrivateKey
-
-const (
-	SVR_BEGIN    = "nil"
-	SVR_BETA     = "beta"
-	SVR_ALPHA    = "alpha"
-	SVR_LOGINSVR = "loginsvr"
-	SVR_END      = "nil"
-)
 
 const (
 	MONGO_ACCOUNT = "account"
@@ -50,8 +41,9 @@ type AllIntString interface {
 func Init() {
 	ZONE = jconfig.GetString("zone")
 	GROUP = jconfig.GetString("group")
-	SERVER = fmt.Sprintf("%s-%s", GROUP, jconfig.GetString("index"))
-	key, err := jtrash.RSALoadPrivateKey(jconfig.GetString("rsa.privateKey"))
+	INDEX = jconfig.GetString("index")
+	SERVER = GROUP + "-" + INDEX
+	key, err := RSALoadPrivateKey(jconfig.GetString("rsa.privateKey"))
 	if err != nil {
 		jlog.Fatal(err)
 	}

@@ -7,7 +7,7 @@ import (
 	"jdebug"
 	"jkcp"
 	"jlog"
-	pb "jpb"
+	"jpb"
 	"time"
 
 	"github.com/xtaci/kcp-go"
@@ -27,23 +27,23 @@ func testKcp() {
 
 	go kc.heartbeat()
 
-	kc.send(pb.CMD_PING, []byte{})
+	kc.send(jpb.CMD_PING, []byte{})
 	kc.recv()
 }
 
 func (kc *Kcp) heartbeat() {
 	ticker := time.NewTicker(5 * time.Second)
 	for range ticker.C {
-		kc.send(pb.CMD_HEARTBEAT, []byte{})
+		kc.send(jpb.CMD_HEARTBEAT, []byte{})
 	}
 }
 
 func (kc *Kcp) close() {
-	kc.send(pb.CMD_CLOSE, []byte{})
+	kc.send(jpb.CMD_CLOSE, []byte{})
 	kc.con.Close()
 }
 
-func (kc *Kcp) send(cmd pb.CMD, data []byte) {
+func (kc *Kcp) send(cmd jpb.CMD, data []byte) {
 	pack := &jkcp.Pack{
 		Cmd:  cmd,
 		Data: data,
@@ -70,7 +70,7 @@ func (kc *Kcp) recv() {
 	buffer = make([]byte, bodySize)
 	io.ReadFull(kc.con, buffer)
 	pack := jkcp.Pack{
-		Cmd:  pb.CMD(binary.LittleEndian.Uint16(buffer)),
+		Cmd:  jpb.CMD(binary.LittleEndian.Uint16(buffer)),
 		Data: buffer[CmdSize:],
 	}
 	jlog.Info(jdebug.StructToString(pack))

@@ -6,8 +6,7 @@ import (
 	"hash/crc32"
 	"io"
 	"jglobal"
-	pb "jpb"
-	"jtrash"
+	"jpb"
 )
 
 // tcp stream structure:
@@ -38,7 +37,7 @@ const (
 )
 
 type Pack struct {
-	Cmd  pb.CMD
+	Cmd  jpb.CMD
 	Data []byte
 }
 
@@ -56,7 +55,7 @@ func recvPack(ses *Ses) (pack *Pack, err error) {
 		return
 	}
 	pack = &Pack{
-		Cmd:  pb.CMD(binary.LittleEndian.Uint16(buffer)),
+		Cmd:  jpb.CMD(binary.LittleEndian.Uint16(buffer)),
 		Data: buffer[CmdSize:],
 	}
 	return
@@ -66,7 +65,7 @@ func sendPack(ses *Ses, pack *Pack) error {
 	size := len(pack.Data)
 	pack.Data = append(pack.Data, make([]byte, 4)...)
 	binary.LittleEndian.PutUint32(pack.Data[size:], crc32.ChecksumIEEE(pack.Data[:size]))
-	if err := jtrash.AESEncrypt(ses.aesKey, &pack.Data); err != nil {
+	if err := jglobal.AESEncrypt(ses.aesKey, &pack.Data); err != nil {
 		return err
 	}
 	bodySize := CmdSize + len(pack.Data)
@@ -87,7 +86,7 @@ func sendPack(ses *Ses, pack *Pack) error {
 }
 
 func parseRSAPack(pack *Pack) ([]byte, error) {
-	if err := jtrash.RSADecrypt(jglobal.RSA_PRIVATE_KEY, &pack.Data); err != nil {
+	if err := jglobal.RSADecrypt(jglobal.RSA_PRIVATE_KEY, &pack.Data); err != nil {
 		return nil, err
 	}
 	size := len(pack.Data) - ChecksumSize
@@ -103,7 +102,7 @@ func parseRSAPack(pack *Pack) ([]byte, error) {
 }
 
 func parseAESpack(aesKey []byte, pack *Pack) error {
-	if err := jtrash.AESDecrypt(aesKey, &pack.Data); err != nil {
+	if err := jglobal.AESDecrypt(aesKey, &pack.Data); err != nil {
 		return err
 	}
 	size := len(pack.Data) - ChecksumSize

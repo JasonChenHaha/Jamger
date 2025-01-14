@@ -1,20 +1,26 @@
-package jtrash
+package jglobal
 
 import (
 	"bytes"
 	"context"
 	"crypto/aes"
 	"crypto/cipher"
+	"crypto/md5"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha256"
 	"crypto/x509"
+	"encoding/binary"
+	"encoding/hex"
+	"encoding/json"
 	"encoding/pem"
 	"fmt"
 	"io"
+	"jconfig"
 	"jlog"
 	"os"
 	"os/signal"
+	"strconv"
 	"time"
 
 	"google.golang.org/grpc"
@@ -33,6 +39,25 @@ func Keep() {
 	mainC := make(chan os.Signal, 1)
 	signal.Notify(mainC, os.Interrupt)
 	<-mainC
+}
+
+// 序列化服务器基本信息
+func SerializeServerInfo() string {
+	info := map[string]any{}
+	info["addr"] = jconfig.GetString("grpc.addr")
+	data, err := json.Marshal(info)
+	if err != nil {
+		jlog.Panic(err)
+	}
+	return string(data)
+}
+
+// 反序列化服务器基本信息
+func UnserializeServerInfo(data []byte) (info map[string]any) {
+	if err := json.Unmarshal(data, &info); err != nil {
+		jlog.Panic(err)
+	}
+	return
 }
 
 // grpc拦截器
@@ -185,4 +210,31 @@ func AESDecrypt(key []byte, data *[]byte) error {
 	mode.CryptBlocks(*data, *data)
 	*data = (*data)[:len(*data)-int((*data)[len(*data)-1])]
 	return nil
+}
+
+// 生成token
+func TokenGenerate(base string) (string, error) {
+	a := []byte(base)
+	size := len(a)
+	b := make([]byte, 64)
+	if _, err := rand.Read(b); err != nil {
+		return "", err
+	}
+	c := time.Now().Unix()
+	raw := make([]byte, size+72)
+	copy(raw, a)
+	copy(raw[size:], b)
+	binary.NativeEndian.PutUint64(raw[size+3:], uint64(c))
+	hash := md5.New()
+	hash.Write(raw)
+	hashStr := hex.EncodeToString(hash.Sum(nil))
+	return hashStr, nil
+}
+
+func Atoi[T AllInt](data string) T {
+	n, err := strconv.Atoi(data)
+	if err != nil {
+		jlog.Panic(err)
+	}
+	return T(n)
 }

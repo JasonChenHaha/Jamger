@@ -1,11 +1,5 @@
 package main
 
-import (
-	"jconfig"
-	"jglobal"
-	"jlog"
-)
-
 const (
 	HeadSize     = 2
 	CmdSize      = 2
@@ -14,11 +8,15 @@ const (
 )
 
 func main() {
-	jconfig.Init()
-	jglobal.Init()
-	jlog.Init("")
-	testTcp()
+	// jconfig.Init()
+	// jglobal.Init()
+	// jlog.Init("")
+	// testTcp()
 	// testKcp()
 	// testWeb()
 	// testHttp()
+	// fmt.Println(t)
+	// var res map[string]any
+	// json.Unmarshal(t, &res)
+	// fmt.Println(res)
 }

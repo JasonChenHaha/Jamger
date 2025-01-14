@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"jconfig"
 	"jlog"
-	pb "jpb"
+	"jpb"
 	"net"
 	"time"
 )
@@ -69,10 +69,10 @@ func (ses *Ses) recvGoro() {
 				return
 			}
 			switch pack.Cmd {
-			case pb.CMD_HEARTBEAT:
-			case pb.CMD_PING:
-				ses.tcp.Send(ses.id, pb.CMD_PONG, nil)
-			case pb.CMD_SIGN_UP_REQ, pb.CMD_SIGN_IN_REQ:
+			case jpb.CMD_HEARTBEAT:
+			case jpb.CMD_PING:
+				ses.tcp.Send(ses.id, jpb.CMD_PONG, nil)
+			case jpb.CMD_SIGN_UP_REQ, jpb.CMD_SIGN_IN_REQ:
 				aesKey, err := parseRSAPack(pack)
 				if err != nil || bytes.Equal(aesKey, ses.aesKey) {
 					ses.tcp.delete(ses.id)

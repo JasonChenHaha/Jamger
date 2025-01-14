@@ -5,18 +5,17 @@ import (
 	"jdb"
 	"jetcd"
 	"jevent"
+	"jexample"
 	"jglobal"
 	"jlog"
 	"jmeta"
 	"jnet"
 	"jrpc"
 	"jschedule"
-	"jtrash"
-	jwork "work"
 )
 
 func main() {
-	defer jtrash.Rcover()
+	defer jglobal.Rcover()
 	jconfig.Init()
 	jglobal.Init()
 	jlog.Init(jglobal.SERVER)
@@ -28,7 +27,7 @@ func main() {
 	jmeta.Init()
 	jetcd.Init()
 	jrpc.Init()
-	jwork.Init()
-	jtrash.Keep()
+	jexample.Init()
+	jglobal.Keep()
 	jlog.Infof(">%s stop<", jglobal.SERVER)
 }

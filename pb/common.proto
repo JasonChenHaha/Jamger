@@ -1,22 +1,27 @@
 syntax = "proto3";
-option go_package = "./;pb";
+option go_package = "./;jpb";
 
 enum CMD {
     CLOSE = 0;
     HEARTBEAT = 1;
     PING = 2;
     PONG = 3;
-    SIGN_UP_REQ = 4;
-    SIGN_UP_RSP = 5;
-    SIGN_IN_REQ = 6;
-    SIGN_IN_RSP = 7;
+
+    SIGN_UP_REQ = 10;
+    SIGN_UP_RSP = 11;
+    SIGN_IN_REQ = 12;
+    SIGN_IN_RSP = 13;
 }
 
 enum CODE {
     OK = 0;
     ERR = 1;
-    AESKEY_ERR = 2;         // 重复的AESKey
-    ACCOUNT_EXIST = 3;      // 账号已存在
+    SVR_ERR = 2;
+
+    AESKEY_ERR = 10;         // 重复的AESKey
+    ACCOUNT_SYNTX = 11;      // 账号密码格式错误
+    ACCOUNT_EXIST = 12;      // 账号已存在
+    ACCOUNT_FAIL = 13;       // 账号或密码错误
 }
 
 message Error {
