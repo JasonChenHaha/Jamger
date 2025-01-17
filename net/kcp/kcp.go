@@ -14,7 +14,7 @@ import (
 
 type Handler func(id uint64, pack *Pack)
 
-type Kcp struct {
+type KcpSvr struct {
 	idc     uint64
 	ses     sync.Map
 	counter uint64
@@ -23,27 +23,26 @@ type Kcp struct {
 
 // ------------------------- outside -------------------------
 
-func NewKcp() *Kcp {
-	kc := &Kcp{handler: make(map[jpb.CMD]Handler)}
-	addr := jconfig.GetString("kcp.addr")
-	listener, err := kcp.ListenWithOptions(addr, nil, jconfig.GetInt("kcp.dataShards"), jconfig.GetInt("kcp.parityShards"))
+func NewKcpSvr() *KcpSvr {
+	ks := &KcpSvr{handler: make(map[jpb.CMD]Handler)}
+	listener, err := kcp.ListenWithOptions(jconfig.GetString("kcp.addr"), nil, jconfig.GetInt("kcp.dataShards"), jconfig.GetInt("kcp.parityShards"))
 	if err != nil {
 		jlog.Fatal(err)
 	}
-	jlog.Info("listen on ", addr)
-	go kc.accept(listener)
+	jlog.Info("listen on ", jconfig.GetString("kcp.addr"))
+	go ks.accept(listener)
 	if jconfig.GetBool("debug") {
-		go kc.watch()
+		go ks.watch()
 	}
-	return kc
+	return ks
 }
 
-func (kc *Kcp) Register(id jpb.CMD, handler Handler) {
-	kc.handler[id] = handler
+func (ks *KcpSvr) Register(cmd jpb.CMD, handler Handler) {
+	ks.handler[cmd] = handler
 }
 
-func (kc *Kcp) Send(id uint64, cmd jpb.CMD, data []byte) {
-	obj, ok := kc.ses.Load(id)
+func (ks *KcpSvr) Send(id uint64, cmd jpb.CMD, data []byte) {
+	obj, ok := ks.ses.Load(id)
 	if !ok {
 		jlog.Errorf("session %d not found", id)
 		return
@@ -56,35 +55,35 @@ func (kc *Kcp) Send(id uint64, cmd jpb.CMD, data []byte) {
 
 // ------------------------- inside -------------------------
 
-func (kc *Kcp) accept(listener *kcp.Listener) {
+func (ks *KcpSvr) accept(listener *kcp.Listener) {
 	for {
 		con, err := listener.AcceptKCP()
 		if err != nil {
 			log.Fatal(err)
 			continue
 		}
-		kc.add(con)
+		ks.add(con)
 	}
 }
 
-func (kc *Kcp) add(con *kcp.UDPSession) {
-	id := atomic.AddUint64(&kc.idc, 1)
-	ses := newSes(kc, con, id)
-	kc.ses.Store(id, ses)
-	kc.counter++
+func (ks *KcpSvr) add(con *kcp.UDPSession) {
+	id := atomic.AddUint64(&ks.idc, 1)
+	ses := newSes(ks, con, id)
+	ks.ses.Store(id, ses)
+	ks.counter++
 	ses.run()
 }
 
-func (kc *Kcp) delete(id uint64) {
-	if obj, ok := kc.ses.Load(id); ok {
-		kc.ses.Delete(id)
-		kc.counter--
+func (ks *KcpSvr) delete(id uint64) {
+	if obj, ok := ks.ses.Load(id); ok {
+		ks.ses.Delete(id)
+		ks.counter--
 		obj.(*Ses).close()
 	}
 }
 
-func (kc *Kcp) receive(id uint64, pack *Pack) {
-	fu, ok := kc.handler[pack.Cmd]
+func (ks *KcpSvr) receive(id uint64, pack *Pack) {
+	fu, ok := ks.handler[pack.Cmd]
 	if !ok {
 		jlog.Warn("cmd not exist, ", pack.Cmd)
 		return
@@ -94,9 +93,9 @@ func (kc *Kcp) receive(id uint64, pack *Pack) {
 
 // ------------------------- debug -------------------------
 
-func (kc *Kcp) watch() {
+func (ks *KcpSvr) watch() {
 	ticker := time.NewTicker(10 * time.Second)
 	for range ticker.C {
-		jlog.Debug("connecting ", kc.counter)
+		jlog.Debug("connecting ", ks.counter)
 	}
 }

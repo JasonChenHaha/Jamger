@@ -3,14 +3,18 @@ option go_package = "./;jpb";
 
 enum CMD {
     CLOSE = 0;
-    HEARTBEAT = 1;
-    PING = 2;
-    PONG = 3;
+    PASS = 1;
+    HEARTBEAT = 2;
+    PING = 3;
+    PONG = 4;
+    MAX = 1000;
 
-    SIGN_UP_REQ = 10;
-    SIGN_UP_RSP = 11;
-    SIGN_IN_REQ = 12;
-    SIGN_IN_RSP = 13;
+    GATE_INFO = 1001;
+
+    SIGN_UP_REQ = 2010;
+    SIGN_UP_RSP = 2011;
+    SIGN_IN_REQ = 2012;
+    SIGN_IN_RSP = 2013;
 }
 
 enum CODE {

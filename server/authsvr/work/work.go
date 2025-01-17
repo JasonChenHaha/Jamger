@@ -7,10 +7,12 @@ import (
 	"jmongo"
 	"jnet"
 	"jpb"
+	"net/http"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"golang.org/x/crypto/bcrypt"
 	"google.golang.org/protobuf/proto"
 )
@@ -18,17 +20,18 @@ import (
 // ------------------------- outside -------------------------
 
 func Init() {
-	jnet.Tcp.Register(jpb.CMD_SIGN_UP_REQ, signUp, &jpb.SignUpReq{})
-	jnet.Tcp.Register(jpb.CMD_SIGN_IN_REQ, signIn, &jpb.SignInReq{})
+	jnet.Http.Register(jpb.CMD_SIGN_UP_REQ, signUp, &jpb.SignUpReq{})
+	jnet.Http.Register(jpb.CMD_SIGN_IN_REQ, signIn, &jpb.SignInReq{})
 }
 
 // ------------------------- inside -------------------------
 
 // 注册
-func signUp(id uint64, cmd jpb.CMD, msg proto.Message) {
+func signUp(w http.ResponseWriter, cmd jpb.CMD, msg proto.Message) {
+	jlog.Debug("ok")
 	req := msg.(*jpb.SignUpReq)
 	rsp := &jpb.SignUpRsp{}
-	defer jnet.Tcp.Send(id, jpb.CMD_SIGN_UP_RSP, rsp)
+	defer jnet.Http.Response(w, jpb.CMD_SIGN_UP_RSP, rsp)
 	// 格式校验
 	if len(req.Id) == 0 || len(req.Pwd) == 0 {
 		rsp.Code = jpb.CODE_ACCOUNT_SYNTX
@@ -50,9 +53,24 @@ func signUp(id uint64, cmd jpb.CMD, msg proto.Message) {
 			jlog.Error(err)
 			rsp.Code = jpb.CODE_SVR_ERR
 		}
+		// 获取自增id
 		in := &jmongo.Input{
 			Col:    jglobal.MONGO_ACCOUNT,
-			Insert: bson.M{"id": req.Id, "pwd": secret},
+			Filter: bson.M{"_id": 0},
+			Update: bson.M{"$inc": bson.M{"counter": 1}},
+			Upsert: true,
+			RetDoc: options.After,
+		}
+		out := bson.M{}
+		err = jdb.Mongo.FindOneAndUpdate(in, &out)
+		if err != nil {
+			jlog.Error(err)
+			rsp.Code = jpb.CODE_SVR_ERR
+		}
+		// 创建
+		in = &jmongo.Input{
+			Col:    jglobal.MONGO_ACCOUNT,
+			Insert: bson.M{"_id": out["counter"], "id": req.Id, "pwd": secret},
 		}
 		err = jdb.Mongo.InsertOne(in)
 		if err != nil {
@@ -63,10 +81,10 @@ func signUp(id uint64, cmd jpb.CMD, msg proto.Message) {
 }
 
 // 登录
-func signIn(id uint64, cmd jpb.CMD, msg proto.Message) {
+func signIn(w http.ResponseWriter, cmd jpb.CMD, msg proto.Message) {
 	req := msg.(*jpb.SignInReq)
 	rsp := &jpb.SignInRsp{}
-	defer jnet.Tcp.Send(id, jpb.CMD_SIGN_IN_RSP, rsp)
+	defer jnet.Http.Response(w, jpb.CMD_SIGN_IN_RSP, rsp)
 	// 格式校验
 	if len(req.Id) == 0 || len(req.Pwd) == 0 {
 		rsp.Code = jpb.CODE_ACCOUNT_SYNTX

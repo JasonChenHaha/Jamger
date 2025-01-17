@@ -8,27 +8,24 @@ import (
 	"jweb"
 )
 
-var Tcp *jtcp.Tcp
-var Kcp *jkcp.Kcp
-var Web *jweb.Web
-var Http *jhttp.Http
+var Tcp *jtcp.TcpSvr
+var Kcp *jkcp.KcpSvr
+var Web *jweb.WebSvr
+var Http *jhttp.HttpSvr
 
 // ------------------------- inside -------------------------
 
 func Init() {
 	if jconfig.Get("tcp") != nil {
-		Tcp = jtcp.NewTcp()
+		Tcp = jtcp.NewTcpSvr()
 	}
-
 	if jconfig.Get("kcp") != nil {
-		Kcp = jkcp.NewKcp()
+		Kcp = jkcp.NewKcpSvr()
 	}
-
 	if jconfig.Get("web") != nil {
-		Web = jweb.NewWeb()
+		Web = jweb.NewWebSvr()
 	}
-
 	if jconfig.Get("http") != nil {
-		Http = jhttp.NewHttp()
+		Http = jhttp.NewHttpSvr()
 	}
 }

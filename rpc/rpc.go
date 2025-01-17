@@ -4,24 +4,22 @@ import (
 	"jconfig"
 	"jetcd"
 	"jglobal"
+	"jhttp"
 	"jlog"
 	"log"
 	"net"
-	"reflect"
 	"sync"
 	"time"
 
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 )
 
 var Rpc *rpc
 
 type rpc struct {
-	client     map[string]any
-	server     map[string]*jglobal.HashSlice[string, any]
-	maglev     map[string]*jglobal.Maglev
-	roundrobin map[string]uint
+	server     map[int]*jglobal.HashSlice[int, *jhttp.HttpClient] // map[group] = hs[index, client]
+	maglev     map[int]*jglobal.Maglev                            // map[group] = maglev
+	roundrobin map[int]uint                                       // map[group] = cnt
 	mutex      sync.RWMutex
 }
 
@@ -29,42 +27,31 @@ type rpc struct {
 
 func Init() {
 	Rpc = &rpc{
-		client:     map[string]any{},
-		server:     map[string]*jglobal.HashSlice[string, any]{},
-		maglev:     map[string]*jglobal.Maglev{},
-		roundrobin: map[string]uint{},
+		server:     map[int]*jglobal.HashSlice[int, *jhttp.HttpClient]{},
+		maglev:     map[int]*jglobal.Maglev{},
+		roundrobin: map[int]uint{},
 	}
 	if jconfig.GetBool("debug") {
 		go watch()
 	}
 }
 
-func join(group string, server string, info map[string]any) {
+func join(group int, index int, info map[string]any) {
 	Rpc.mutex.Lock()
 	defer Rpc.mutex.Unlock()
-	options := []grpc.DialOption{
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithUnaryInterceptor(jglobal.TimeoutInterceptor(time.Duration(jconfig.GetInt("grpc.timeout")) * time.Millisecond)),
-	}
-	con, err := grpc.NewClient(info["addr"].(string), options...)
-	if err != nil {
-		jlog.Fatal(err)
-	}
 	if _, ok := Rpc.server[group]; !ok {
-		Rpc.server[group] = jglobal.NewHashSlice[string, any]()
+		Rpc.server[group] = jglobal.NewHashSlice[int, *jhttp.HttpClient]()
 	}
-	fn := reflect.ValueOf(Rpc.client[group])
-	arg := []reflect.Value{reflect.ValueOf(con)}
-	Rpc.server[group].Insert(server, fn.Call(arg)[0].Interface())
+	Rpc.server[group].Insert(group, jhttp.NewHttpClient(info["addr"].(string)))
 	Rpc.maglev[group] = jglobal.NewMaglev(Rpc.server[group].KeyValues())
 }
 
-func leave(group string, server string, info map[string]any) {
+func leave(group int, index int, info map[string]any) {
 	Rpc.mutex.Lock()
 	defer Rpc.mutex.Unlock()
 	if Rpc.server[group] != nil {
 		hs := Rpc.server[group]
-		hs.Del(server)
+		hs.Del(index)
 		if hs.Len() > 0 {
 			Rpc.maglev[group] = jglobal.NewMaglev(Rpc.server[group].KeyValues())
 		} else {
@@ -96,22 +83,24 @@ func Server(desc *grpc.ServiceDesc, svr any) {
 	}()
 }
 
-func Connect(group string, client any) {
+func Connect(group int) {
 	jetcd.Watch(group, join, leave)
-	Rpc.client[group] = client
 }
 
-func GetTarget(group string, server string) any {
+// 指定
+func GetDirectTarget(group int, index int) *jhttp.HttpClient {
 	Rpc.mutex.RLock()
 	defer Rpc.mutex.RUnlock()
 	if _, ok := Rpc.server[group]; ok {
-		return Rpc.server[group].Get(server)
+		return Rpc.server[group].Get(index)
 	}
 	return nil
 }
 
 // 轮询
-func GetRoundRobinTarget(group string) any {
+func GetRoundRobinTarget(group int) *jhttp.HttpClient {
+	Rpc.mutex.RLock()
+	defer Rpc.mutex.RUnlock()
 	if hs, ok := Rpc.server[group]; ok {
 		index := Rpc.roundrobin[group]
 		Rpc.roundrobin[group]++
@@ -121,7 +110,7 @@ func GetRoundRobinTarget(group string) any {
 }
 
 // 固定哈希
-func GetFixHashTarget(group string, key int) any {
+func GetFixHashTarget(group int, key int) *jhttp.HttpClient {
 	Rpc.mutex.RLock()
 	defer Rpc.mutex.RUnlock()
 	if hs, ok := Rpc.server[group]; ok {
@@ -131,7 +120,7 @@ func GetFixHashTarget(group string, key int) any {
 }
 
 // 一致性哈希
-func GetConsistentHashTarget(group string, key int) any {
+func GetConsistentHashTarget(group int, key int) *jhttp.HttpClient {
 	Rpc.mutex.RLock()
 	defer Rpc.mutex.RUnlock()
 	if ml, ok := Rpc.maglev[group]; ok {
@@ -146,13 +135,13 @@ func watch() {
 	ticker := time.NewTicker(10 * time.Second)
 	for range ticker.C {
 		for k, v := range Rpc.server {
-			jlog.Debugf("server %s -> %d", k, v.Len())
+			jlog.Debugf("server %d -> %d", k, v.Len())
 		}
 		for k := range Rpc.maglev {
 			jlog.Debug("maglev ", k)
 		}
 		for k, v := range Rpc.roundrobin {
-			jlog.Debugf("roundrobin %s -> %d", k, v)
+			jlog.Debugf("roundrobin %d -> %d", k, v)
 		}
 	}
 }

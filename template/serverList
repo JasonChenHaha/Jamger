@@ -1,2 +1,0 @@
-zone=1 group=gatesvr index=1 tcp=0.0.0.0:10000 kcp=0.0.0.0:20000 web=0.0.0.0:30000 http=0.0.0.0:40000 grpc=0.0.0.0:50000
-zone=1 group=authsvr index=1 tcp=0.0.0.0:11000 kcp=0.0.0.0:21000 web=0.0.0.0:31000 http=0.0.0.0:41000 grpc=0.0.0.0:51000

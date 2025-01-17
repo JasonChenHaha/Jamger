@@ -10,7 +10,7 @@ import (
 )
 
 type Ses struct {
-	kcp      *Kcp
+	ks       *KcpSvr
 	con      *kcp.UDPSession
 	id       uint64
 	rTimeout time.Duration
@@ -21,14 +21,14 @@ type Ses struct {
 
 // ------------------------- package -------------------------
 
-func newSes(kcp *Kcp, con *kcp.UDPSession, id uint64) *Ses {
+func newSes(ks *KcpSvr, con *kcp.UDPSession, id uint64) *Ses {
 	ses := &Ses{
-		kcp:      kcp,
+		ks:       ks,
 		con:      con,
 		id:       id,
 		rTimeout: time.Duration(jconfig.GetInt("kcp.rTimeout")) * time.Millisecond,
 		sTimeout: time.Duration(jconfig.GetInt("kcp.sTimeout")) * time.Millisecond,
-		sChan:    make(chan *Pack, jconfig.GetInt("kcp.sBufferSize")),
+		sChan:    make(chan *Pack, 4),
 		qChan:    make(chan any, 4),
 	}
 	if jconfig.Get("kcp.noDelay") != nil {
@@ -64,18 +64,18 @@ func (ses *Ses) recvGoro() {
 			}
 			pack, err := recvPack(ses.con)
 			if err != nil {
-				ses.kcp.delete(ses.id)
+				ses.ks.delete(ses.id)
 				return
 			} else {
 				switch pack.Cmd {
 				case jpb.CMD_HEARTBEAT:
 				case jpb.CMD_CLOSE:
-					ses.kcp.delete(ses.id)
+					ses.ks.delete(ses.id)
 					return
 				case jpb.CMD_PING:
-					ses.kcp.Send(ses.id, jpb.CMD_PONG, []byte{})
+					ses.ks.Send(ses.id, jpb.CMD_PONG, []byte{})
 				default:
-					ses.kcp.receive(ses.id, pack)
+					ses.ks.receive(ses.id, pack)
 				}
 			}
 		}
@@ -99,7 +99,7 @@ func (ses *Ses) sendGoro() {
 			}
 			if err := sendPack(ses.con, pack); err != nil {
 				jlog.Error(err)
-				ses.kcp.delete(ses.id)
+				ses.ks.delete(ses.id)
 				return
 			}
 		}

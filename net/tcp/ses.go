@@ -10,7 +10,7 @@ import (
 )
 
 type Ses struct {
-	tcp      *Tcp
+	ts       *TcpSvr
 	con      *net.TCPConn
 	id       uint64
 	aesKey   []byte
@@ -22,14 +22,14 @@ type Ses struct {
 
 // ------------------------- package -------------------------
 
-func newSes(tcp *Tcp, con net.Conn, id uint64) *Ses {
+func newSes(ts *TcpSvr, con net.Conn, id uint64) *Ses {
 	ses := &Ses{
-		tcp:      tcp,
+		ts:       ts,
 		con:      con.(*net.TCPConn),
 		id:       id,
 		rTimeout: time.Duration(jconfig.GetInt("tcp.rTimeout")) * time.Millisecond,
 		sTimeout: time.Duration(jconfig.GetInt("tcp.sTimeout")) * time.Millisecond,
-		sChan:    make(chan *Pack, jconfig.GetInt("tcp.sBufferSize")),
+		sChan:    make(chan *Pack, 4),
 		qChan:    make(chan any, 2),
 	}
 	if jconfig.GetBool("noDelay") {
@@ -65,27 +65,27 @@ func (ses *Ses) recvGoro() {
 			}
 			pack, err := recvPack(ses)
 			if err != nil {
-				ses.tcp.delete(ses.id)
+				ses.ts.delete(ses.id)
 				return
 			}
 			switch pack.Cmd {
 			case jpb.CMD_HEARTBEAT:
 			case jpb.CMD_PING:
-				ses.tcp.Send(ses.id, jpb.CMD_PONG, nil)
+				ses.ts.Send(ses.id, jpb.CMD_PONG, nil)
 			case jpb.CMD_SIGN_UP_REQ, jpb.CMD_SIGN_IN_REQ:
 				aesKey, err := parseRSAPack(pack)
 				if err != nil || bytes.Equal(aesKey, ses.aesKey) {
-					ses.tcp.delete(ses.id)
+					ses.ts.delete(ses.id)
 					return
 				}
 				ses.aesKey = aesKey
-				ses.tcp.receive(ses.id, pack)
+				ses.ts.receive(ses.id, pack)
 			default:
-				if err := parseAESpack(ses.aesKey, pack); err != nil {
-					ses.tcp.delete(ses.id)
+				if err := parseAESPack(ses.aesKey, pack); err != nil {
+					ses.ts.delete(ses.id)
 					return
 				}
-				ses.tcp.receive(ses.id, pack)
+				ses.ts.receive(ses.id, pack)
 			}
 		}
 	}
@@ -106,9 +106,14 @@ func (ses *Ses) sendGoro() {
 			if ses.sTimeout > 0 {
 				ses.con.SetWriteDeadline(time.Now().Add(ses.sTimeout))
 			}
+			if err := makeAESPack(ses, pack); err != nil {
+				jlog.Error(err)
+				ses.ts.delete(ses.id)
+				return
+			}
 			if err := sendPack(ses, pack); err != nil {
 				jlog.Error(err)
-				ses.tcp.delete(ses.id)
+				ses.ts.delete(ses.id)
 				return
 			}
 		}

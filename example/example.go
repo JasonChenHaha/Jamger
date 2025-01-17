@@ -1,16 +1,12 @@
 package jexample
 
 import (
-	"context"
 	"errors"
-	"fmt"
 	"jdb"
 	"jevent"
 	"jglobal"
 	"jlog"
 	"jmongo"
-	"jpb"
-	"jrpc"
 	"jschedule"
 	"reflect"
 	"time"
@@ -29,26 +25,6 @@ type User struct {
 	Id   int `gorm:"primaryKey"`
 	Name string
 	gorm.Model
-}
-
-type AlphaServer struct {
-	jpb.AlphaServer
-}
-
-func (svr *AlphaServer) SayHello(ctx context.Context, req *jpb.AlphaReq) (*jpb.AlphaRsp, error) {
-	return &jpb.AlphaRsp{
-		Message: fmt.Sprintf("hello %s, this is %s", req.GetName(), jglobal.SERVER),
-	}, nil
-}
-
-type BetaServer struct {
-	jpb.BetaServer
-}
-
-func (svr *BetaServer) SayHello(ctx context.Context, req *jpb.BetaReq) (*jpb.BetaRsp, error) {
-	return &jpb.BetaRsp{
-		Message: fmt.Sprintf("hello %s, this is %s", req.GetName(), jglobal.SERVER),
-	}, nil
 }
 
 // ------------------------- inside -------------------------
@@ -247,39 +223,33 @@ func event() {
 }
 
 func rpc() {
-	f := func(target any) {
-		res, err := target.(jpb.BetaClient).SayHello(context.Background(), &jpb.BetaReq{
-			Name: jglobal.SERVER,
-		})
-		if err != nil {
-			jlog.Error(err)
-		} else {
-			jlog.Debug(res.Message)
-		}
-	}
+	// f := func(target any) {
+	// 	res, err := target.(jpb.AuthClient).Signup(context.Background(), &jpb.SignUpReq{})
+	// 	if err != nil {
+	// 		jlog.Error(err)
+	// 	} else {
+	// 		jlog.Debug(res)
+	// 	}
+	// }
 
-	if jglobal.GROUP == "alpha" {
-		jrpc.Server(&jpb.Alpha_ServiceDesc, &AlphaServer{})
-		jrpc.Connect("beta", jpb.NewBetaClient)
-		i := 0
-		jschedule.DoCron("*/5 * * * * *", func() {
-			if target := jrpc.GetTarget("beta", "beta-01"); target != nil {
-				f(target)
-			}
-			// if target := jrpc.GetFixHashTarget("beta", i); target != nil {
-			// 	f(target)
-			// }
-			// if target := jrpc.GetRoundRobinTarget("beta"); target != nil {
-			// 	f(target)
-			// }
-			// if target := jrpc.GetConsistentHashTarget("beta", i); target != nil {
-			// 	f(target)
-			// }
-			i++
-		})
-	}
-	if jglobal.GROUP == "beta" {
-		jrpc.Server(&jpb.Beta_ServiceDesc, &BetaServer{})
-		jrpc.Connect("alpha", jpb.NewAlphaClient)
-	}
+	// if jglobal.NAME == jglobal.SVR_AUTH {
+	// 	jrpc.Server(&jpb.Auth_ServiceDesc, &AuthServer{})
+	// }
+	// if jglobal.NAME == jglobal.SVR_GATE {
+	// 	jrpc.Connect(jglobal.GRP_AUTH, jpb.NewAuthClient)
+	// 	jschedule.DoCron("*/5 * * * * *", func() {
+	// 		if target := jrpc.GetTarget(jglobal.GRP_AUTH, 1); target != nil {
+	// 			f(target)
+	// 		}
+	// 		// if target := jrpc.GetFixHashTarget(jglobal.GRP_AUTH, i); target != nil {
+	// 		// 	f(target)
+	// 		// }
+	// 		// if target := jrpc.GetRoundRobinTarget(jglobal.GRP_AUTH); target != nil {
+	// 		// 	f(target)
+	// 		// }
+	// 		// if target := jrpc.GetConsistentHashTarget(jglobal.GRP_AUTH, i); target != nil {
+	// 		// 	f(target)
+	// 		// }
+	// 	})
+	// }
 }

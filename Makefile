@@ -19,6 +19,7 @@ create:
 	@mkdir ./server/$(p)
 	@cp ./template/main.go ./server/$(p)
 	@cp ./template/Makefile ./server/$(p)
+	@cp ./template/config.yml ./server/$(p)
 	@./script/init_go.sh
 
 build:
@@ -29,18 +30,18 @@ buildraw:
 
 run: build
 	@echo run...
-	@./out/ctrl.sh start
+	@find ./out -type f -name 'ctrl.sh' -execdir sh {} start \;
 
 start:
 	@echo start...
-	@./out/ctrl.sh start
+	@find ./out -type f -name 'ctrl.sh' -execdir sh {} start \;
 
 info:
-	@./out/ctrl.sh info
+	@find ./out -type f -name 'ctrl.sh' -execdir sh {} info \;
 
 stop:
 	@echo stop...
-	@./out/ctrl.sh stop
+	@find ./out -type f -name 'ctrl.sh' -execdir sh {} stop \;
 
 pb:
 	@echo pb...

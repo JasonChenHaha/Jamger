@@ -1,24 +1,27 @@
 package jglobal
 
 import (
+	"jhttp"
+	"strconv"
+
 	"github.com/dchest/siphash"
 )
 
 const THE_NUM = 65537
 
 type Maglev struct {
-	lookup []any
+	lookup []*jhttp.HttpClient
 }
 
 // ------------------------- outside -------------------------
 
-func NewMaglev(node map[string]any) *Maglev {
-	m := &Maglev{lookup: make([]any, THE_NUM)}
+func NewMaglev(node map[int]*jhttp.HttpClient) *Maglev {
+	m := &Maglev{lookup: make([]*jhttp.HttpClient, THE_NUM)}
 	m.genLookupTable(node)
 	return m
 }
 
-func (ml *Maglev) Get(key any) any {
+func (ml *Maglev) Get(key any) *jhttp.HttpClient {
 	var id uint64
 	switch o := key.(type) {
 	case string:
@@ -45,12 +48,12 @@ func (ml *Maglev) Get(key any) any {
 
 // ------------------------- inside -------------------------
 
-func (ml *Maglev) genLookupTable(node map[string]any) {
-	permutation := map[string][]uint64{}
+func (ml *Maglev) genLookupTable(node map[int]*jhttp.HttpClient) {
+	permutation := map[int][]uint64{}
 	for k := range node {
 		permutation[k] = make([]uint64, THE_NUM)
 		for i := 0; i < THE_NUM; i++ {
-			by := []byte(k)
+			by := []byte(strconv.Itoa(k))
 			offset := siphash.Hash(0, 0, by) % THE_NUM
 			ship := siphash.Hash(1, 1, by)%(THE_NUM-1) + 1
 			permutation[k][i] = (offset + uint64(i)*ship) % THE_NUM

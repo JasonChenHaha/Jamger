@@ -21,6 +21,8 @@ type Input struct {
 	Sort       any
 	Limit      int64
 	Project    any
+	Upsert     bool
+	RetDoc     options.ReturnDocument
 }
 
 type Mongo struct {
@@ -60,7 +62,7 @@ func (mog *Mongo) CountDocuments(in *Input) (int64, error) {
 	return co.CountDocuments(context.Background(), in.Filter, opts)
 }
 
-// out需要为结构体指针 *struct
+// out需要为结构体指针 *(bson.M or struct)
 func (mog *Mongo) FindOne(in *Input, out any) error {
 	co := mog.getCollection(in.Col)
 	opts := options.FindOne()
@@ -68,7 +70,17 @@ func (mog *Mongo) FindOne(in *Input, out any) error {
 	return co.FindOne(context.Background(), in.Filter, opts).Decode(out)
 }
 
-// out需要为结构体指针切片的指针 *[]*struct
+// out需要为结构体指针 *(bson.M or struct)
+func (mog *Mongo) FindOneAndUpdate(in *Input, out any) error {
+	co := mog.getCollection(in.Col)
+	opts := options.FindOneAndUpdate()
+	opts.SetProjection(in.Project)
+	opts.SetUpsert(in.Upsert)
+	opts.SetReturnDocument(in.RetDoc)
+	return co.FindOneAndUpdate(context.Background(), in.Filter, in.Update, opts).Decode(out)
+}
+
+// out需要为结构体指针切片的指针 *[]*(bson.M or struct)
 func (mog *Mongo) FindMany(in *Input, out any) error {
 	co := mog.getCollection(in.Col)
 	opts := options.Find()

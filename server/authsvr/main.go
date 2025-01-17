@@ -11,7 +11,7 @@ import (
 	"jnet"
 	"jrpc"
 	"jschedule"
-	jwork "work"
+	"jwork"
 )
 
 func main() {

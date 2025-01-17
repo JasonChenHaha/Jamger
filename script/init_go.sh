@@ -1,5 +1,5 @@
 root=`pwd`
-exclude_paths=("./group" "./out" "./script" "./template" "./test")
+exclude_paths=("./server" "./out" "./script" "./template" "./test")
 tmpFile=$(mktemp)
 tmpFile2=$(mktemp)
 
@@ -22,20 +22,20 @@ while IFS= read -r dir; do
     all="$all $dir"
 done < "$tmpFile2"
 
-find ./group -maxdepth 1 ! -path './group' -type d -print | while read dir; do
-    group=$(basename $dir)
+find ./server -maxdepth 1 ! -path './server' -type d -print | while read dir; do
+    server=$(basename $dir)
     cd $root/${dir#./}
     if [[ ! -f ./go.mod ]]; then
-        go mod init $group
+        go mod init $server
     fi
     go mod tidy
     rm -f go.work go.work.sum
     go work init $all_dirs
     go work use "./"
     find . -path '*/.*' -prune -o ! -path '.' -type d -print | while read dir2; do
-        cd $root/group/$group/${dir2#./}
+        cd $root/server/$server/${dir2#./}
         if [[ ! -f ./go.mod ]]; then
-            go mod init $(basename $dir2)
+            go mod init j$(basename $dir2)
             go mod tidy
         fi
         cd $root/${dir#./}
@@ -54,7 +54,7 @@ go mod tidy
 find . -path '*/.*' -prune -o ! -path '.' -type d -print | while read dir; do
     cd $root/test/${dir#./}
     if [[ ! -f ./go.mod ]]; then
-        go mod init $group$(basename $dir)
+        go mod init $server$(basename $dir)
         go mod tidy
         cd $root/test
         go work use $dir

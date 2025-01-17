@@ -29,7 +29,6 @@ func testTcp() {
 	con, _ := net.Dial("tcp", addr)
 	jlog.Info("connect to server ", addr)
 	tcp.con = con
-
 	pubKey, err := jglobal.RSALoadPublicKey(jconfig.GetString("rsa.publicKey"))
 	if err != nil {
 		jlog.Fatal(err)
@@ -41,19 +40,20 @@ func testTcp() {
 		jlog.Fatal(err)
 	}
 
-	// tcp.rsp = &jpb.SignUpRsp{}
-	// tcp.sendWithRSA(jpb.CMD_SIGN_UP_REQ, &jpb.SignUpReq{
+	tcp.rsp = &jpb.SignUpRsp{}
+	tcp.sendWithRSA(jpb.CMD_SIGN_UP_REQ, &jpb.SignUpReq{
+		Id:  "nihao",
+		Pwd: "123456",
+	})
+	tcp.recv()
+
+	// tcp.rsp = &jpb.SignInRsp{}
+	// tcp.sendWithRSA(jpb.CMD_SIGN_IN_REQ, &jpb.SignInReq{
 	// 	Id:  "nihao",
 	// 	Pwd: "123456",
 	// })
 	// tcp.recv()
 
-	tcp.rsp = &jpb.SignInRsp{}
-	tcp.sendWithRSA(jpb.CMD_SIGN_IN_REQ, &jpb.SignInReq{
-		Id:  "nihao",
-		Pwd: "123456",
-	})
-	tcp.recv()
 	// tcp.sendWithAES(jpb.CMD_PING, nil)
 	// tcp.recv()
 	// go tcp.heartbeat()

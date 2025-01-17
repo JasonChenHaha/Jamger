@@ -62,14 +62,8 @@ func recvPack(ses *Ses) (pack *Pack, err error) {
 }
 
 func sendPack(ses *Ses, pack *Pack) error {
-	size := len(pack.Data)
-	pack.Data = append(pack.Data, make([]byte, 4)...)
-	binary.LittleEndian.PutUint32(pack.Data[size:], crc32.ChecksumIEEE(pack.Data[:size]))
-	if err := jglobal.AESEncrypt(ses.aesKey, &pack.Data); err != nil {
-		return err
-	}
 	bodySize := CmdSize + len(pack.Data)
-	size = HeadSize + bodySize
+	size := HeadSize + bodySize
 	buffer := make([]byte, size)
 	binary.LittleEndian.PutUint16(buffer, uint16(bodySize))
 	binary.LittleEndian.PutUint16(buffer[HeadSize:], uint16(pack.Cmd))
@@ -101,7 +95,14 @@ func parseRSAPack(pack *Pack) ([]byte, error) {
 	return aesKey, nil
 }
 
-func parseAESpack(aesKey []byte, pack *Pack) error {
+func makeAESPack(ses *Ses, pack *Pack) error {
+	size := len(pack.Data)
+	pack.Data = append(pack.Data, make([]byte, 4)...)
+	binary.LittleEndian.PutUint32(pack.Data[size:], crc32.ChecksumIEEE(pack.Data[:size]))
+	return jglobal.AESEncrypt(ses.aesKey, &pack.Data)
+}
+
+func parseAESPack(aesKey []byte, pack *Pack) error {
 	if err := jglobal.AESDecrypt(aesKey, &pack.Data); err != nil {
 		return err
 	}

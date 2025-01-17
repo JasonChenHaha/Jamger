@@ -13,25 +13,25 @@ import (
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
 
-type Handler func(group string, server string, info map[string]any) // handler有义务将高耗时逻辑放入协程中处理，防止delay后续事件
+type Handler func(group int, index int, info map[string]any) // handler有义务将高耗时逻辑放入协程中处理，防止delay后续事件
 
 var etc *etcd
 
 type etcd struct {
 	*clientv3.Client
 	lease      *clientv3.LeaseGrantResponse
-	server     map[string]map[string]map[string]any
-	joinWatch  map[string][]Handler
-	leaveWatch map[string][]Handler
+	server     map[int]map[int]map[string]any // map[group][index] = infos
+	joinWatch  map[int][]Handler              // map[group] = handlers
+	leaveWatch map[int][]Handler              // map[group] = handlers
 }
 
 // ------------------------- inside -------------------------
 
 func Init() {
 	etc = &etcd{
-		server:     map[string]map[string]map[string]any{},
-		joinWatch:  map[string][]Handler{},
-		leaveWatch: map[string][]Handler{},
+		server:     map[int]map[int]map[string]any{},
+		joinWatch:  map[int][]Handler{},
+		leaveWatch: map[int][]Handler{},
 	}
 	cli, err := clientv3.New(clientv3.Config{Endpoints: []string{jconfig.GetString("etcd.addr")}})
 	if err != nil {
@@ -45,11 +45,12 @@ func Init() {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(jconfig.GetInt("etcd.timeout"))*time.Second)
 	defer cancel()
-	key := fmt.Sprintf("/%s/%s/%s", jglobal.ZONE, jglobal.GROUP, jglobal.SERVER)
+	key := fmt.Sprintf("/%d/%d/%d", jglobal.ZONE, jglobal.GROUP, jglobal.INDEX)
 	_, err = etc.Put(ctx, key, jglobal.SerializeServerInfo(), clientv3.WithLease(etc.lease.ID))
 	if err != nil {
 		jlog.Fatal(err)
 	}
+	jschedule.DoAt(3*time.Second, update)
 	jschedule.DoEvery(time.Duration(jconfig.GetInt("etcd.update"))*time.Millisecond, update)
 }
 
@@ -62,27 +63,27 @@ func update() {
 	}
 	ctx, cancel = context.WithTimeout(context.Background(), time.Duration(jconfig.GetInt("etcd.timeout"))*time.Second)
 	defer cancel()
-	rsp, err := etc.Get(ctx, fmt.Sprintf("/%s/", jglobal.ZONE), clientv3.WithPrefix())
+	rsp, err := etc.Get(ctx, fmt.Sprintf("/%d/", jglobal.ZONE), clientv3.WithPrefix())
 	if err != nil {
 		jlog.Error(err)
 	}
-	tmp := map[string]map[string]map[string]any{}
+	tmp := map[int]map[int]map[string]any{}
 	join := []any{}
 	for _, kv := range rsp.Kvs {
 		parts := strings.Split(string(kv.Key), "/")
-		group, server := parts[2], parts[3]
+		group, index := jglobal.Atoi[int](parts[2]), jglobal.Atoi[int](parts[3])
 		if tmp[group] == nil {
-			tmp[group] = map[string]map[string]any{}
+			tmp[group] = map[int]map[string]any{}
 		}
 		info := jglobal.UnserializeServerInfo(kv.Value)
-		tmp[group][server] = info
-		if etc.server[group] == nil || etc.server[group][server] == nil {
-			join = append(join, group, server, info)
+		tmp[group][index] = info
+		if etc.server[group] == nil || etc.server[group][index] == nil {
+			join = append(join, group, index, info)
 		}
 	}
 	for i := 0; i < len(join); i += 3 {
-		for _, f := range etc.joinWatch[join[i].(string)] {
-			go f(join[i].(string), join[i+1].(string), join[i+2].(map[string]any))
+		for _, f := range etc.joinWatch[join[i].(int)] {
+			go f(join[i].(int), join[i+1].(int), join[i+2].(map[string]any))
 		}
 	}
 	leave := []any{}
@@ -94,8 +95,8 @@ func update() {
 		}
 	}
 	for i := 0; i < len(leave); i += 3 {
-		for _, f := range etc.leaveWatch[leave[i].(string)] {
-			go f(leave[i].(string), leave[i+1].(string), leave[i+2].(map[string]any))
+		for _, f := range etc.leaveWatch[leave[i].(int)] {
+			go f(leave[i].(int), leave[i+1].(int), leave[i+2].(map[string]any))
 		}
 	}
 	etc.server = tmp
@@ -103,7 +104,7 @@ func update() {
 
 // ------------------------- outside -------------------------
 
-func Watch(group string, join Handler, leave Handler) {
+func Watch(group int, join Handler, leave Handler) {
 	etc.joinWatch[group] = append(etc.joinWatch[group], join)
 	etc.leaveWatch[group] = append(etc.leaveWatch[group], leave)
 }

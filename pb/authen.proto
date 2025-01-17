@@ -22,6 +22,6 @@ message SignInRsp {
     string token = 2;
 }
 
-service AuthSvr {
-    rpc Signup(SignUpReq) returns (SignUpRsp);
+message Bytes {
+    bytes data = 1;
 }

@@ -18,6 +18,7 @@ import (
 	"io"
 	"jconfig"
 	"jlog"
+	"jpb"
 	"os"
 	"os/signal"
 	"strconv"
@@ -41,10 +42,13 @@ func Keep() {
 	<-mainC
 }
 
+func GetGroup(cmd jpb.CMD) int {
+	return int(cmd / jpb.CMD_MAX)
+}
+
 // 序列化服务器基本信息
 func SerializeServerInfo() string {
-	info := map[string]any{}
-	info["addr"] = jconfig.GetString("grpc.addr")
+	info := map[string]any{"addr": jconfig.GetString("http.addr")}
 	data, err := json.Marshal(info)
 	if err != nil {
 		jlog.Panic(err)
