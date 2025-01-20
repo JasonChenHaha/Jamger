@@ -10,7 +10,7 @@ import (
 )
 
 type Ses struct {
-	ws       *WebSvr
+	web      *Web
 	con      *websocket.Conn
 	id       uint64
 	rTimeout time.Duration
@@ -21,9 +21,9 @@ type Ses struct {
 
 // ------------------------- package -------------------------
 
-func newSes(ws *WebSvr, con *websocket.Conn, id uint64) *Ses {
+func newSes(web *Web, con *websocket.Conn, id uint64) *Ses {
 	ses := &Ses{
-		ws:       ws,
+		web:      web,
 		con:      con,
 		id:       id,
 		rTimeout: time.Duration(jconfig.GetInt("tcp.rTimeout")) * time.Millisecond,
@@ -61,16 +61,16 @@ func (ses *Ses) recvGoro() {
 			}
 			_, data, err := ses.con.ReadMessage()
 			if err != nil {
-				ses.ws.delete(ses.id)
+				ses.web.delete(ses.id)
 				return
 			}
 			pack := unserializeData(data)
 			switch pack.Cmd {
 			case jpb.CMD_HEARTBEAT:
 			case jpb.CMD_PING:
-				ses.ws.Send(ses.id, jpb.CMD_PONG, []byte{})
+				ses.web.Send(ses.id, jpb.CMD_PONG, []byte{})
 			default:
-				ses.ws.receive(ses.id, pack)
+				ses.web.receive(ses.id, pack)
 			}
 		}
 	}

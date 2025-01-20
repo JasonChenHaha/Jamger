@@ -19,7 +19,7 @@ type Handler struct {
 	msg any
 }
 
-type TcpSvr struct {
+type Tcp struct {
 	idc     uint64
 	ses     sync.Map
 	counter uint64
@@ -28,8 +28,8 @@ type TcpSvr struct {
 
 // ------------------------- outside -------------------------
 
-func NewTcpSvr() *TcpSvr {
-	ts := &TcpSvr{
+func NewTcp() *Tcp {
+	tcp := &Tcp{
 		handler: make(map[jpb.CMD]*Handler),
 	}
 	listener, err := net.Listen("tcp", jconfig.GetString("tcp.addr"))
@@ -37,22 +37,22 @@ func NewTcpSvr() *TcpSvr {
 		jlog.Fatal(err)
 	}
 	jlog.Info("listen on ", jconfig.GetString("tcp.addr"))
-	go ts.accept(listener)
+	go tcp.accept(listener)
 	if jconfig.GetBool("debug") {
-		go ts.watch()
+		go tcp.watch()
 	}
-	return ts
+	return tcp
 }
 
-func (ts *TcpSvr) Register(cmd jpb.CMD, cb Callback, msg any) {
-	ts.handler[cmd] = &Handler{
+func (tcp *Tcp) Register(cmd jpb.CMD, cb Callback, msg any) {
+	tcp.handler[cmd] = &Handler{
 		cb:  cb,
 		msg: msg,
 	}
 }
 
-func (ts *TcpSvr) Send(id uint64, cmd jpb.CMD, msg any) {
-	obj, ok := ts.ses.Load(id)
+func (tcp *Tcp) Send(id uint64, cmd jpb.CMD, msg any) {
+	obj, ok := tcp.ses.Load(id)
 	if !ok {
 		jlog.Errorf("session %d not found", id)
 		return
@@ -72,64 +72,64 @@ func (ts *TcpSvr) Send(id uint64, cmd jpb.CMD, msg any) {
 
 // ------------------------- package -------------------------
 
-func (ts *TcpSvr) receive(id uint64, pack *Pack) {
-	han, ok := ts.handler[pack.Cmd]
+func (tcp *Tcp) receive(id uint64, pack *Pack) {
+	han, ok := tcp.handler[pack.Cmd]
 	if ok {
 		msg := proto.Clone(han.msg.(proto.Message))
 		if err := proto.Unmarshal(pack.Data, msg); err != nil {
 			jlog.Warnf("%s, %d", err, pack.Cmd)
-			ts.delete(id)
+			tcp.delete(id)
 			return
 		}
 		han.cb(id, pack.Cmd, msg)
 	} else {
-		han, ok = ts.handler[jpb.CMD_PASS]
-		if !ok {
-			jlog.Error("not register pass cmd.")
-			ts.delete(id)
-			return
-		}
-		han.cb(id, pack.Cmd, pack.Data)
+		// han, ok = tcp.handler[jpb.CMD_PASS]
+		// if !ok {
+		// 	jlog.Error("not register pass cmd.")
+		// 	tcp.delete(id)
+		// 	return
+		// }
+		// han.cb(id, pack.Cmd, pack.Data)
 	}
 }
 
 // ------------------------- inside -------------------------
 
-func (ts *TcpSvr) accept(listener net.Listener) {
+func (tcp *Tcp) accept(listener net.Listener) {
 	for {
 		con, err := listener.Accept()
 		if err != nil {
 			jlog.Error(err)
 			continue
 		} else {
-			ts.add(con)
+			tcp.add(con)
 		}
 	}
 }
 
-func (ts *TcpSvr) add(con net.Conn) uint64 {
-	id := atomic.AddUint64(&ts.idc, 1)
-	ses := newSes(ts, con, id)
-	ts.ses.Store(id, ses)
-	ts.counter++
+func (tcp *Tcp) add(con net.Conn) uint64 {
+	id := atomic.AddUint64(&tcp.idc, 1)
+	ses := newSes(tcp, con, id)
+	tcp.ses.Store(id, ses)
+	tcp.counter++
 	ses.run()
 	return id
 }
 
-func (ts *TcpSvr) delete(id uint64) {
+func (tcp *Tcp) delete(id uint64) {
 	jlog.Debugln("close session", id)
-	if obj, ok := ts.ses.Load(id); ok {
-		ts.ses.Delete(id)
-		ts.counter--
+	if obj, ok := tcp.ses.Load(id); ok {
+		tcp.ses.Delete(id)
+		tcp.counter--
 		obj.(*Ses).close()
 	}
 }
 
 // ------------------------- debug -------------------------
 
-func (ts *TcpSvr) watch() {
+func (tcp *Tcp) watch() {
 	ticker := time.NewTicker(10 * time.Second)
 	for range ticker.C {
-		jlog.Debug("connecting ", ts.counter)
+		jlog.Debug("connecting ", tcp.counter)
 	}
 }

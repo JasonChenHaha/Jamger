@@ -3,7 +3,7 @@ option go_package = "./;jpb";
 
 enum CMD {
     CLOSE = 0;
-    PASS = 1;
+    BLOCK = 1;
     HEARTBEAT = 2;
     PING = 3;
     PONG = 4;
@@ -31,3 +31,7 @@ enum CODE {
 message Error {
     CODE code = 1;
 }
+
+message Ping {}
+
+message Pong {}

@@ -4,28 +4,33 @@ import (
 	"jconfig"
 	"jhttp"
 	"jkcp"
+	"jnrpc"
 	"jtcp"
 	"jweb"
 )
 
-var Tcp *jtcp.TcpSvr
-var Kcp *jkcp.KcpSvr
-var Web *jweb.WebSvr
-var Http *jhttp.HttpSvr
+var Tcp *jtcp.Tcp
+var Kcp *jkcp.Kcp
+var Web *jweb.Web
+var Http *jhttp.Http
+var Rpc *jnrpc.Rpc
 
 // ------------------------- inside -------------------------
 
 func Init() {
 	if jconfig.Get("tcp") != nil {
-		Tcp = jtcp.NewTcpSvr()
+		Tcp = jtcp.NewTcp()
 	}
 	if jconfig.Get("kcp") != nil {
-		Kcp = jkcp.NewKcpSvr()
+		Kcp = jkcp.NewKcp()
 	}
 	if jconfig.Get("web") != nil {
-		Web = jweb.NewWebSvr()
+		Web = jweb.NewWeb()
 	}
 	if jconfig.Get("http") != nil {
-		Http = jhttp.NewHttpSvr()
+		Http = jhttp.NewHttp().AsServer()
+	}
+	if jconfig.Get("rpc") != nil {
+		Rpc = jnrpc.NewRpc().AsServer()
 	}
 }

@@ -4,7 +4,7 @@ EXCLUDE=out test project
 all:
 	@echo Welcome to Jamger world, may your survival be lone, may your death be swift.
 
-install:
+install: pb
 	@echo install...
 	@./script/init_go.sh
 

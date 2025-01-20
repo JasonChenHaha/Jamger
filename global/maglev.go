@@ -1,7 +1,7 @@
 package jglobal
 
 import (
-	"jhttp"
+	"jnrpc"
 	"strconv"
 
 	"github.com/dchest/siphash"
@@ -10,18 +10,18 @@ import (
 const THE_NUM = 65537
 
 type Maglev struct {
-	lookup []*jhttp.HttpClient
+	lookup []*jnrpc.Rpc
 }
 
 // ------------------------- outside -------------------------
 
-func NewMaglev(node map[int]*jhttp.HttpClient) *Maglev {
-	m := &Maglev{lookup: make([]*jhttp.HttpClient, THE_NUM)}
+func NewMaglev(node map[int]*jnrpc.Rpc) *Maglev {
+	m := &Maglev{lookup: make([]*jnrpc.Rpc, THE_NUM)}
 	m.genLookupTable(node)
 	return m
 }
 
-func (ml *Maglev) Get(key any) *jhttp.HttpClient {
+func (ml *Maglev) Get(key any) *jnrpc.Rpc {
 	var id uint64
 	switch o := key.(type) {
 	case string:
@@ -48,7 +48,7 @@ func (ml *Maglev) Get(key any) *jhttp.HttpClient {
 
 // ------------------------- inside -------------------------
 
-func (ml *Maglev) genLookupTable(node map[int]*jhttp.HttpClient) {
+func (ml *Maglev) genLookupTable(node map[int]*jnrpc.Rpc) {
 	permutation := map[int][]uint64{}
 	for k := range node {
 		permutation[k] = make([]uint64, THE_NUM)

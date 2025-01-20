@@ -5,28 +5,37 @@ import (
 	"jnet"
 	"jpb"
 	"jrpc"
+	"net/http"
+
+	"google.golang.org/protobuf/proto"
 )
 
 // ------------------------- outside -------------------------
 
 func Init() {
 	jrpc.Connect(jglobal.GRP_AUTH)
-	jnet.Tcp.Register(jpb.CMD_PASS, pass, nil)
+	jnet.Http.SetProxy(httpProxy)
+	jnet.Http.Register(jpb.CMD_PING, ping, &jpb.Ping{})
 }
 
 // ------------------------- inside -------------------------
 
+func ping(w http.ResponseWriter, cmd jpb.CMD, data proto.Message) {
+	rsp := &jpb.Pong{}
+	jnet.Http.Response(w, jpb.CMD_PONG, rsp)
+}
+
 // 透传
-func pass(id uint64, cmd jpb.CMD, msg any) {
+func httpProxy(w http.ResponseWriter, cmd jpb.CMD, data []byte) {
 	target := jrpc.GetRoundRobinTarget(jglobal.GetGroup(cmd))
 	if target == nil {
-		jnet.Tcp.Send(id, jpb.CMD_GATE_INFO, &jpb.Error{Code: jpb.CODE_SVR_ERR})
+		jnet.Http.Response(w, jpb.CMD_GATE_INFO, &jpb.Error{Code: jpb.CODE_SVR_ERR})
 		return
 	}
-	rsp := target.Send(cmd, msg.([]byte))
-	if rsp == nil {
-		jnet.Tcp.Send(id, jpb.CMD_GATE_INFO, &jpb.Error{Code: jpb.CODE_SVR_ERR})
+	cmd, data = target.Proxy(cmd, data)
+	if data == nil {
+		jnet.Http.Response(w, jpb.CMD_GATE_INFO, &jpb.Error{Code: jpb.CODE_SVR_ERR})
 		return
 	}
-	jnet.Tcp.Send(id, rsp.Cmd, rsp.Data)
+	jnet.Http.Response(w, cmd, data)
 }

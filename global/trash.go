@@ -48,7 +48,7 @@ func GetGroup(cmd jpb.CMD) int {
 
 // 序列化服务器基本信息
 func SerializeServerInfo() string {
-	info := map[string]any{"addr": jconfig.GetString("http.addr")}
+	info := map[string]any{"addr": jconfig.GetString("rpc.addr")}
 	data, err := json.Marshal(info)
 	if err != nil {
 		jlog.Panic(err)

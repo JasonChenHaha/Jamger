@@ -20,18 +20,22 @@ import (
 // ------------------------- outside -------------------------
 
 func Init() {
-	jnet.Http.Register(jpb.CMD_SIGN_UP_REQ, signUp, &jpb.SignUpReq{})
-	jnet.Http.Register(jpb.CMD_SIGN_IN_REQ, signIn, &jpb.SignInReq{})
+	jnet.Rpc.Register(jpb.CMD_PING, ping, &jpb.Ping{})
+	jnet.Rpc.Register(jpb.CMD_SIGN_UP_REQ, signUp, &jpb.SignUpReq{})
+	jnet.Rpc.Register(jpb.CMD_SIGN_IN_REQ, signIn, &jpb.SignInReq{})
 }
 
 // ------------------------- inside -------------------------
 
+func ping(w http.ResponseWriter, cmd jpb.CMD, msg proto.Message) {
+	jnet.Rpc.Response(w, jpb.CMD_PONG, &jpb.Pong{})
+}
+
 // 注册
 func signUp(w http.ResponseWriter, cmd jpb.CMD, msg proto.Message) {
-	jlog.Debug("ok")
 	req := msg.(*jpb.SignUpReq)
 	rsp := &jpb.SignUpRsp{}
-	defer jnet.Http.Response(w, jpb.CMD_SIGN_UP_RSP, rsp)
+	defer jnet.Rpc.Response(w, jpb.CMD_SIGN_UP_RSP, rsp)
 	// 格式校验
 	if len(req.Id) == 0 || len(req.Pwd) == 0 {
 		rsp.Code = jpb.CODE_ACCOUNT_SYNTX
@@ -44,14 +48,17 @@ func signUp(w http.ResponseWriter, cmd jpb.CMD, msg proto.Message) {
 	}
 	if err := jdb.Mongo.FindOne(in, &bson.M{}); err == nil {
 		rsp.Code = jpb.CODE_ACCOUNT_EXIST
+		return
 	} else if err != mongo.ErrNoDocuments {
 		rsp.Code = jpb.CODE_SVR_ERR
+		return
 	} else {
 		// 创建账号
 		secret, err := bcrypt.GenerateFromPassword([]byte(req.Pwd), bcrypt.DefaultCost)
 		if err != nil {
 			jlog.Error(err)
 			rsp.Code = jpb.CODE_SVR_ERR
+			return
 		}
 		// 获取自增id
 		in := &jmongo.Input{
@@ -66,6 +73,7 @@ func signUp(w http.ResponseWriter, cmd jpb.CMD, msg proto.Message) {
 		if err != nil {
 			jlog.Error(err)
 			rsp.Code = jpb.CODE_SVR_ERR
+			return
 		}
 		// 创建
 		in = &jmongo.Input{
@@ -76,6 +84,7 @@ func signUp(w http.ResponseWriter, cmd jpb.CMD, msg proto.Message) {
 		if err != nil {
 			jlog.Error(err)
 			rsp.Code = jpb.CODE_SVR_ERR
+			return
 		}
 	}
 }
@@ -84,7 +93,7 @@ func signUp(w http.ResponseWriter, cmd jpb.CMD, msg proto.Message) {
 func signIn(w http.ResponseWriter, cmd jpb.CMD, msg proto.Message) {
 	req := msg.(*jpb.SignInReq)
 	rsp := &jpb.SignInRsp{}
-	defer jnet.Http.Response(w, jpb.CMD_SIGN_IN_RSP, rsp)
+	defer jnet.Rpc.Response(w, jpb.CMD_SIGN_IN_RSP, rsp)
 	// 格式校验
 	if len(req.Id) == 0 || len(req.Pwd) == 0 {
 		rsp.Code = jpb.CODE_ACCOUNT_SYNTX

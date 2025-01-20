@@ -29,7 +29,7 @@ tcp:
     sTimeout: 5s
 
 kcp:
-    addr: 0.0.0.0:30000
+    addr: 0.0.0.0:20000
     # 发包分片数
     dataShards: 1
     # 冗余分片数
@@ -45,12 +45,12 @@ kcp:
     sTimeout: 5s
 
 web:
-    addr: 0.0.0.0:40000
+    addr: 0.0.0.0:30000
     rTimeout: 5s
     sTimeout: 5s
 
 http:
-    addr: 0.0.0.0:50000
+    addr: 0.0.0.0:40000
     timeout: 5s
 
 mysql:

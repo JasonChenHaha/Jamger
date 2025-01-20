@@ -4,8 +4,8 @@ import (
 	"jconfig"
 	"jetcd"
 	"jglobal"
-	"jhttp"
 	"jlog"
+	"jnrpc"
 	"log"
 	"net"
 	"sync"
@@ -17,9 +17,9 @@ import (
 var Rpc *rpc
 
 type rpc struct {
-	server     map[int]*jglobal.HashSlice[int, *jhttp.HttpClient] // map[group] = hs[index, client]
-	maglev     map[int]*jglobal.Maglev                            // map[group] = maglev
-	roundrobin map[int]uint                                       // map[group] = cnt
+	server     map[int]*jglobal.HashSlice[int, *jnrpc.Rpc] // map[group] = hs[index, client]
+	maglev     map[int]*jglobal.Maglev                     // map[group] = maglev
+	roundrobin map[int]uint                                // map[group] = cnt
 	mutex      sync.RWMutex
 }
 
@@ -27,7 +27,7 @@ type rpc struct {
 
 func Init() {
 	Rpc = &rpc{
-		server:     map[int]*jglobal.HashSlice[int, *jhttp.HttpClient]{},
+		server:     map[int]*jglobal.HashSlice[int, *jnrpc.Rpc]{},
 		maglev:     map[int]*jglobal.Maglev{},
 		roundrobin: map[int]uint{},
 	}
@@ -40,9 +40,9 @@ func join(group int, index int, info map[string]any) {
 	Rpc.mutex.Lock()
 	defer Rpc.mutex.Unlock()
 	if _, ok := Rpc.server[group]; !ok {
-		Rpc.server[group] = jglobal.NewHashSlice[int, *jhttp.HttpClient]()
+		Rpc.server[group] = jglobal.NewHashSlice[int, *jnrpc.Rpc]()
 	}
-	Rpc.server[group].Insert(group, jhttp.NewHttpClient(info["addr"].(string)))
+	Rpc.server[group].Insert(group, jnrpc.NewRpc().AsClient(info["addr"].(string)))
 	Rpc.maglev[group] = jglobal.NewMaglev(Rpc.server[group].KeyValues())
 }
 
@@ -88,7 +88,7 @@ func Connect(group int) {
 }
 
 // 指定
-func GetDirectTarget(group int, index int) *jhttp.HttpClient {
+func GetDirectTarget(group int, index int) *jnrpc.Rpc {
 	Rpc.mutex.RLock()
 	defer Rpc.mutex.RUnlock()
 	if _, ok := Rpc.server[group]; ok {
@@ -98,7 +98,7 @@ func GetDirectTarget(group int, index int) *jhttp.HttpClient {
 }
 
 // 轮询
-func GetRoundRobinTarget(group int) *jhttp.HttpClient {
+func GetRoundRobinTarget(group int) *jnrpc.Rpc {
 	Rpc.mutex.RLock()
 	defer Rpc.mutex.RUnlock()
 	if hs, ok := Rpc.server[group]; ok {
@@ -110,7 +110,7 @@ func GetRoundRobinTarget(group int) *jhttp.HttpClient {
 }
 
 // 固定哈希
-func GetFixHashTarget(group int, key int) *jhttp.HttpClient {
+func GetFixHashTarget(group int, key int) *jnrpc.Rpc {
 	Rpc.mutex.RLock()
 	defer Rpc.mutex.RUnlock()
 	if hs, ok := Rpc.server[group]; ok {
@@ -120,7 +120,7 @@ func GetFixHashTarget(group int, key int) *jhttp.HttpClient {
 }
 
 // 一致性哈希
-func GetConsistentHashTarget(group int, key int) *jhttp.HttpClient {
+func GetConsistentHashTarget(group int, key int) *jnrpc.Rpc {
 	Rpc.mutex.RLock()
 	defer Rpc.mutex.RUnlock()
 	if ml, ok := Rpc.maglev[group]; ok {
