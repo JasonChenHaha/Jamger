@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"jconfig"
 	"jlog"
+	"jpb"
+	"net/http"
 )
 
 var NAME string
@@ -15,10 +17,12 @@ var SERVER string
 var RSA_PRIVATE_KEY *rsa.PrivateKey
 
 const (
-	SVR_GATE = "gatesvr"
-	GRP_GATE = 1
-	SVR_AUTH = "authsvr"
-	GRP_AUTH = 2
+	SVR_GATE   = "gatesvr"
+	GRP_GATE   = 1
+	SVR_AUTH   = "authsvr"
+	GRP_AUTH   = 2
+	SVR_CENTER = "centersvr"
+	GRP_CENTER = 3
 )
 
 const (
@@ -45,7 +49,17 @@ type AllIntString interface {
 	AllInt | string
 }
 
-// ------------------------- inside -------------------------
+type Pack struct {
+	Uid  uint32
+	Cmd  jpb.CMD
+	Data any
+
+	Id     uint64
+	W      http.ResponseWriter
+	AesKey []byte
+}
+
+// ------------------------- outside -------------------------
 
 func Init() {
 	NAME = jconfig.GetString("name")

@@ -1,7 +1,6 @@
 package jglobal
 
 import (
-	"jnrpc"
 	"strconv"
 
 	"github.com/dchest/siphash"
@@ -9,19 +8,19 @@ import (
 
 const THE_NUM = 65537
 
-type Maglev struct {
-	lookup []*jnrpc.Rpc
+type Maglev[T comparable] struct {
+	lookup []T
 }
 
 // ------------------------- outside -------------------------
 
-func NewMaglev(node map[int]*jnrpc.Rpc) *Maglev {
-	m := &Maglev{lookup: make([]*jnrpc.Rpc, THE_NUM)}
+func NewMaglev[T comparable](node map[int]T) *Maglev[T] {
+	m := &Maglev[T]{lookup: make([]T, THE_NUM)}
 	m.genLookupTable(node)
 	return m
 }
 
-func (ml *Maglev) Get(key any) *jnrpc.Rpc {
+func (ml *Maglev[T]) Get(key any) T {
 	var id uint64
 	switch o := key.(type) {
 	case string:
@@ -48,7 +47,7 @@ func (ml *Maglev) Get(key any) *jnrpc.Rpc {
 
 // ------------------------- inside -------------------------
 
-func (ml *Maglev) genLookupTable(node map[int]*jnrpc.Rpc) {
+func (ml *Maglev[T]) genLookupTable(node map[int]T) {
 	permutation := map[int][]uint64{}
 	for k := range node {
 		permutation[k] = make([]uint64, THE_NUM)
@@ -59,13 +58,14 @@ func (ml *Maglev) genLookupTable(node map[int]*jnrpc.Rpc) {
 			permutation[k][i] = (offset + uint64(i)*ship) % THE_NUM
 		}
 	}
+	var zero T
 	n := uint64(0)
 	for {
 		for k := range permutation {
 			for len(permutation[k]) > 0 {
 				idx := permutation[k][0]
 				permutation[k] = permutation[k][1:]
-				if ml.lookup[idx] == nil {
+				if ml.lookup[idx] == zero {
 					ml.lookup[idx] = node[k]
 					n++
 					break

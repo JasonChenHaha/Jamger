@@ -19,9 +19,5 @@ message SignInReq {
 
 message SignInRsp {
     CODE code = 1;
-    string token = 2;
-}
-
-message Bytes {
-    bytes data = 1;
+    uint32 uid = 2;
 }

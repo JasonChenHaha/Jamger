@@ -25,7 +25,11 @@ type Web struct {
 // ------------------------- outside -------------------------
 
 func NewWeb() *Web {
-	web := &Web{handler: make(map[jpb.CMD]Handler)}
+	return &Web{}
+}
+
+func (web *Web) AsServer() *Web {
+	web.handler = map[jpb.CMD]Handler{}
 	web.upgrader = &websocket.Upgrader{
 		CheckOrigin: func(r *http.Request) bool {
 			return true
@@ -46,6 +50,10 @@ func NewWeb() *Web {
 	if jconfig.GetBool("debug") {
 		go web.watch()
 	}
+	return web
+}
+
+func (web *Web) AsClient() *Web {
 	return web
 }
 

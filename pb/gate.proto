@@ -1,2 +1,12 @@
 syntax = "proto3";
 option go_package = "./;jpb";
+
+import "common.proto";
+
+message LoginReq {
+    
+}
+
+message LoginRsp {
+    CODE code = 1;
+}

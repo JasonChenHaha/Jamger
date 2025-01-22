@@ -67,8 +67,8 @@ mongo:
     socketTimeout: 5s
 
 redis:
-    addr: "192.168.4.14:6379"
-    password: "123456"
+    addr: "127.0.0.1:6379"
+    password: ""
 
 nsq:
     addr: "192.168.4.60:4150"

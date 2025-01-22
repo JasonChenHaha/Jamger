@@ -26,7 +26,7 @@ type event struct {
 	consumer     map[string]*nsq.Consumer
 }
 
-// ------------------------- inside -------------------------
+// ------------------------- outside -------------------------
 
 func Init() {
 	ev = &event{
@@ -34,8 +34,6 @@ func Init() {
 		consumer:     map[string]*nsq.Consumer{},
 	}
 }
-
-// ------------------------- outside -------------------------
 
 func LocalRegister(id uint32, handler LocalHandler) {
 	ev.localHandler[id] = append(ev.localHandler[id], handler)

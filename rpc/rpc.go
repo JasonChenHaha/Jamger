@@ -18,51 +18,23 @@ var Rpc *rpc
 
 type rpc struct {
 	server     map[int]*jglobal.HashSlice[int, *jnrpc.Rpc] // map[group] = hs[index, client]
-	maglev     map[int]*jglobal.Maglev                     // map[group] = maglev
+	maglev     map[int]*jglobal.Maglev[*jnrpc.Rpc]         // map[group] = maglev
 	roundrobin map[int]uint                                // map[group] = cnt
 	mutex      sync.RWMutex
 }
 
-// ------------------------- inside -------------------------
+// ------------------------- outside -------------------------
 
 func Init() {
 	Rpc = &rpc{
 		server:     map[int]*jglobal.HashSlice[int, *jnrpc.Rpc]{},
-		maglev:     map[int]*jglobal.Maglev{},
+		maglev:     map[int]*jglobal.Maglev[*jnrpc.Rpc]{},
 		roundrobin: map[int]uint{},
 	}
 	if jconfig.GetBool("debug") {
 		go watch()
 	}
 }
-
-func join(group int, index int, info map[string]any) {
-	Rpc.mutex.Lock()
-	defer Rpc.mutex.Unlock()
-	if _, ok := Rpc.server[group]; !ok {
-		Rpc.server[group] = jglobal.NewHashSlice[int, *jnrpc.Rpc]()
-	}
-	Rpc.server[group].Insert(group, jnrpc.NewRpc().AsClient(info["addr"].(string)))
-	Rpc.maglev[group] = jglobal.NewMaglev(Rpc.server[group].KeyValues())
-}
-
-func leave(group int, index int, info map[string]any) {
-	Rpc.mutex.Lock()
-	defer Rpc.mutex.Unlock()
-	if Rpc.server[group] != nil {
-		hs := Rpc.server[group]
-		hs.Del(index)
-		if hs.Len() > 0 {
-			Rpc.maglev[group] = jglobal.NewMaglev(Rpc.server[group].KeyValues())
-		} else {
-			delete(Rpc.server, group)
-			delete(Rpc.maglev, group)
-			delete(Rpc.roundrobin, group)
-		}
-	}
-}
-
-// ------------------------- outside -------------------------
 
 func Server(desc *grpc.ServiceDesc, svr any) {
 	lis, err := net.Listen("tcp", jconfig.GetString("grpc.addr"))
@@ -127,6 +99,34 @@ func GetConsistentHashTarget(group int, key int) *jnrpc.Rpc {
 		return ml.Get(key)
 	}
 	return nil
+}
+
+// ------------------------- inside -------------------------
+
+func join(group int, index int, info map[string]any) {
+	Rpc.mutex.Lock()
+	defer Rpc.mutex.Unlock()
+	if _, ok := Rpc.server[group]; !ok {
+		Rpc.server[group] = jglobal.NewHashSlice[int, *jnrpc.Rpc]()
+	}
+	Rpc.server[group].Insert(group, jnrpc.NewRpc().AsClient(info["addr"].(string)))
+	Rpc.maglev[group] = jglobal.NewMaglev[*jnrpc.Rpc](Rpc.server[group].KeyValues())
+}
+
+func leave(group int, index int, info map[string]any) {
+	Rpc.mutex.Lock()
+	defer Rpc.mutex.Unlock()
+	if Rpc.server[group] != nil {
+		hs := Rpc.server[group]
+		hs.Del(index)
+		if hs.Len() > 0 {
+			Rpc.maglev[group] = jglobal.NewMaglev[*jnrpc.Rpc](Rpc.server[group].KeyValues())
+		} else {
+			delete(Rpc.server, group)
+			delete(Rpc.maglev, group)
+			delete(Rpc.roundrobin, group)
+		}
+	}
 }
 
 // ------------------------- debug -------------------------

@@ -7,14 +7,12 @@ import (
 	"jmongo"
 	"jnet"
 	"jpb"
-	"net/http"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"golang.org/x/crypto/bcrypt"
-	"google.golang.org/protobuf/proto"
 )
 
 // ------------------------- outside -------------------------
@@ -27,15 +25,17 @@ func Init() {
 
 // ------------------------- inside -------------------------
 
-func ping(w http.ResponseWriter, cmd jpb.CMD, msg proto.Message) {
-	jnet.Rpc.Response(w, jpb.CMD_PONG, &jpb.Pong{})
+func ping(pack *jglobal.Pack) {
+	pack.Cmd = jpb.CMD_PONG
+	pack.Data = &jpb.Pong{}
 }
 
 // 注册
-func signUp(w http.ResponseWriter, cmd jpb.CMD, msg proto.Message) {
-	req := msg.(*jpb.SignUpReq)
+func signUp(pack *jglobal.Pack) {
+	req := pack.Data.(*jpb.SignUpReq)
 	rsp := &jpb.SignUpRsp{}
-	defer jnet.Rpc.Response(w, jpb.CMD_SIGN_UP_RSP, rsp)
+	pack.Cmd = jpb.CMD_SIGN_UP_RSP
+	pack.Data = rsp
 	// 格式校验
 	if len(req.Id) == 0 || len(req.Pwd) == 0 {
 		rsp.Code = jpb.CODE_ACCOUNT_SYNTX
@@ -90,10 +90,11 @@ func signUp(w http.ResponseWriter, cmd jpb.CMD, msg proto.Message) {
 }
 
 // 登录
-func signIn(w http.ResponseWriter, cmd jpb.CMD, msg proto.Message) {
-	req := msg.(*jpb.SignInReq)
+func signIn(pack *jglobal.Pack) {
+	req := pack.Data.(*jpb.SignInReq)
 	rsp := &jpb.SignInRsp{}
-	defer jnet.Rpc.Response(w, jpb.CMD_SIGN_IN_RSP, rsp)
+	pack.Cmd = jpb.CMD_SIGN_IN_RSP
+	pack.Data = rsp
 	// 格式校验
 	if len(req.Id) == 0 || len(req.Pwd) == 0 {
 		rsp.Code = jpb.CODE_ACCOUNT_SYNTX
@@ -123,17 +124,5 @@ func signIn(w http.ResponseWriter, cmd jpb.CMD, msg proto.Message) {
 		}
 	}
 	// 校验通过
-	token, err := jglobal.TokenGenerate(req.Id)
-	if err != nil {
-		jlog.Error(err)
-		rsp.Code = jpb.CODE_SVR_ERR
-		return
-	}
-	// 缓存
-	if _, err = jdb.Redis.Do("SET", req.Id, token); err != nil {
-		jlog.Error(err)
-		rsp.Code = jpb.CODE_SVR_ERR
-		return
-	}
-	rsp.Token = token
+	rsp.Uid = uint32(out["_id"].(int32))
 }

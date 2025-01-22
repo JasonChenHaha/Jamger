@@ -1,11 +1,9 @@
 package jtcp
 
 import (
-	"bytes"
 	"jconfig"
 	"jglobal"
 	"jlog"
-	"jpb"
 	"net"
 	"time"
 )
@@ -17,7 +15,7 @@ type Ses struct {
 	aesKey   []byte
 	rTimeout time.Duration
 	sTimeout time.Duration
-	sChan    chan *Pack
+	sChan    chan *jglobal.Pack
 	qChan    chan any
 }
 
@@ -30,7 +28,7 @@ func newSes(tcp *Tcp, con net.Conn, id uint64) *Ses {
 		id:       id,
 		rTimeout: time.Duration(jconfig.GetInt("tcp.rTimeout")) * time.Millisecond,
 		sTimeout: time.Duration(jconfig.GetInt("tcp.sTimeout")) * time.Millisecond,
-		sChan:    make(chan *Pack, 4),
+		sChan:    make(chan *jglobal.Pack, 4),
 		qChan:    make(chan any, 2),
 	}
 	if jconfig.GetBool("noDelay") {
@@ -44,7 +42,7 @@ func (ses *Ses) run() {
 	go ses.sendGoro()
 }
 
-func (ses *Ses) send(pack *Pack) {
+func (ses *Ses) send(pack *jglobal.Pack) {
 	ses.sChan <- pack
 }
 
@@ -64,30 +62,12 @@ func (ses *Ses) recvGoro() {
 			if ses.rTimeout > 0 {
 				ses.con.SetReadDeadline(time.Now().Add(ses.rTimeout))
 			}
-			pack, err := recvPack(ses)
-			if err != nil {
+			pack := &jglobal.Pack{Id: ses.id}
+			if err := recvAndDecodeToPack(pack, ses); err != nil {
 				ses.tcp.delete(ses.id)
 				return
 			}
-			switch pack.Cmd {
-			case jpb.CMD_HEARTBEAT:
-			case jpb.CMD_PING:
-				ses.tcp.Send(ses.id, jpb.CMD_PONG, nil)
-			case jpb.CMD_SIGN_UP_REQ, jpb.CMD_SIGN_IN_REQ:
-				aesKey, err := parseRSAPack(pack)
-				if err != nil || bytes.Equal(aesKey, ses.aesKey) {
-					ses.tcp.delete(ses.id)
-					return
-				}
-				ses.aesKey = aesKey
-				ses.tcp.receive(ses.id, pack)
-			default:
-				if err := jglobal.AESDecrypt(ses.aesKey, &pack.Data); err != nil {
-					ses.tcp.delete(ses.id)
-					return
-				}
-				ses.tcp.receive(ses.id, pack)
-			}
+			ses.tcp.receive(pack)
 		}
 	}
 }
@@ -107,15 +87,9 @@ func (ses *Ses) sendGoro() {
 			if ses.sTimeout > 0 {
 				ses.con.SetWriteDeadline(time.Now().Add(ses.sTimeout))
 			}
-			if err := jglobal.AESEncrypt(ses.aesKey, &pack.Data); err != nil {
+			if err := encodeAndSendPack(pack, ses); err != nil {
 				jlog.Error(err)
 				ses.tcp.delete(ses.id)
-				return
-			}
-			if err := sendPack(ses, pack); err != nil {
-				jlog.Error(err)
-				ses.tcp.delete(ses.id)
-				return
 			}
 		}
 	}

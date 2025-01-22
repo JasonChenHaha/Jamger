@@ -15,14 +15,12 @@ type schedule struct {
 	cron *cron.Cron
 }
 
-// ------------------------- inside -------------------------
+// ------------------------- outside -------------------------
 
 func Init() {
 	sch = &schedule{cron: cron.New(cron.WithSeconds())}
 	sch.cron.Start()
 }
-
-// ------------------------- outside -------------------------
 
 // 定时t时间后触发cmd
 func DoAt(t time.Duration, cmd func()) any {

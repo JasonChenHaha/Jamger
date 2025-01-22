@@ -27,7 +27,7 @@ type User struct {
 	gorm.Model
 }
 
-// ------------------------- inside -------------------------
+// ------------------------- outside -------------------------
 
 func Init() {
 	// network()
@@ -38,6 +38,8 @@ func Init() {
 	// event()
 	// rpc()
 }
+
+// ------------------------- inside -------------------------
 
 func network() {
 	// jnet.Tcp.Register(1, func(id uint64, pack *jtcp.Pack) {

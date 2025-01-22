@@ -16,7 +16,7 @@ clean:
 
 create: 
 	@echo create...
-	@mkdir ./server/$(p)
+	@mkdir -p ./server/$(p)/work && touch ./server/$(p)/work/work.go
 	@cp ./template/main.go ./server/$(p)
 	@cp ./template/Makefile ./server/$(p)
 	@cp ./template/config.yml ./server/$(p)
@@ -50,4 +50,7 @@ pb:
 test:
 	@cd ./test && make -s;
 
-.PHONY: all install clean build run start stop pb test
+redis:
+	@~/redis/src/redis-cli
+
+.PHONY: all install clean create build buildraw run start stop pb test

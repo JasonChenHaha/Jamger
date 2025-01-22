@@ -1,81 +1,81 @@
 package jtcp
 
 import (
+	"encoding/binary"
+	"fmt"
+	"hash/crc32"
+	"io"
 	"jglobal"
 	"jpb"
 )
 
-// pack structure:
-// |                                pack                                 |
-// +---------+---------+---------+--------------+----------+-------------|
-// |   cmd   |   cmd   |   uid   |   (aeskey)   |   size   |   payload   |
-// +---------+---------+---------+--------------+----------+-------------|
-// |    2    |    2    |    4    |      4       |    2     |    size     |
+// client pack structure:
+// +--------------------------------------------------------------------+
+// |                               pack|                                |
+// +----------+-------+---------+---------+----------+--------------+---+
+// |   size   |       |   uid   |   cmd   |   data   |   checksum   |   |
+// +----------+ aes ( +---------+---------+----------+--------------+ ) |
+// |    2     |       |    4    |    2    |   ...    |      4       |   |
+// +----------+-------+---------+---------+----------+--------------+---+
 
-// sign up or sign in:
-// client: cmd + rsa(cmd+uid+aeskey+size+payload) -> server
-// server: cmd + aes(payload) -> client
-
-// other:
-// client: cmd + aes(cmd+uid+size+payload) -> server
-// server: aes(payload) -> client
+// server pack structure:
+// +-------------------------------------------+
+// |                   pack                    |
+// +----------+-------+---------+----------+---+
+// |   size   |       |   cmd   |   data   |   |
+// +----------+ aes ( +---------+----------+ ) |
+// |    2     |       |    2    |   size   |   |
+// +----------+-------+---------+----------+---+
 
 const (
-	CmdSize    = 2
-	UidSize    = 4
-	AesKeySize = 16
-	SizeSize   = 2
+	packSize     = 2
+	uidSize      = 4
+	cmdSize      = 2
+	checksumSize = 4
 )
-
-type Pack struct {
-	Cmd  jpb.CMD
-	Data []byte
-}
 
 // ------------------------- package -------------------------
 
-func recvPack(ses *Ses) (pack *Pack, err error) {
-	// 读数据
-	// buffer := make([]byte, HeadSize)
-	// if _, err = io.ReadFull(ses.con, buffer); err != nil {
-	// 	return
-	// }
-	// bodySize := binary.LittleEndian.Uint16(buffer)
-	// buffer = make([]byte, bodySize)
-	// if _, err = io.ReadFull(ses.con, buffer); err != nil {
-	// 	return
-	// }
-	// pack = &Pack{
-	// 	Cmd:  jpb.CMD(binary.LittleEndian.Uint16(buffer)),
-	// 	Data: buffer[CmdSize:],
-	// }
-	return
-}
-
-func sendPack(ses *Ses, pack *Pack) error {
-	// bodySize := CmdSize + len(pack.Data)
-	// size := HeadSize + bodySize
-	// buffer := make([]byte, size)
-	// binary.LittleEndian.PutUint16(buffer, uint16(bodySize))
-	// binary.LittleEndian.PutUint16(buffer[HeadSize:], uint16(pack.Cmd))
-	// copy(buffer[HeadSize+CmdSize:], pack.Data)
-	// // 写数据
-	// for pos := 0; pos < size; {
-	// 	n, err := ses.con.Write(buffer)
-	// 	if err != nil {
-	// 		return err
-	// 	}
-	// 	pos += n
-	// }
+// 接收、解密数据
+func recvAndDecodeToPack(pack *jglobal.Pack, ses *Ses) error {
+	raw := make([]byte, packSize)
+	if _, err := io.ReadFull(ses.con, raw); err != nil {
+		return err
+	}
+	size := binary.LittleEndian.Uint16(raw)
+	raw = make([]byte, size)
+	if _, err := io.ReadFull(ses.con, raw); err != nil {
+		return err
+	}
+	if err := jglobal.RSADecrypt(jglobal.RSA_PRIVATE_KEY, &raw); err != nil {
+		return err
+	}
+	posChecksum := len(raw) - checksumSize
+	if binary.LittleEndian.Uint32(raw[posChecksum:]) != crc32.ChecksumIEEE(raw[:posChecksum]) {
+		return fmt.Errorf("checksum failed")
+	}
+	pack.Uid = binary.LittleEndian.Uint32(raw)
+	pack.Cmd = jpb.CMD(binary.LittleEndian.Uint16(raw[uidSize:]))
+	pack.Data = raw[uidSize+cmdSize : posChecksum]
 	return nil
 }
 
-func parseRSAPack(pack *Pack) ([]byte, error) {
-	if err := jglobal.RSADecrypt(jglobal.RSA_PRIVATE_KEY, &pack.Data); err != nil {
-		return nil, err
+// 加密、发送数据
+func encodeAndSendPack(pack *jglobal.Pack, ses *Ses) error {
+	data := pack.Data.([]byte)
+	if err := jglobal.AESEncrypt(ses.aesKey, &data); err != nil {
+		return err
 	}
-	size := len(pack.Data) - AesKeySize
-	aesKey := pack.Data[size:]
-	pack.Data = pack.Data[:size]
-	return aesKey, nil
+	size := cmdSize + len(data)
+	raw := make([]byte, size)
+	binary.LittleEndian.PutUint16(raw, uint16(pack.Cmd))
+	copy(raw[cmdSize:], data)
+	for pos := 0; pos < size; {
+		n, err := ses.con.Write(raw)
+		if err != nil {
+			return err
+		}
+		pos += n
+	}
+	return nil
 }

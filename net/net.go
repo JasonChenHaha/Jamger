@@ -15,14 +15,14 @@ var Web *jweb.Web
 var Http *jhttp.Http
 var Rpc *jnrpc.Rpc
 
-// ------------------------- inside -------------------------
+// ------------------------- outside -------------------------
 
 func Init() {
 	if jconfig.Get("tcp") != nil {
-		Tcp = jtcp.NewTcp()
+		Tcp = jtcp.NewTcp().AsServer()
 	}
 	if jconfig.Get("kcp") != nil {
-		Kcp = jkcp.NewKcp()
+		Kcp = jkcp.NewKcp().AsServer()
 	}
 	if jconfig.Get("web") != nil {
 		Web = jweb.NewWeb()

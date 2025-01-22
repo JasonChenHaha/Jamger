@@ -1,9 +1,9 @@
 package jhttp
 
 import (
-	"context"
 	"io"
 	"jconfig"
+	"jglobal"
 	"jlog"
 	"jpb"
 	"net/http"
@@ -11,8 +11,7 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-type Func func(context.Context, jpb.CMD, proto.Message)
-type ProxyFunc func(context.Context, jpb.CMD, []byte)
+type Func func(pack *jglobal.Pack)
 
 type Handler struct {
 	fun Func
@@ -21,7 +20,6 @@ type Handler struct {
 
 type Http struct {
 	handler map[jpb.CMD]*Handler
-	proxy   ProxyFunc
 }
 
 // ------------------------- outside -------------------------
@@ -35,6 +33,7 @@ func (htp *Http) AsServer() *Http {
 	go func() {
 		mux := http.NewServeMux()
 		mux.HandleFunc("/", htp.receive)
+		mux.HandleFunc("/auth", htp.authReceive)
 		server := &http.Server{
 			Addr:    jconfig.GetString("http.addr"),
 			Handler: mux,
@@ -58,36 +57,52 @@ func (htp *Http) Register(cmd jpb.CMD, fun Func, msg proto.Message) {
 	}
 }
 
-func (htp *Http) SetProxy(proxy ProxyFunc) {
-	htp.proxy = proxy
-}
+// ------------------------- inside -------------------------
 
-func (htp *Http) Response(ctx context.Context, cmd jpb.CMD, data any) {
-	pack := &Pack{}
-	switch o := data.(type) {
-	case proto.Message:
-		tmp, err := proto.Marshal(o)
-		if err != nil {
-			jlog.Errorf("%s, cmd: %d", err, pack.cmd)
-			return
-		}
-		pack.data = tmp
-	case []byte:
-		pack.data = o
-	}
-	w := ctx.Value(0).(http.ResponseWriter)
-	aesKey := ctx.Value(1).([]byte)
-	raw, err := encodeFromPack(pack)
+func (htp *Http) authReceive(w http.ResponseWriter, r *http.Request) {
+	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		jlog.Error(err)
 		return
 	}
-	if _, err = w.Write(raw); err != nil {
+	pack := &jglobal.Pack{W: w}
+	if err = decodeRSAToPack(pack, body); err != nil {
+		jlog.Warn(err)
+		return
+	}
+	han := htp.handler[pack.Cmd]
+	if han != nil {
+		msg := proto.Clone(han.msg)
+		if err = proto.Unmarshal(pack.Data.([]byte), msg); err != nil {
+			jlog.Warnf("%s, cmd: %d", err, pack.Cmd)
+			return
+		}
+		pack.Data = msg
+		han.fun(pack)
+	} else {
+		han = htp.handler[jpb.CMD_PROXY]
+		if han == nil {
+			jlog.Error("no proxy cmd.")
+			return
+		}
+		han.fun(pack)
+	}
+	if o, ok := pack.Data.(proto.Message); ok {
+		tmp, err := proto.Marshal(o)
+		if err != nil {
+			jlog.Errorf("%s, cmd: %d", err, pack.Cmd)
+			return
+		}
+		pack.Data = tmp
+	}
+	if err = encodePack(pack); err != nil {
+		jlog.Error(err)
+		return
+	}
+	if _, err = pack.W.Write(pack.Data.([]byte)); err != nil {
 		jlog.Error(err)
 	}
 }
-
-// ------------------------- inside -------------------------
 
 func (htp *Http) receive(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(r.Body)
@@ -95,27 +110,40 @@ func (htp *Http) receive(w http.ResponseWriter, r *http.Request) {
 		jlog.Error(err)
 		return
 	}
-	pack, err := decodeToPack(body)
-	if err != nil {
+	pack := &jglobal.Pack{W: w}
+	if err := decodeAESToPack(pack, body); err != nil {
 		jlog.Warn(err)
 		return
 	}
-	ctx := context.Background()
-	ctx = context.WithValue(ctx, 0, w)
-	ctx = context.WithValue(ctx, 1, pack.aesKey)
-	han := htp.handler[pack.cmd]
+	han := htp.handler[pack.Cmd]
 	if han != nil {
 		msg := proto.Clone(han.msg)
-		if err = proto.Unmarshal(pack.data, msg); err != nil {
-			jlog.Warnf("%s, cmd: %d", err, pack.cmd)
+		if err = proto.Unmarshal(pack.Data.([]byte), msg); err != nil {
+			jlog.Warnf("%s, cmd: %d", err, pack.Cmd)
 			return
 		}
-		han.fun(ctx, pack.cmd, msg)
+		han.fun(pack)
 	} else {
-		if htp.proxy == nil {
-			jlog.Error("not register pass cmd.")
+		han = htp.handler[jpb.CMD_PROXY]
+		if han == nil {
+			jlog.Error("no proxy cmd.")
 			return
 		}
-		htp.proxy(ctx, pack.cmd, pack.data)
+		han.fun(pack)
+	}
+	if o, ok := pack.Data.(proto.Message); ok {
+		tmp, err := proto.Marshal(o)
+		if err != nil {
+			jlog.Errorf("%s, cmd: %d", err, pack.Cmd)
+			return
+		}
+		pack.Data = tmp
+	}
+	if err = encodePack(pack); err != nil {
+		jlog.Error(err)
+		return
+	}
+	if _, err = pack.W.Write(pack.Data.([]byte)); err != nil {
+		jlog.Error(err)
 	}
 }

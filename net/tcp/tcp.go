@@ -2,6 +2,7 @@ package jtcp
 
 import (
 	"jconfig"
+	"jglobal"
 	"jlog"
 	"jpb"
 	"net"
@@ -12,11 +13,11 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-type Callback func(id uint64, cmd jpb.CMD, msg any)
+type Func func(*jglobal.Pack)
 
 type Handler struct {
-	cb  Callback
-	msg any
+	fun Func
+	msg proto.Message
 }
 
 type Tcp struct {
@@ -24,14 +25,17 @@ type Tcp struct {
 	ses     sync.Map
 	counter uint64
 	handler map[jpb.CMD]*Handler
+	proxy   Func
 }
 
 // ------------------------- outside -------------------------
 
 func NewTcp() *Tcp {
-	tcp := &Tcp{
-		handler: make(map[jpb.CMD]*Handler),
-	}
+	return &Tcp{}
+}
+
+func (tcp *Tcp) AsServer() *Tcp {
+	tcp.handler = map[jpb.CMD]*Handler{}
 	listener, err := net.Listen("tcp", jconfig.GetString("tcp.addr"))
 	if err != nil {
 		jlog.Fatal(err)
@@ -44,53 +48,53 @@ func NewTcp() *Tcp {
 	return tcp
 }
 
-func (tcp *Tcp) Register(cmd jpb.CMD, cb Callback, msg any) {
+func (tcp *Tcp) AsClient() *Tcp {
+	return tcp
+}
+
+func (tcp *Tcp) Register(cmd jpb.CMD, fun Func, msg proto.Message) {
 	tcp.handler[cmd] = &Handler{
-		cb:  cb,
+		fun: fun,
 		msg: msg,
 	}
 }
 
-func (tcp *Tcp) Send(id uint64, cmd jpb.CMD, msg any) {
-	obj, ok := tcp.ses.Load(id)
-	if !ok {
-		jlog.Errorf("session %d not found", id)
-		return
-	}
-	switch data := msg.(type) {
-	case []byte:
-		obj.(*Ses).send(&Pack{Cmd: cmd, Data: data})
-	case proto.Message:
-		raw, err := proto.Marshal(data)
-		if err != nil {
-			jlog.Errorf("%s, %d", err, cmd)
-			return
-		}
-		obj.(*Ses).send(&Pack{Cmd: cmd, Data: raw})
-	}
+func (tcp *Tcp) SetProxy(proxy Func) {
+	tcp.proxy = proxy
 }
 
 // ------------------------- package -------------------------
 
-func (tcp *Tcp) receive(id uint64, pack *Pack) {
-	han, ok := tcp.handler[pack.Cmd]
-	if ok {
-		msg := proto.Clone(han.msg.(proto.Message))
-		if err := proto.Unmarshal(pack.Data, msg); err != nil {
+func (tcp *Tcp) receive(pack *jglobal.Pack) {
+	han := tcp.handler[pack.Cmd]
+	if han != nil {
+		msg := proto.Clone(han.msg)
+		if err := proto.Unmarshal(pack.Data.([]byte), msg); err != nil {
 			jlog.Warnf("%s, %d", err, pack.Cmd)
-			tcp.delete(id)
+			tcp.delete(pack.Id)
 			return
 		}
-		han.cb(id, pack.Cmd, msg)
+		han.fun(pack)
 	} else {
-		// han, ok = tcp.handler[jpb.CMD_PASS]
-		// if !ok {
-		// 	jlog.Error("not register pass cmd.")
-		// 	tcp.delete(id)
-		// 	return
-		// }
-		// han.cb(id, pack.Cmd, pack.Data)
+		if tcp.proxy == nil {
+			jlog.Error("not register pass cmd.")
+			tcp.delete(pack.Id)
+			return
+		}
+		tcp.proxy(pack)
 	}
+	obj, ok := tcp.ses.Load(pack.Id)
+	if !ok {
+		jlog.Errorf("session not found")
+		return
+	}
+	var err error
+	pack.Data, err = proto.Marshal(pack.Data.(proto.Message))
+	if err != nil {
+		jlog.Errorf("%s, %d", err, pack.Cmd)
+		return
+	}
+	obj.(*Ses).send(pack)
 }
 
 // ------------------------- inside -------------------------

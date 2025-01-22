@@ -2,6 +2,7 @@ package jnrpc
 
 import (
 	"encoding/binary"
+	"jglobal"
 	"jpb"
 )
 
@@ -16,23 +17,17 @@ const (
 	CmdSize = 2
 )
 
-type Pack struct {
-	cmd  jpb.CMD
-	data []byte
-}
-
 // ------------------------- package -------------------------
 
-func encodeFromPack(pack *Pack) []byte {
-	msg := make([]byte, CmdSize+len(pack.data))
-	binary.LittleEndian.PutUint16(msg, uint16(pack.cmd))
-	copy(msg[CmdSize:], pack.data)
-	return msg
+func encodePack(pack *jglobal.Pack) {
+	data := pack.Data.([]byte)
+	raw := make([]byte, CmdSize+len(data))
+	binary.LittleEndian.PutUint16(raw, uint16(pack.Cmd))
+	copy(raw[CmdSize:], data)
+	pack.Data = raw
 }
 
-func decodeToPack(msg []byte) *Pack {
-	return &Pack{
-		cmd:  jpb.CMD(binary.LittleEndian.Uint16(msg)),
-		data: msg[CmdSize:],
-	}
+func decodeToPack(pack *jglobal.Pack, raw []byte) {
+	pack.Cmd = jpb.CMD(binary.LittleEndian.Uint16(raw))
+	pack.Data = raw[CmdSize:]
 }

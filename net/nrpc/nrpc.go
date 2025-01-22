@@ -6,6 +6,7 @@ import (
 	"crypto/tls"
 	"io"
 	"jconfig"
+	"jglobal"
 	"jlog"
 	"jpb"
 	"net"
@@ -17,7 +18,7 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-type Func func(w http.ResponseWriter, cmd jpb.CMD, msg proto.Message)
+type Func func(pack *jglobal.Pack)
 
 type Handler struct {
 	fun Func
@@ -77,65 +78,55 @@ func (rpc *Rpc) Register(cmd jpb.CMD, fun Func, msg proto.Message) {
 	}
 }
 
-func (rpc *Rpc) Proxy(cmd jpb.CMD, data []byte) (jpb.CMD, []byte) {
-	raw := encodeFromPack(&Pack{cmd: cmd, data: data})
-	rsp, err := rpc.client.Post(rpc.addr, "", bytes.NewBuffer(raw))
+func (rpc *Rpc) Proxy(pack *jglobal.Pack) bool {
+	encodePack(pack)
+	rsp, err := rpc.client.Post(rpc.addr, "", bytes.NewBuffer(pack.Data.([]byte)))
 	if err != nil {
-		jlog.Errorf("%s, %d", err, cmd)
-		return 0, nil
+		jlog.Errorf("%s, %d", err, pack.Cmd)
+		return false
 	}
 	body, err := io.ReadAll(rsp.Body)
 	if err != nil {
-		jlog.Errorf("%s, %d", err, cmd)
-		return 0, nil
+		jlog.Errorf("%s, %d", err, pack.Cmd)
+		return false
 	}
 	if len(body) == 0 {
 		jlog.Errorf("body is empty")
-		return 0, nil
+		return false
 	}
-	pack := decodeToPack(body)
-	return pack.cmd, pack.data
+	decodeToPack(pack, body)
+	return true
 }
 
-func (rpc *Rpc) Call(cmd jpb.CMD, in proto.Message, out proto.Message) (jpb.CMD, proto.Message) {
-	data, err := proto.Marshal(in)
+func (rpc *Rpc) Call(pack *jglobal.Pack, msg proto.Message) bool {
+	var err error
+	pack.Data, err = proto.Marshal(pack.Data.(proto.Message))
 	if err != nil {
-		jlog.Errorf("%s, cmd: %d", err, cmd)
-		return 0, nil
+		jlog.Errorf("%s, cmd: %d", err, pack.Cmd)
+		return false
 	}
-	raw := encodeFromPack(&Pack{cmd: cmd, data: data})
-	rsp, err := rpc.client.Post(rpc.addr, "", bytes.NewBuffer(raw))
+	encodePack(pack)
+	rsp, err := rpc.client.Post(rpc.addr, "", bytes.NewBuffer(pack.Data.([]byte)))
 	if err != nil {
-		jlog.Errorf("%s, %d", err, cmd)
-		return 0, nil
+		jlog.Errorf("%s, %d", err, pack.Cmd)
+		return false
 	}
 	body, err := io.ReadAll(rsp.Body)
 	if err != nil {
-		jlog.Errorf("%s, %d", err, cmd)
-		return 0, nil
+		jlog.Errorf("%s, %d", err, pack.Cmd)
+		return false
 	}
 	if len(body) == 0 {
 		jlog.Errorf("body is empty")
-		return 0, nil
+		return false
 	}
-	pack := decodeToPack(body)
-	if err = proto.Unmarshal(pack.data, out); err != nil {
-		jlog.Errorf("%s, %d", err, cmd)
-		return 0, nil
+	decodeToPack(pack, body)
+	if err = proto.Unmarshal(pack.Data.([]byte), msg); err != nil {
+		jlog.Errorf("%s, %d", err, pack.Cmd)
+		return false
 	}
-	return pack.cmd, out
-}
-
-func (rpc *Rpc) Response(w http.ResponseWriter, cmd jpb.CMD, msg proto.Message) {
-	data, err := proto.Marshal(msg)
-	if err != nil {
-		jlog.Error(err)
-		return
-	}
-	raw := encodeFromPack(&Pack{cmd: cmd, data: data})
-	if _, err = w.Write(raw); err != nil {
-		jlog.Error(err)
-	}
+	pack.Data = msg
+	return true
 }
 
 // ------------------------- inside -------------------------
@@ -146,16 +137,27 @@ func (rpc *Rpc) receive(w http.ResponseWriter, r *http.Request) {
 		jlog.Error(err)
 		return
 	}
-	pack := decodeToPack(body)
-	han := rpc.handler[pack.cmd]
+	pack := &jglobal.Pack{W: w}
+	decodeToPack(pack, body)
+	han := rpc.handler[pack.Cmd]
 	if han == nil {
-		jlog.Warn("cmd not exist, ", pack.cmd)
+		jlog.Warn("cmd not exist, ", pack.Cmd)
 		return
 	}
 	msg := proto.Clone(han.msg)
-	if err = proto.Unmarshal(pack.data, msg); err != nil {
-		jlog.Warnf("%s, %d", err, pack.cmd)
+	if err = proto.Unmarshal(pack.Data.([]byte), msg); err != nil {
+		jlog.Warnf("%s, %d", err, pack.Cmd)
 		return
 	}
-	han.fun(w, pack.cmd, msg)
+	pack.Data = msg
+	han.fun(pack)
+	pack.Data, err = proto.Marshal(pack.Data.(proto.Message))
+	if err != nil {
+		jlog.Error(err)
+		return
+	}
+	encodePack(pack)
+	if _, err = pack.W.Write(pack.Data.([]byte)); err != nil {
+		jlog.Error(err)
+	}
 }

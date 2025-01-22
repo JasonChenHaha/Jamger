@@ -6,16 +6,28 @@ import (
 	"hash/crc32"
 	"jglobal"
 	"jpb"
+	"juser"
 )
 
+// auth:
 // client pack structure:
-//       +------------------------------------------------+
-//       |                      pack                      |
-//       +---------+----------+------------+--------------+
-// rsa ( |   cmd   |   data   |   aeskey   |   checksum   | )
-//       +---------+----------+------------+--------------+
-//       |    2    |   size   |     16     |      4       |
-//       +---------+----------+------------+--------------+
+// +------------------------------------------------------------+
+// |                            pack                            |
+// +-------+---------+----------+------------+--------------+---+
+// |       |   cmd   |   data   |   aeskey   |   checksum   |   |
+// | rsa ( +---------+----------+------------+--------------+ ) |
+// |       |    2    |   ...    |     16     |      4       |   |
+// +-------+---------+----------+------------+--------------+---+
+
+// normal:
+// client pack structure:
+// +---------------------------------------------------------+
+// |                          pack                           |
+// +---------+-------+---------+----------+--------------+---+
+// |   uid   |       |   cmd   |   data   |   checksum   |   |
+// +---------+ aes ( +---------+----------+--------------+ ) |
+// |    4    |       |    2    |   ...    |      4       |   |
+// +---------+-------+---------+----------+--------------+---+
 
 // server pack structure:
 //       +--------------------+
@@ -23,47 +35,62 @@ import (
 //       +---------+----------+
 // aes ( |   cmd   |   data   | )
 //       +---------+----------+
-//       |    2    |   size   |
+//       |    2    |   ...    |
 //       +---------+----------+
 
 const (
+	uidSize      = 4
 	cmdSize      = 2
 	aesKeySize   = 16
 	checksumSize = 4
 )
 
-type Pack struct {
-	cmd    jpb.CMD
-	data   []byte
-	aesKey []byte
-}
-
 // ------------------------- package -------------------------
 
-func decodeToPack(raw []byte) (*Pack, error) {
+func decodeRSAToPack(pack *jglobal.Pack, raw []byte) error {
 	if err := jglobal.RSADecrypt(jglobal.RSA_PRIVATE_KEY, &raw); err != nil {
-		return nil, err
+		return err
 	}
-	size := len(raw)
-	posAes, posChecksum := size-checksumSize-aesKeySize, size-checksumSize
-	checksum := binary.LittleEndian.Uint32(raw[posChecksum:])
-	if checksum != crc32.ChecksumIEEE(raw[:posChecksum]) {
-		return nil, fmt.Errorf("checksum failed")
+	pos := len(raw) - checksumSize
+	if binary.LittleEndian.Uint32(raw[pos:]) != crc32.ChecksumIEEE(raw[:pos]) {
+		return fmt.Errorf("checksum failed")
 	}
-	pack := &Pack{
-		cmd:    jpb.CMD(binary.LittleEndian.Uint16(raw)),
-		data:   raw[cmdSize:posAes],
-		aesKey: raw[posAes:posChecksum],
-	}
-	return pack, nil
+	pack.Cmd = jpb.CMD(binary.LittleEndian.Uint16(raw))
+	pack.Data = raw[cmdSize : pos-aesKeySize]
+	pack.AesKey = raw[pos-aesKeySize : pos]
+	return nil
 }
 
-func encodeFromPack(pack *Pack) ([]byte, error) {
-	raw := make([]byte, cmdSize+len(pack.data))
-	binary.LittleEndian.PutUint16(raw, uint16(pack.cmd))
-	copy(raw[cmdSize:], pack.data)
-	if err := jglobal.AESEncrypt(pack.aesKey, &raw); err != nil {
-		return nil, err
+func decodeAESToPack(pack *jglobal.Pack, raw []byte) error {
+	pack.Uid = binary.LittleEndian.Uint32(raw)
+	user := juser.GetUser(pack.Uid)
+	if user == nil {
+		return fmt.Errorf("auth failed, uid = %d", pack.Uid)
 	}
-	return raw, nil
+	pack.AesKey = user.AesKey
+	raw = raw[uidSize:]
+	if err := jglobal.AESDecrypt(pack.AesKey, &raw); err != nil {
+		return err
+	}
+	pos := len(raw) - checksumSize
+	if binary.LittleEndian.Uint32(raw[pos:]) != crc32.ChecksumIEEE(raw[:pos]) {
+		return fmt.Errorf("checksum failed")
+	}
+	pack.Cmd = jpb.CMD(binary.LittleEndian.Uint16(raw))
+	pack.Data = raw[cmdSize:pos]
+	return nil
+}
+
+func encodePack(pack *jglobal.Pack) error {
+	data := pack.Data.([]byte)
+	raw := make([]byte, cmdSize+len(data))
+	binary.LittleEndian.PutUint16(raw, uint16(pack.Cmd))
+	copy(raw[cmdSize:], data)
+	if pack.AesKey != nil {
+		if err := jglobal.AESEncrypt(pack.AesKey, &raw); err != nil {
+			return err
+		}
+	}
+	pack.Data = raw
+	return nil
 }

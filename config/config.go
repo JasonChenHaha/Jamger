@@ -12,7 +12,7 @@ import (
 
 var config = viper.New()
 
-// ------------------------- inside -------------------------
+// ------------------------- outside -------------------------
 
 func Init() {
 	index := strings.LastIndex(os.Args[1], "/")
@@ -24,6 +24,24 @@ func Init() {
 	}
 	formatCfg()
 }
+
+func Get(key string) any {
+	return config.Get(key)
+}
+
+func GetInt(key string) int {
+	return config.GetInt(key)
+}
+
+func GetString(key string) string {
+	return config.GetString(key)
+}
+
+func GetBool(key string) bool {
+	return config.GetBool(key)
+}
+
+// ------------------------- inside -------------------------
 
 // 格式化配置中的数值
 func formatCfg() {
@@ -72,22 +90,4 @@ func transTimeStrToUint64(str string) (uint64, error) {
 	}
 	num, err := strconv.ParseUint(str[:len(str)-len(u)], 10, 64)
 	return num * scale, err
-}
-
-// ------------------------- outside -------------------------
-
-func Get(key string) any {
-	return config.Get(key)
-}
-
-func GetInt(key string) int {
-	return config.GetInt(key)
-}
-
-func GetString(key string) string {
-	return config.GetString(key)
-}
-
-func GetBool(key string) bool {
-	return config.GetBool(key)
 }
