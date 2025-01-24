@@ -1,11 +1,12 @@
 package jwork
 
 import (
+	"jdb"
 	"jglobal"
+	"jlog"
 	"jnet"
 	"jpb"
 	"jrpc"
-	"juser"
 )
 
 // ------------------------- outside -------------------------
@@ -25,6 +26,7 @@ func ping(pack *jglobal.Pack) {
 	pack.Data = &jpb.Pong{}
 }
 
+// 登录
 func signIn(pack *jglobal.Pack) {
 	target := jrpc.GetRoundRobinTarget(jglobal.GetGroup(pack.Cmd))
 	if target == nil {
@@ -39,13 +41,11 @@ func signIn(pack *jglobal.Pack) {
 	}
 	rsp := pack.Data.(*jpb.SignInRsp)
 	if rsp.Code == jpb.CODE_OK {
-		juser.GetUser(rsp.Uid).AesKey = pack.AesKey
-		// 缓存
-		// if _, err = jdb.Redis.Do("HSET", out["_id"], "token", token); err != nil {
-		// 	jlog.Error(err)
-		// 	rsp.Code = jpb.CODE_SVR_ERR
-		// 	return
-		// }
+		if _, err := jdb.Redis.HSet(jglobal.Itoa(rsp.Uid), "aesKey", pack.AesKey); err != nil {
+			jlog.Error(err)
+			pack.Cmd = jpb.CMD_GATE_INFO
+			pack.Data = &jpb.Error{Code: jpb.CODE_SVR_ERR}
+		}
 	}
 }
 

@@ -11,8 +11,9 @@ import (
 	"jmeta"
 	"jnet"
 	"jrpc"
-	"jschedule"
 	"juser"
+
+	"jschedule"
 )
 
 func main() {

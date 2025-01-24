@@ -66,7 +66,7 @@ func (htp *Http) authReceive(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	pack := &jglobal.Pack{W: w}
-	if err = decodeRSAToPack(pack, body); err != nil {
+	if err = decodeRsaToPack(pack, body); err != nil {
 		jlog.Warn(err)
 		return
 	}
@@ -111,7 +111,7 @@ func (htp *Http) receive(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	pack := &jglobal.Pack{W: w}
-	if err := decodeAESToPack(pack, body); err != nil {
+	if err := decodeAesToPack(pack, body); err != nil {
 		jlog.Warn(err)
 		return
 	}

@@ -11,6 +11,8 @@ import (
 	"sync"
 	"time"
 
+	"jschedule"
+
 	"google.golang.org/grpc"
 )
 
@@ -31,8 +33,8 @@ func Init() {
 		maglev:     map[int]*jglobal.Maglev[*jnrpc.Rpc]{},
 		roundrobin: map[int]uint{},
 	}
-	if jconfig.GetBool("debug") {
-		go watch()
+	if jconfig.Get("debug") != nil {
+		jschedule.DoEvery(time.Duration(jconfig.GetInt("debug.interval"))*time.Millisecond, watch)
 	}
 }
 
@@ -132,16 +134,13 @@ func leave(group int, index int, info map[string]any) {
 // ------------------------- debug -------------------------
 
 func watch() {
-	ticker := time.NewTicker(10 * time.Second)
-	for range ticker.C {
-		for k, v := range Rpc.server {
-			jlog.Debugf("server %d -> %d", k, v.Len())
-		}
-		for k := range Rpc.maglev {
-			jlog.Debug("maglev ", k)
-		}
-		for k, v := range Rpc.roundrobin {
-			jlog.Debugf("roundrobin %d -> %d", k, v)
-		}
+	for k, v := range Rpc.server {
+		jlog.Debugf("server %d -> %d", k, v.Len())
+	}
+	for k := range Rpc.maglev {
+		jlog.Debug("maglev ", k)
+	}
+	for k, v := range Rpc.roundrobin {
+		jlog.Debugf("roundrobin %d -> %d", k, v)
 	}
 }

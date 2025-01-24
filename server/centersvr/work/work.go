@@ -2,13 +2,14 @@ package jwork
 
 import (
 	"jglobal"
+	"jnet"
 	"jpb"
 )
 
 // ------------------------- outside -------------------------
 
 func Init() {
-	// jnet.Rpc.Register(jpb.CMD_PING, ping, &jpb.Ping{})
+	jnet.Rpc.Register(jpb.CMD_PING, ping, &jpb.Ping{})
 }
 
 // ------------------------- inside -------------------------

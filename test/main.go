@@ -17,7 +17,7 @@ func main() {
 	jconfig.Init()
 	jglobal.Init()
 	jlog.Init("")
-	testHttp()
+	// testHttp()
 	// testTcp()
 	// testKcp()
 	// testWeb()

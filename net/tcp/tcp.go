@@ -10,6 +10,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"jschedule"
+
 	"google.golang.org/protobuf/proto"
 )
 
@@ -42,8 +44,8 @@ func (tcp *Tcp) AsServer() *Tcp {
 	}
 	jlog.Info("listen on ", jconfig.GetString("tcp.addr"))
 	go tcp.accept(listener)
-	if jconfig.GetBool("debug") {
-		go tcp.watch()
+	if jconfig.Get("debug") != nil {
+		jschedule.DoEvery(time.Duration(jconfig.GetInt("debug.interval"))*time.Millisecond, tcp.watch)
 	}
 	return tcp
 }
@@ -132,8 +134,5 @@ func (tcp *Tcp) delete(id uint64) {
 // ------------------------- debug -------------------------
 
 func (tcp *Tcp) watch() {
-	ticker := time.NewTicker(10 * time.Second)
-	for range ticker.C {
-		jlog.Debug("connecting ", tcp.counter)
-	}
+	jlog.Debug("connecting ", tcp.counter)
 }

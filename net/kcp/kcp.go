@@ -9,6 +9,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"jschedule"
+
 	"github.com/xtaci/kcp-go"
 	xKcp "github.com/xtaci/kcp-go"
 )
@@ -36,8 +38,8 @@ func (kcp *Kcp) AsServer() *Kcp {
 	}
 	jlog.Info("listen on ", jconfig.GetString("kcp.addr"))
 	go kcp.accept(listener)
-	if jconfig.GetBool("debug") {
-		go kcp.watch()
+	if jconfig.Get("debug") != nil {
+		jschedule.DoEvery(time.Duration(jconfig.GetInt("debug.interval"))*time.Millisecond, kcp.watch)
 	}
 	return kcp
 }
@@ -103,8 +105,5 @@ func (kcp *Kcp) receive(id uint64, pack *Pack) {
 // ------------------------- debug -------------------------
 
 func (kcp *Kcp) watch() {
-	ticker := time.NewTicker(10 * time.Second)
-	for range ticker.C {
-		jlog.Debug("connecting ", kcp.counter)
-	}
+	jlog.Debug("connecting ", kcp.counter)
 }

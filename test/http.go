@@ -32,37 +32,46 @@ type Http struct {
 func testHttp() {
 	jlog.Info("<test rpc>")
 	htp := &Http{}
-	pubKey, err := jglobal.RSALoadPublicKey(jconfig.GetString("rsa.publicKey"))
+	pubKey, err := jglobal.RsaLoadPublicKey(jconfig.GetString("rsa.publicKey"))
 	if err != nil {
 		jlog.Fatal(err)
 	}
 	htp.pubKey = pubKey
 
-	htp.aesKey, err = jglobal.AESGenerate(16)
+	htp.aesKey, err = jglobal.AesGenerate(16)
 	if err != nil {
 		jlog.Fatal(err)
 	}
 
-	// htp.rsp = &jpb.SignUpRsp{}
-	// cmd, msg := htp.sendAuth(jpb.CMD_SIGN_UP_REQ, &jpb.SignUpReq{
-	// 	Id:  "gege",
-	// 	Pwd: "123456",
-	// })
+	htp.rsp = &jpb.SignUpRsp{}
+	cmd, msg := htp.sendAuth(jpb.CMD_SIGN_UP_REQ, &jpb.SignUpReq{
+		Id:  "gaga",
+		Pwd: "123456",
+	})
 
-	// htp.rsp = &jpb.SignInRsp{}
-	// cmd, msg := htp.sendAuth(jpb.CMD_SIGN_IN_REQ, &jpb.SignInReq{
-	// 	Id:  "gaga",
-	// 	Pwd: "123456",
-	// })
+	jlog.Debugf("cmd: %s, msg: %s", cmd, msg)
+
+	htp.rsp = &jpb.SignInRsp{}
+	cmd, msg = htp.sendAuth(jpb.CMD_SIGN_IN_REQ, &jpb.SignInReq{
+		Id:  "gaga",
+		Pwd: "123456",
+	})
+	if cmd == jpb.CMD_GATE_INFO {
+		jlog.Debugf("cmd: %s, msg: %s", cmd, msg)
+		return
+	}
+	htp.uid = msg.(*jpb.SignInRsp).Uid
+
+	jlog.Debugf("cmd: %s, msg: %s", cmd, msg)
 
 	htp.rsp = &jpb.Pong{}
-	cmd, msg := htp.send(jpb.CMD_PING, &jpb.Ping{})
+	cmd, msg = htp.send(jpb.CMD_PING, &jpb.Ping{})
 
 	jlog.Debugf("cmd: %s, msg: %s", cmd, msg)
 }
 
 func (htp *Http) sendAuth(cmd jpb.CMD, msg proto.Message) (jpb.CMD, proto.Message) {
-	raw := htp.encodeRSA(cmd, msg)
+	raw := htp.encodeRsa(cmd, msg)
 	addr := jconfig.GetString("http.addr")
 	rsp, err := http.Post("http://"+addr+"/auth", "", bytes.NewBuffer(raw))
 	if err != nil {
@@ -73,11 +82,14 @@ func (htp *Http) sendAuth(cmd jpb.CMD, msg proto.Message) (jpb.CMD, proto.Messag
 	if err != nil {
 		jlog.Fatal(err)
 	}
+	if len(body) == 0 {
+		jlog.Fatal("body is empty")
+	}
 	return htp.decode(body)
 }
 
 func (htp *Http) send(cmd jpb.CMD, msg proto.Message) (jpb.CMD, proto.Message) {
-	raw := htp.encodeAES(cmd, msg)
+	raw := htp.encodeAes(cmd, msg)
 	addr := jconfig.GetString("http.addr")
 	rsp, err := http.Post("http://"+addr, "", bytes.NewBuffer(raw))
 	if err != nil {
@@ -88,10 +100,13 @@ func (htp *Http) send(cmd jpb.CMD, msg proto.Message) (jpb.CMD, proto.Message) {
 	if err != nil {
 		jlog.Fatal(err)
 	}
+	if len(body) == 0 {
+		jlog.Fatal("body is empty")
+	}
 	return htp.decode(body)
 }
 
-func (htp *Http) encodeRSA(cmd jpb.CMD, msg proto.Message) []byte {
+func (htp *Http) encodeRsa(cmd jpb.CMD, msg proto.Message) []byte {
 	data, err := proto.Marshal(msg)
 	if err != nil {
 		jlog.Fatal(err)
@@ -102,14 +117,14 @@ func (htp *Http) encodeRSA(cmd jpb.CMD, msg proto.Message) []byte {
 	copy(raw[cmdSize:], data)
 	copy(raw[cmdSize+dataSize:], htp.aesKey)
 	binary.LittleEndian.PutUint32(raw[cmdSize+dataSize+aesKeySize:], crc32.ChecksumIEEE(raw[:cmdSize+dataSize+aesKeySize]))
-	err = jglobal.RSAEncrypt(htp.pubKey, &raw)
+	err = jglobal.RsaEncrypt(htp.pubKey, &raw)
 	if err != nil {
 		jlog.Fatal(err)
 	}
 	return raw
 }
 
-func (htp *Http) encodeAES(cmd jpb.CMD, msg proto.Message) []byte {
+func (htp *Http) encodeAes(cmd jpb.CMD, msg proto.Message) []byte {
 	data, err := proto.Marshal(msg)
 	if err != nil {
 		jlog.Fatal(err)
@@ -119,14 +134,17 @@ func (htp *Http) encodeAES(cmd jpb.CMD, msg proto.Message) []byte {
 	binary.LittleEndian.PutUint16(raw, uint16(cmd))
 	copy(raw[cmdSize:], data)
 	binary.LittleEndian.PutUint32(raw[cmdSize+dataSize:], crc32.ChecksumIEEE(raw[:cmdSize+dataSize]))
-	if err = jglobal.AESEncrypt(htp.aesKey, &raw); err != nil {
+	if err = jglobal.AesEncrypt(htp.aesKey, &raw); err != nil {
 		jlog.Fatal(err)
 	}
-	return raw
+	raw2 := make([]byte, uidSize+len(raw))
+	binary.LittleEndian.PutUint32(raw2, uint32(htp.uid))
+	copy(raw2[uidSize:], raw)
+	return raw2
 }
 
 func (htp *Http) decode(raw []byte) (jpb.CMD, proto.Message) {
-	err := jglobal.AESDecrypt(htp.aesKey, &raw)
+	err := jglobal.AesDecrypt(htp.aesKey, &raw)
 	if err != nil {
 		jlog.Fatal(err)
 	}

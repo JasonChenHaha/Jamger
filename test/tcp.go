@@ -28,13 +28,13 @@ func testTcp() {
 	tcp.con = con
 
 	// tcp.rsp = &jpb.SignInRsp{}
-	// tcp.sendWithRSA(jpb.CMD_SIGN_IN_REQ, &jpb.SignInReq{
+	// tcp.sendWithRsa(jpb.CMD_SIGN_IN_REQ, &jpb.SignInReq{
 	// 	Id:  "nihao",
 	// 	Pwd: "123456",
 	// })
 	// tcp.recv()
 
-	// tcp.sendWithAES(jpb.CMD_PING, nil)
+	// tcp.sendWithAes(jpb.CMD_PING, nil)
 	// tcp.recv()
 	// go tcp.heartbeat()
 	// jglobal.Keep()
@@ -43,16 +43,16 @@ func testTcp() {
 func (tcp *Tcp) heartbeat() {
 	ticker := time.NewTicker(1 * time.Second)
 	for range ticker.C {
-		tcp.sendWithAES(jpb.CMD_HEARTBEAT, nil)
+		tcp.sendWithAes(jpb.CMD_HEARTBEAT, nil)
 	}
 }
 
-func (tcp *Tcp) sendWithAES(cmd jpb.CMD, msg proto.Message) {
+func (tcp *Tcp) sendWithAes(cmd jpb.CMD, msg proto.Message) {
 	data := []byte{}
 	if msg != nil {
 		data, _ = proto.Marshal(msg)
 	}
-	jglobal.AESEncrypt(tcp.aesKey, &data)
+	jglobal.AesEncrypt(tcp.aesKey, &data)
 	size := CmdSize + len(data)
 	buffer := make([]byte, HeadSize+size)
 	binary.LittleEndian.PutUint16(buffer, uint16(size))
@@ -79,7 +79,7 @@ func (tcp *Tcp) recv() {
 	io.ReadFull(tcp.con, buffer)
 	cmd := jpb.CMD(binary.LittleEndian.Uint16(buffer))
 	data := buffer[CmdSize:]
-	jglobal.AESDecrypt(tcp.aesKey, &data)
+	jglobal.AesDecrypt(tcp.aesKey, &data)
 	proto.Unmarshal(data, tcp.rsp)
 	jlog.Infoln(cmd, tcp.rsp)
 }

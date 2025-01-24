@@ -9,6 +9,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"jschedule"
+
 	"github.com/gorilla/websocket"
 )
 
@@ -47,8 +49,8 @@ func (web *Web) AsServer() *Web {
 			jlog.Fatal(err)
 		}
 	}()
-	if jconfig.GetBool("debug") {
-		go web.watch()
+	if jconfig.Get("debug") != nil {
+		jschedule.DoEvery(time.Duration(jconfig.GetInt("debug.interval"))*time.Millisecond, web.watch)
 	}
 	return web
 }
@@ -108,8 +110,5 @@ func (web *Web) receive(id uint64, pack *Pack) {
 // ------------------------- debug -------------------------
 
 func (web *Web) watch() {
-	ticker := time.NewTicker(10 * time.Second)
-	for range ticker.C {
-		jlog.Debug("connecting ", web.counter)
-	}
+	jlog.Debug("connecting ", web.counter)
 }

@@ -6,7 +6,6 @@ import (
 	"hash/crc32"
 	"jglobal"
 	"jpb"
-	"juser"
 )
 
 // auth:
@@ -47,8 +46,8 @@ const (
 
 // ------------------------- package -------------------------
 
-func decodeRSAToPack(pack *jglobal.Pack, raw []byte) error {
-	if err := jglobal.RSADecrypt(jglobal.RSA_PRIVATE_KEY, &raw); err != nil {
+func decodeRsaToPack(pack *jglobal.Pack, raw []byte) error {
+	if err := jglobal.RsaDecrypt(jglobal.RSA_PRIVATE_KEY, &raw); err != nil {
 		return err
 	}
 	pos := len(raw) - checksumSize
@@ -61,23 +60,23 @@ func decodeRSAToPack(pack *jglobal.Pack, raw []byte) error {
 	return nil
 }
 
-func decodeAESToPack(pack *jglobal.Pack, raw []byte) error {
-	pack.Uid = binary.LittleEndian.Uint32(raw)
-	user := juser.GetUser(pack.Uid)
-	if user == nil {
-		return fmt.Errorf("auth failed, uid = %d", pack.Uid)
-	}
-	pack.AesKey = user.AesKey
-	raw = raw[uidSize:]
-	if err := jglobal.AESDecrypt(pack.AesKey, &raw); err != nil {
-		return err
-	}
-	pos := len(raw) - checksumSize
-	if binary.LittleEndian.Uint32(raw[pos:]) != crc32.ChecksumIEEE(raw[:pos]) {
-		return fmt.Errorf("checksum failed")
-	}
-	pack.Cmd = jpb.CMD(binary.LittleEndian.Uint16(raw))
-	pack.Data = raw[cmdSize:pos]
+func decodeAesToPack(pack *jglobal.Pack, raw []byte) error {
+	// uid := binary.LittleEndian.Uint32(raw)
+	// user := juser.GetUser(uid)
+	// if user == nil {
+	// 	return fmt.Errorf("auth failed, uid = %d", uid)
+	// }
+	// pack.AesKey = user.GetAesKey()
+	// raw = raw[uidSize:]
+	// if err := jglobal.AesDecrypt(pack.AesKey, &raw); err != nil {
+	// 	return err
+	// }
+	// pos := len(raw) - checksumSize
+	// if binary.LittleEndian.Uint32(raw[pos:]) != crc32.ChecksumIEEE(raw[:pos]) {
+	// 	return fmt.Errorf("checksum failed")
+	// }
+	// pack.Cmd = jpb.CMD(binary.LittleEndian.Uint16(raw))
+	// pack.Data = raw[cmdSize:pos]
 	return nil
 }
 
@@ -87,7 +86,7 @@ func encodePack(pack *jglobal.Pack) error {
 	binary.LittleEndian.PutUint16(raw, uint16(pack.Cmd))
 	copy(raw[cmdSize:], data)
 	if pack.AesKey != nil {
-		if err := jglobal.AESEncrypt(pack.AesKey, &raw); err != nil {
+		if err := jglobal.AesEncrypt(pack.AesKey, &raw); err != nil {
 			return err
 		}
 	}

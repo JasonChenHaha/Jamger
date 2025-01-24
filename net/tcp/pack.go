@@ -7,16 +7,17 @@ import (
 	"io"
 	"jglobal"
 	"jpb"
+	"juser"
 )
 
 // client pack structure:
 // +--------------------------------------------------------------------+
-// |                               pack|                                |
-// +----------+-------+---------+---------+----------+--------------+---+
-// |   size   |       |   uid   |   cmd   |   data   |   checksum   |   |
-// +----------+ aes ( +---------+---------+----------+--------------+ ) |
-// |    2     |       |    4    |    2    |   ...    |      4       |   |
-// +----------+-------+---------+---------+----------+--------------+---+
+// |                               pack                                 |
+// +----------+---------+-------+---------+----------+--------------+---+
+// |   size   |   uid   |       |   cmd   |   data   |   checksum   |   |
+// +----------+---------+ aes ( +---------+----------+--------------+ ) |
+// |    2     |    4    |       |    2    |   ...    |      4       |   |
+// +----------+---------+-------+---------+----------+--------------+---+
 
 // server pack structure:
 // +-------------------------------------------+
@@ -47,14 +48,16 @@ func recvAndDecodeToPack(pack *jglobal.Pack, ses *Ses) error {
 	if _, err := io.ReadFull(ses.con, raw); err != nil {
 		return err
 	}
-	if err := jglobal.RSADecrypt(jglobal.RSA_PRIVATE_KEY, &raw); err != nil {
-		return err
-	}
+	uid := binary.LittleEndian.Uint32(raw)
+	user := juser.GetUser(uid)
+	// if err := jglobal.RsaDecrypt(jglobal.RSA_PRIVATE_KEY, &raw); err != nil {
+	// 	return err
+	// }
 	posChecksum := len(raw) - checksumSize
 	if binary.LittleEndian.Uint32(raw[posChecksum:]) != crc32.ChecksumIEEE(raw[:posChecksum]) {
 		return fmt.Errorf("checksum failed")
 	}
-	pack.Uid = binary.LittleEndian.Uint32(raw)
+	// uid := binary.LittleEndian.Uint32(raw)
 	pack.Cmd = jpb.CMD(binary.LittleEndian.Uint16(raw[uidSize:]))
 	pack.Data = raw[uidSize+cmdSize : posChecksum]
 	return nil
@@ -63,7 +66,7 @@ func recvAndDecodeToPack(pack *jglobal.Pack, ses *Ses) error {
 // 加密、发送数据
 func encodeAndSendPack(pack *jglobal.Pack, ses *Ses) error {
 	data := pack.Data.([]byte)
-	if err := jglobal.AESEncrypt(ses.aesKey, &data); err != nil {
+	if err := jglobal.AesEncrypt(ses.aesKey, &data); err != nil {
 		return err
 	}
 	size := cmdSize + len(data)

@@ -24,7 +24,6 @@ const (
 	SVR_CENTER = "centersvr"
 	GRP_CENTER = 3
 )
-
 const (
 	MONGO_ACCOUNT = "account"
 )
@@ -32,28 +31,21 @@ const (
 type AllInt interface {
 	~int | ~uint | ~int8 | ~uint8 | ~int16 | ~uint16 | ~int32 | ~uint32 | ~int64 | ~uint64
 }
-
 type AllSInt interface {
 	~int | ~int8 | ~int16 | ~int32 | ~int64
 }
-
 type AllUInt interface {
 	~uint | ~uint8 | ~uint16 | ~uint32 | ~uint64
 }
-
 type AllFloat interface {
 	~float32 | ~float64
 }
-
 type AllIntString interface {
 	AllInt | string
 }
-
 type Pack struct {
-	Uid  uint32
-	Cmd  jpb.CMD
-	Data any
-
+	Cmd    jpb.CMD
+	Data   any
 	Id     uint64
 	W      http.ResponseWriter
 	AesKey []byte
@@ -67,7 +59,7 @@ func Init() {
 	GROUP = jconfig.GetInt("group")
 	INDEX = jconfig.GetInt("index")
 	SERVER = fmt.Sprintf("%s-%d", NAME, INDEX)
-	key, err := RSALoadPrivateKey(jconfig.GetString("rsa.privateKey"))
+	key, err := RsaLoadPrivateKey(jconfig.GetString("rsa.privateKey"))
 	if err != nil {
 		jlog.Fatal(err)
 	}

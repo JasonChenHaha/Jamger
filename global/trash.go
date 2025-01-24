@@ -117,8 +117,8 @@ func TimeToTime(hour int) time.Duration {
 	return time5.Sub(now)
 }
 
-// RSA生成钥匙对
-func RSAGenerate() (string, string, error) {
+// Rsa生成钥匙对
+func RsaGenerate() (string, string, error) {
 	pri, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
 		return "", "", err
@@ -131,8 +131,8 @@ func RSAGenerate() (string, string, error) {
 	return string(pem.EncodeToMemory(priP)), string(pem.EncodeToMemory(pubP)), nil
 }
 
-// RSA加载公钥
-func RSALoadPublicKey(publicKey string) (*rsa.PublicKey, error) {
+// Rsa加载公钥
+func RsaLoadPublicKey(publicKey string) (*rsa.PublicKey, error) {
 	block, _ := pem.Decode([]byte(publicKey))
 	if block == nil {
 		return nil, fmt.Errorf("decode publicKey failed.")
@@ -144,8 +144,8 @@ func RSALoadPublicKey(publicKey string) (*rsa.PublicKey, error) {
 	return pub, nil
 }
 
-// RSA加载私钥
-func RSALoadPrivateKey(privateKey string) (*rsa.PrivateKey, error) {
+// Rsa加载私钥
+func RsaLoadPrivateKey(privateKey string) (*rsa.PrivateKey, error) {
 	block, _ := pem.Decode([]byte(privateKey))
 	if block == nil {
 		return nil, fmt.Errorf("decode privateKey failed.")
@@ -157,20 +157,20 @@ func RSALoadPrivateKey(privateKey string) (*rsa.PrivateKey, error) {
 	return pri, nil
 }
 
-// RSA公钥加密
-func RSAEncrypt(pubKey *rsa.PublicKey, data *[]byte) (err error) {
+// Rsa公钥加密
+func RsaEncrypt(pubKey *rsa.PublicKey, data *[]byte) (err error) {
 	*data, err = rsa.EncryptOAEP(sha256.New(), rand.Reader, pubKey, *data, nil)
 	return
 }
 
-// RSA私钥解密
-func RSADecrypt(privKey *rsa.PrivateKey, data *[]byte) (err error) {
+// Rsa私钥解密
+func RsaDecrypt(privKey *rsa.PrivateKey, data *[]byte) (err error) {
 	*data, err = rsa.DecryptOAEP(sha256.New(), rand.Reader, privKey, *data, nil)
 	return
 }
 
-// AES生成密钥
-func AESGenerate(size int) ([]byte, error) {
+// Aes生成密钥
+func AesGenerate(size int) ([]byte, error) {
 	key := make([]byte, size)
 	if _, err := rand.Read(key); err != nil {
 		return nil, err
@@ -178,8 +178,8 @@ func AESGenerate(size int) ([]byte, error) {
 	return key, nil
 }
 
-// AES加密
-func AESEncrypt(key []byte, data *[]byte) error {
+// Aes加密
+func AesEncrypt(key []byte, data *[]byte) error {
 	block, err := aes.NewCipher(key)
 	if err != nil {
 		return err
@@ -198,8 +198,8 @@ func AESEncrypt(key []byte, data *[]byte) error {
 	return nil
 }
 
-// AES解密
-func AESDecrypt(key []byte, data *[]byte) error {
+// Aes解密
+func AesDecrypt(key []byte, data *[]byte) error {
 	block, err := aes.NewCipher(key)
 	if err != nil {
 		return err
@@ -212,7 +212,15 @@ func AESDecrypt(key []byte, data *[]byte) error {
 	*data = (*data)[blockSize:]
 	mode := cipher.NewCBCDecrypter(block, iv)
 	mode.CryptBlocks(*data, *data)
-	*data = (*data)[:len(*data)-int((*data)[len(*data)-1])]
+	size := len(*data)
+	if size == 0 {
+		return fmt.Errorf("data too short.")
+	}
+	pos := size - int((*data)[size-1])
+	if pos < 0 {
+		return fmt.Errorf("aes decrypt failed.")
+	}
+	*data = (*data)[:pos]
 	return nil
 }
 
@@ -241,4 +249,26 @@ func Atoi[T AllInt](data string) T {
 		jlog.Panic(err)
 	}
 	return T(n)
+}
+
+func Itoa(data any) string {
+	switch o := data.(type) {
+	case int:
+		return strconv.Itoa(o)
+	case int32:
+		return strconv.Itoa(int(o))
+	case int64:
+		return strconv.FormatInt(o, 10)
+	case uint:
+		return strconv.FormatUint(uint64(o), 10)
+	case uint32:
+		return strconv.FormatUint(uint64(o), 10)
+	case uint64:
+		return strconv.FormatUint(o, 10)
+	case float32:
+		return fmt.Sprintf("%f", o)
+	case float64:
+		return fmt.Sprintf("%f", o)
+	}
+	return ""
 }

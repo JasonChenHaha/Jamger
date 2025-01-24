@@ -10,9 +10,10 @@ import (
 	"jmeta"
 	"jnet"
 	"jrpc"
-	"jschedule"
 	"juser"
 	"jwork"
+
+	"jschedule"
 )
 
 func main() {
