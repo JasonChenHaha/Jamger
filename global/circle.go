@@ -1,6 +1,6 @@
 package jglobal
 
-// 变长环形缓存
+// 自扩容环形缓存
 
 type Circle[T any] struct {
 	head, tail int
@@ -52,4 +52,12 @@ func (o *Circle[T]) Pop() T {
 	o.tail = (o.tail + 1) % (o.size + 1)
 	o.size--
 	return tmp
+}
+
+func (o *Circle[T]) Tail() T {
+	if o.size == 0 {
+		var zero T
+		return zero
+	}
+	return o.data[o.tail]
 }

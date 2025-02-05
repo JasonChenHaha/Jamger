@@ -48,31 +48,34 @@ func recvAndDecodeToPack(pack *jglobal.Pack, ses *Ses) error {
 	if _, err := io.ReadFull(ses.con, raw); err != nil {
 		return err
 	}
-	uid := binary.LittleEndian.Uint32(raw)
-	user := juser.GetUser(uid)
-	// if err := jglobal.RsaDecrypt(jglobal.RSA_PRIVATE_KEY, &raw); err != nil {
-	// 	return err
-	// }
+	if ses.aesKey == nil {
+		uid := binary.LittleEndian.Uint32(raw)
+		user := juser.GetUser(uid)
+		ses.aesKey = user.AesKey
+	}
+	raw = raw[uidSize:]
+	if err := jglobal.AesDecrypt(ses.aesKey, &raw); err != nil {
+		return err
+	}
 	posChecksum := len(raw) - checksumSize
 	if binary.LittleEndian.Uint32(raw[posChecksum:]) != crc32.ChecksumIEEE(raw[:posChecksum]) {
 		return fmt.Errorf("checksum failed")
 	}
-	// uid := binary.LittleEndian.Uint32(raw)
-	pack.Cmd = jpb.CMD(binary.LittleEndian.Uint16(raw[uidSize:]))
-	pack.Data = raw[uidSize+cmdSize : posChecksum]
+	pack.Cmd = jpb.CMD(binary.LittleEndian.Uint16(raw[:cmdSize]))
+	pack.Data = raw[cmdSize:]
 	return nil
 }
 
 // 加密、发送数据
 func encodeAndSendPack(pack *jglobal.Pack, ses *Ses) error {
 	data := pack.Data.([]byte)
-	if err := jglobal.AesEncrypt(ses.aesKey, &data); err != nil {
-		return err
-	}
-	size := cmdSize + len(data)
-	raw := make([]byte, size)
+	raw := make([]byte, cmdSize+len(data))
 	binary.LittleEndian.PutUint16(raw, uint16(pack.Cmd))
 	copy(raw[cmdSize:], data)
+	if err := jglobal.AesEncrypt(ses.aesKey, &raw); err != nil {
+		return err
+	}
+	size := len(raw)
 	for pos := 0; pos < size; {
 		n, err := ses.con.Write(raw)
 		if err != nil {
