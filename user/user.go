@@ -16,7 +16,7 @@ const (
 	EXPIRE = 60 * 10
 )
 
-// 所有属性的写需要使用对应的set方法来驱动数据定时落地
+// 所有属性的写需要使用对应的set方法，以驱动数据定时落地
 type User struct {
 	Uid        uint32
 	AesKey     []byte
