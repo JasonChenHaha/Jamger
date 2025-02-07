@@ -4,20 +4,26 @@ import (
 	"jdb"
 	"jglobal"
 	"jlog"
+	"jmongo"
 	"jschedule"
+	"sync"
 	"time"
+
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 const (
 	EXPIRE = 60 * 10
 )
 
-// 所有属性的写需要使用对应的set方法来驱动定时落地
+// 所有属性的写需要使用对应的set方法来驱动数据定时落地
 type User struct {
-	Uid    uint32
-	AesKey []byte
-	expire int
-	redis  bool
+	Uid        uint32
+	AesKey     []byte
+	expire     int
+	dirtyRedis map[string]any
+	dirtyMongo map[string]any
+	mutex      sync.Mutex
 }
 
 // ------------------------- package -------------------------
@@ -45,20 +51,42 @@ func (user *User) refresh() {
 
 // ------------------------- outside -------------------------
 
+func (user *User) Lock() {
+	user.mutex.Lock()
+}
+
+func (user *User) Unlock() {
+	user.mutex.Unlock()
+}
+
 func (user *User) SetAesKey(key []byte) {
 	user.AesKey = key
-	user.redis = true
+	user.dirtyRedis["aesKey"] = key
 }
 
 // ------------------------- inside -------------------------
 
 func (user *User) tick() {
-	if user.redis {
-		if _, err := jdb.Redis.HSet(jglobal.Itoa(user.Uid), "aesKey", user.AesKey); err != nil {
-			jlog.Error(err)
-		} else {
-			user.redis = false
-		}
+	dirtyRedis := []any{}
+	user.mutex.Lock()
+	for k, v := range user.dirtyRedis {
+		dirtyRedis = append(dirtyRedis, k, v)
+	}
+	dirtyMongo := bson.M(user.dirtyMongo)
+	// to do: 减少内存碎片
+	user.dirtyRedis = map[string]any{}
+	user.dirtyMongo = map[string]any{}
+	user.mutex.Unlock()
+	if _, err := jdb.Redis.HSet(jglobal.Itoa(user.Uid), dirtyRedis...); err != nil {
+		jlog.Error(err)
+	}
+	in := &jmongo.Input{
+		Col:    "account",
+		Filter: bson.M{"_id": user.Uid},
+		Update: bson.M{"$set": dirtyMongo},
+	}
+	if err := jdb.Mongo.UpdateOne(in); err != nil {
+		jlog.Error(err)
 	}
 	if user.expire -= 1; user.expire <= 0 {
 		delete(user.Uid)
