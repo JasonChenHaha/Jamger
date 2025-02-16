@@ -7,7 +7,10 @@ enum CMD {
     HEARTBEAT = 2;
     PING = 3;
     PONG = 4;
+
     MAX = 1000;
+    // CMD首位为group
+    // group = CMD / MAX
 
     GATE_INFO = 1001;
 
@@ -15,6 +18,9 @@ enum CMD {
     SIGN_UP_RSP = 2002;
     SIGN_IN_REQ = 2003;
     SIGN_IN_RSP = 2004;
+
+    LOGIN_REQ = 3001;
+    LOGIN_RSP = 3002;
 }
 
 enum CODE {
@@ -24,7 +30,7 @@ enum CODE {
 
     AESKEY_ERR = 10;         // 重复的AESKey
     ACCOUNT_SYNTX = 11;      // 账号密码格式错误
-    ACCOUNT_EXIST = 12;      // 账号已存在
+    USER_EXIST = 12;         // 账号已存在
     ACCOUNT_FAIL = 13;       // 账号或密码错误
 }
 

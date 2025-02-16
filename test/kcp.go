@@ -1,11 +1,7 @@
 package main
 
 import (
-	"encoding/binary"
-	"io"
 	"jconfig"
-	"jdebug"
-	"jkcp"
 	"jlog"
 	"jpb"
 	"time"
@@ -44,34 +40,34 @@ func (kc *Kcp) close() {
 }
 
 func (kc *Kcp) send(cmd jpb.CMD, data []byte) {
-	pack := &jkcp.Pack{
-		Cmd:  cmd,
-		Data: data,
-	}
-	bodySize := CmdSize + len(pack.Data)
-	size := HeadSize + bodySize
-	buffer := make([]byte, size)
-	binary.LittleEndian.PutUint16(buffer, uint16(bodySize))
-	binary.LittleEndian.PutUint16(buffer[HeadSize:], uint16(pack.Cmd))
-	copy(buffer[HeadSize+CmdSize:], pack.Data)
-	for pos := 0; pos < size; {
-		n, err := kc.con.Write(buffer)
-		if err != nil {
-			jlog.Fatal(err)
-		}
-		pos += n
-	}
+	// pack := &jkcp.Pack{
+	// 	Cmd:  cmd,
+	// 	Data: data,
+	// }
+	// bodySize := CmdSize + len(pack.Data)
+	// size := HeadSize + bodySize
+	// buffer := make([]byte, size)
+	// binary.LittleEndian.PutUint16(buffer, uint16(bodySize))
+	// binary.LittleEndian.PutUint16(buffer[HeadSize:], uint16(pack.Cmd))
+	// copy(buffer[HeadSize+CmdSize:], pack.Data)
+	// for pos := 0; pos < size; {
+	// 	n, err := kc.con.Write(buffer)
+	// 	if err != nil {
+	// 		jlog.Fatal(err)
+	// 	}
+	// 	pos += n
+	// }
 }
 
 func (kc *Kcp) recv() {
-	buffer := make([]byte, HeadSize)
-	io.ReadFull(kc.con, buffer)
-	bodySize := binary.LittleEndian.Uint16(buffer)
-	buffer = make([]byte, bodySize)
-	io.ReadFull(kc.con, buffer)
-	pack := jkcp.Pack{
-		Cmd:  jpb.CMD(binary.LittleEndian.Uint16(buffer)),
-		Data: buffer[CmdSize:],
-	}
-	jlog.Info(jdebug.StructToString(pack))
+	// buffer := make([]byte, HeadSize)
+	// io.ReadFull(kc.con, buffer)
+	// bodySize := binary.LittleEndian.Uint16(buffer)
+	// buffer = make([]byte, bodySize)
+	// io.ReadFull(kc.con, buffer)
+	// pack := jkcp.Pack{
+	// 	Cmd:  jpb.CMD(binary.LittleEndian.Uint16(buffer)),
+	// 	Data: buffer[CmdSize:],
+	// }
+	// jlog.Info(jdebug.StructToString(pack))
 }

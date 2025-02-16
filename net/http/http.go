@@ -11,16 +11,18 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-type Func func(pack *jglobal.Pack)
-
-type Handler struct {
-	fun Func
-	msg proto.Message
-}
-
 type Http struct {
+	mux     *http.ServeMux
 	handler map[jpb.CMD]*Handler
 }
+
+type Handler struct {
+	fun      func(*jglobal.Pack)
+	template proto.Message
+}
+
+var encoder func(string, *jglobal.Pack) error
+var decoder func(string, *jglobal.Pack) error
 
 // ------------------------- outside -------------------------
 
@@ -31,12 +33,11 @@ func NewHttp() *Http {
 func (htp *Http) AsServer() *Http {
 	htp.handler = map[jpb.CMD]*Handler{}
 	go func() {
-		mux := http.NewServeMux()
-		mux.HandleFunc("/", htp.receive)
-		mux.HandleFunc("/auth", htp.authReceive)
+		htp.mux = http.NewServeMux()
+		htp.mux.HandleFunc("/", htp.receive)
 		server := &http.Server{
 			Addr:    jconfig.GetString("http.addr"),
-			Handler: mux,
+			Handler: htp.mux,
 		}
 		jlog.Info("listen on ", jconfig.GetString("http.addr"))
 		if err := server.ListenAndServe(); err != nil {
@@ -50,59 +51,22 @@ func (htp *Http) AsClient() *Http {
 	return htp
 }
 
-func (htp *Http) Register(cmd jpb.CMD, fun Func, msg proto.Message) {
+func (htp *Http) Encoder(fun func(string, *jglobal.Pack) error) {
+	encoder = fun
+}
+
+func (htp *Http) Decoder(fun func(string, *jglobal.Pack) error) {
+	decoder = fun
+}
+
+func (htp *Http) Register(cmd jpb.CMD, fun func(*jglobal.Pack), template proto.Message) {
 	htp.handler[cmd] = &Handler{
-		fun: fun,
-		msg: msg,
+		fun:      fun,
+		template: template,
 	}
 }
 
 // ------------------------- inside -------------------------
-
-func (htp *Http) authReceive(w http.ResponseWriter, r *http.Request) {
-	body, err := io.ReadAll(r.Body)
-	if err != nil {
-		jlog.Error(err)
-		return
-	}
-	pack := &jglobal.Pack{W: w}
-	if err = decodeRsaToPack(pack, body); err != nil {
-		jlog.Warn(err)
-		return
-	}
-	han := htp.handler[pack.Cmd]
-	if han != nil {
-		msg := proto.Clone(han.msg)
-		if err = proto.Unmarshal(pack.Data.([]byte), msg); err != nil {
-			jlog.Warnf("%s, cmd: %d", err, pack.Cmd)
-			return
-		}
-		pack.Data = msg
-		han.fun(pack)
-	} else {
-		han = htp.handler[jpb.CMD_PROXY]
-		if han == nil {
-			jlog.Error("no proxy cmd.")
-			return
-		}
-		han.fun(pack)
-	}
-	if o, ok := pack.Data.(proto.Message); ok {
-		tmp, err := proto.Marshal(o)
-		if err != nil {
-			jlog.Errorf("%s, cmd: %d", err, pack.Cmd)
-			return
-		}
-		pack.Data = tmp
-	}
-	if err = encodePack(pack); err != nil {
-		jlog.Error(err)
-		return
-	}
-	if _, err = pack.W.Write(pack.Data.([]byte)); err != nil {
-		jlog.Error(err)
-	}
-}
 
 func (htp *Http) receive(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(r.Body)
@@ -110,27 +74,27 @@ func (htp *Http) receive(w http.ResponseWriter, r *http.Request) {
 		jlog.Error(err)
 		return
 	}
-	pack := &jglobal.Pack{W: w}
-	if err := decodeAesToPack(pack, body); err != nil {
+	pack := &jglobal.Pack{Data: body}
+	if err = decoder(r.URL.Path, pack); err != nil {
 		jlog.Warn(err)
 		return
 	}
 	han := htp.handler[pack.Cmd]
 	if han != nil {
-		msg := proto.Clone(han.msg)
+		msg := proto.Clone(han.template)
 		if err = proto.Unmarshal(pack.Data.([]byte), msg); err != nil {
 			jlog.Warnf("%s, cmd: %d", err, pack.Cmd)
 			return
 		}
-		han.fun(pack)
+		pack.Data = msg
 	} else {
 		han = htp.handler[jpb.CMD_PROXY]
 		if han == nil {
 			jlog.Error("no proxy cmd.")
 			return
 		}
-		han.fun(pack)
 	}
+	han.fun(pack)
 	if o, ok := pack.Data.(proto.Message); ok {
 		tmp, err := proto.Marshal(o)
 		if err != nil {
@@ -139,11 +103,11 @@ func (htp *Http) receive(w http.ResponseWriter, r *http.Request) {
 		}
 		pack.Data = tmp
 	}
-	if err = encodePack(pack); err != nil {
+	if err = encoder(r.URL.Path, pack); err != nil {
 		jlog.Error(err)
 		return
 	}
-	if _, err = pack.W.Write(pack.Data.([]byte)); err != nil {
+	if _, err = w.Write(pack.Data.([]byte)); err != nil {
 		jlog.Error(err)
 	}
 }

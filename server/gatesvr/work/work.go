@@ -14,9 +14,16 @@ import (
 func Init() {
 	jrpc.Connect(jglobal.GRP_AUTH)
 	jrpc.Connect(jglobal.GRP_CENTER)
-	jnet.Http.Register(jpb.CMD_PROXY, httpProxy, nil)
+	jnet.Http.Encoder(httpEncode)
+	jnet.Http.Decoder(httpDecode)
+	jnet.Rpc.Encoder(rpcEncode)
+	jnet.Rpc.Decoder(rpcDecode)
+	jnet.Tcp.Encoder(tcpEncode)
+	jnet.Tcp.Decoder(tcpDecode)
+	jnet.Http.Register(jpb.CMD_PROXY, proxy, nil)
 	jnet.Http.Register(jpb.CMD_PING, ping, &jpb.Ping{})
 	jnet.Http.Register(jpb.CMD_SIGN_IN_REQ, signIn, &jpb.SignInReq{})
+	jnet.Tcp.Register(jpb.CMD_PROXY, proxy, nil)
 }
 
 // ------------------------- inside -------------------------
@@ -26,7 +33,21 @@ func ping(pack *jglobal.Pack) {
 	pack.Data = &jpb.Pong{}
 }
 
-// 登录
+// 透传
+func proxy(pack *jglobal.Pack) {
+	target := jrpc.GetRoundRobinTarget(jglobal.GetGroup(pack.Cmd))
+	if target == nil {
+		pack.Cmd = jpb.CMD_GATE_INFO
+		pack.Data = &jpb.Error{Code: jpb.CODE_SVR_ERR}
+		return
+	}
+	if !target.Proxy(pack) {
+		pack.Cmd = jpb.CMD_GATE_INFO
+		pack.Data = &jpb.Error{Code: jpb.CODE_SVR_ERR}
+	}
+}
+
+// auth登录
 func signIn(pack *jglobal.Pack) {
 	target := jrpc.GetRoundRobinTarget(jglobal.GetGroup(pack.Cmd))
 	if target == nil {
@@ -41,24 +62,11 @@ func signIn(pack *jglobal.Pack) {
 	}
 	rsp := pack.Data.(*jpb.SignInRsp)
 	if rsp.Code == jpb.CODE_OK {
-		if _, err := jdb.Redis.HSet(jglobal.Itoa(rsp.Uid), "aesKey", pack.AesKey); err != nil {
+		// 缓存aesKey
+		if _, err := jdb.Redis.HSet(jglobal.Itoa(rsp.Uid), "aesKey", pack.User); err != nil {
 			jlog.Error(err)
 			pack.Cmd = jpb.CMD_GATE_INFO
 			pack.Data = &jpb.Error{Code: jpb.CODE_SVR_ERR}
 		}
-	}
-}
-
-// 透传
-func httpProxy(pack *jglobal.Pack) {
-	target := jrpc.GetRoundRobinTarget(jglobal.GetGroup(pack.Cmd))
-	if target == nil {
-		pack.Cmd = jpb.CMD_GATE_INFO
-		pack.Data = &jpb.Error{Code: jpb.CODE_SVR_ERR}
-		return
-	}
-	if !target.Proxy(pack) {
-		pack.Cmd = jpb.CMD_GATE_INFO
-		pack.Data = &jpb.Error{Code: jpb.CODE_SVR_ERR}
 	}
 }

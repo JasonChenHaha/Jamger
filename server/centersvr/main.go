@@ -5,15 +5,14 @@ import (
 	"jdb"
 	"jetcd"
 	"jevent"
-	"jexample"
 	"jglobal"
 	"jlog"
 	"jmeta"
 	"jnet"
 	"jrpc"
-	"juser"
-
 	"jschedule"
+	"juser"
+	"jwork"
 )
 
 func main() {
@@ -30,7 +29,7 @@ func main() {
 	jetcd.Init()
 	jrpc.Init()
 	juser.Init()
-	jexample.Init()
+	jwork.Init()
 	jglobal.Keep()
 	jlog.Infof(">%s stop<", jglobal.SERVER)
 }

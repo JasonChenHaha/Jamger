@@ -7,7 +7,6 @@ import (
 	"jpb"
 	"net"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"jschedule"
@@ -15,20 +14,20 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-type Func func(*jglobal.Pack)
-
 type Handler struct {
-	fun Func
+	fun func(*jglobal.Pack)
 	msg proto.Message
 }
 
 type Tcp struct {
-	idc     uint64
+	tmpSes  sync.Map
 	ses     sync.Map
 	counter uint64
 	handler map[jpb.CMD]*Handler
-	proxy   Func
 }
+
+var encoder func(*jglobal.Pack) error
+var decoder func(*jglobal.Pack) (uint32, error)
 
 // ------------------------- outside -------------------------
 
@@ -54,15 +53,23 @@ func (tcp *Tcp) AsClient() *Tcp {
 	return tcp
 }
 
-func (tcp *Tcp) Register(cmd jpb.CMD, fun Func, msg proto.Message) {
+func (tcp *Tcp) Encoder(fun func(*jglobal.Pack) error) {
+	encoder = fun
+}
+
+func (tcp *Tcp) Decoder(fun func(*jglobal.Pack) (uint32, error)) {
+	decoder = fun
+}
+
+func (tcp *Tcp) Register(cmd jpb.CMD, fun func(*jglobal.Pack), msg proto.Message) {
 	tcp.handler[cmd] = &Handler{
 		fun: fun,
 		msg: msg,
 	}
 }
 
-func (tcp *Tcp) SetProxy(proxy Func) {
-	tcp.proxy = proxy
+func (tcp *Tcp) Send(uid uint32, msg proto.Message) {
+
 }
 
 // ------------------------- package -------------------------
@@ -73,28 +80,30 @@ func (tcp *Tcp) receive(pack *jglobal.Pack) {
 		msg := proto.Clone(han.msg)
 		if err := proto.Unmarshal(pack.Data.([]byte), msg); err != nil {
 			jlog.Warnf("%s, %d", err, pack.Cmd)
-			tcp.delete(pack.Id)
+			tcp.delete(id)
 			return
 		}
 		han.fun(pack)
 	} else {
-		if tcp.proxy == nil {
-			jlog.Error("not register pass cmd.")
-			tcp.delete(pack.Id)
+		if tcp.handler[jpb.CMD_PROXY] == nil {
+			jlog.Error("no proxy cmd.")
+			tcp.delete(id)
 			return
 		}
-		tcp.proxy(pack)
+		tcp.handler[jpb.CMD_PROXY].fun(pack)
 	}
-	obj, ok := tcp.ses.Load(pack.Id)
+	obj, ok := tcp.ses.Load(id)
 	if !ok {
 		jlog.Errorf("session not found")
 		return
 	}
-	var err error
-	pack.Data, err = proto.Marshal(pack.Data.(proto.Message))
-	if err != nil {
-		jlog.Errorf("%s, %d", err, pack.Cmd)
-		return
+	if o, ok := pack.Data.(proto.Message); ok {
+		tmp, err := proto.Marshal(o)
+		if err != nil {
+			jlog.Errorf("%s, cmd: %d", err, pack.Cmd)
+			return
+		}
+		pack.Data = tmp
 	}
 	obj.(*Ses).send(pack)
 }
@@ -113,21 +122,27 @@ func (tcp *Tcp) accept(listener net.Listener) {
 	}
 }
 
-func (tcp *Tcp) add(con net.Conn) uint64 {
-	id := atomic.AddUint64(&tcp.idc, 1)
-	ses := newSes(tcp, con, id)
-	tcp.ses.Store(id, ses)
+func (tcp *Tcp) add(con net.Conn) {
+	ses := newSes(tcp, con)
+	tcp.tmpSes.Store(ses, nil)
 	tcp.counter++
 	ses.run()
-	return id
 }
 
-func (tcp *Tcp) delete(id uint64) {
-	jlog.Debugln("close session", id)
-	if obj, ok := tcp.ses.Load(id); ok {
-		tcp.ses.Delete(id)
+func (tcp *Tcp) Bind(ses *Ses) {
+	tcp.tmpSes.Delete(ses)
+	tcp.ses.Store(ses.id, ses)
+}
+
+func (tcp *Tcp) delete(ses *Ses) {
+	if _, ok := tcp.ses.Load(ses.id); ok {
+		tcp.ses.Delete(ses.id)
 		tcp.counter--
-		obj.(*Ses).close()
+		ses.close()
+	} else if _, ok := tcp.tmpSes.Load(ses); ok {
+		tcp.tmpSes.Delete(ses)
+		tcp.counter--
+		ses.close()
 	}
 }
 

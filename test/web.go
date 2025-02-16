@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/binary"
 	"jconfig"
 	"jdebug"
 	"jlog"
@@ -53,16 +52,18 @@ func (web *Web) recv() {
 }
 
 func (web *Web) unserializeToPack(data []byte) *jweb.Pack {
-	return &jweb.Pack{
-		Cmd:  jpb.CMD(binary.LittleEndian.Uint16(data)),
-		Data: data[CmdSize:],
-	}
+	// return &jweb.Pack{
+	// 	Cmd:  jpb.CMD(binary.LittleEndian.Uint16(data)),
+	// 	Data: data[CmdSize:],
+	// }
+	return nil
 }
 
 func (web *Web) serializePack(pack *jweb.Pack) []byte {
-	size := CmdSize + len(pack.Data)
-	buffer := make([]byte, size)
-	binary.LittleEndian.PutUint16(buffer, uint16(pack.Cmd))
-	copy(buffer[CmdSize:], pack.Data)
-	return buffer
+	// size := CmdSize + len(pack.Data)
+	// buffer := make([]byte, size)
+	// binary.LittleEndian.PutUint16(buffer, uint16(pack.Cmd))
+	// copy(buffer[CmdSize:], pack.Data)
+	// return buffer
+	return nil
 }

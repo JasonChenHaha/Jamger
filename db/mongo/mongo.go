@@ -108,13 +108,17 @@ func (mog *Mongo) InsertMany(in *Input) error {
 
 func (mog *Mongo) UpdateOne(in *Input) error {
 	co := mog.getCollection(in.Col)
-	_, err := co.UpdateOne(context.Background(), in.Filter, in.Update)
+	opts := options.Update()
+	opts.SetUpsert(in.Upsert)
+	_, err := co.UpdateOne(context.Background(), in.Filter, in.Update, opts)
 	return err
 }
 
 func (mog *Mongo) UpdateMany(in *Input) error {
 	co := mog.getCollection(in.Col)
-	_, err := co.UpdateMany(context.Background(), in.Filter, in.Update)
+	opts := options.Update()
+	opts.SetUpsert(in.Upsert)
+	_, err := co.UpdateMany(context.Background(), in.Filter, in.Update, opts)
 	return err
 }
 

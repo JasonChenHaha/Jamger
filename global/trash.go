@@ -243,6 +243,7 @@ func TokenGenerate(base string) (string, error) {
 	return hashStr, nil
 }
 
+// string -> number
 func Atoi[T AllInt](data string) T {
 	n, err := strconv.Atoi(data)
 	if err != nil {
@@ -251,6 +252,7 @@ func Atoi[T AllInt](data string) T {
 	return T(n)
 }
 
+// number -> string
 func Itoa(data any) string {
 	switch o := data.(type) {
 	case int:

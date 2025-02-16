@@ -15,16 +15,8 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-const (
-	cmdSize      = 2
-	uidSize      = 4
-	aesKeySize   = 16
-	checksumSize = 4
-)
-
 type Http struct {
 	pubKey *rsa.PublicKey
-	aesKey []byte
 	uid    uint32
 	rsp    proto.Message
 }
@@ -38,17 +30,14 @@ func testHttp() {
 	}
 	htp.pubKey = pubKey
 
-	htp.aesKey, err = jglobal.AesGenerate(16)
-	if err != nil {
-		jlog.Fatal(err)
-	}
+	var cmd jpb.CMD
+	var msg proto.Message
 
 	htp.rsp = &jpb.SignUpRsp{}
-	cmd, msg := htp.sendAuth(jpb.CMD_SIGN_UP_REQ, &jpb.SignUpReq{
+	cmd, msg = htp.sendAuth(jpb.CMD_SIGN_UP_REQ, &jpb.SignUpReq{
 		Id:  "gaga",
 		Pwd: "123456",
 	})
-
 	jlog.Debugf("cmd: %s, msg: %s", cmd, msg)
 
 	htp.rsp = &jpb.SignInRsp{}
@@ -59,15 +48,14 @@ func testHttp() {
 	if cmd == jpb.CMD_GATE_INFO {
 		jlog.Debugf("cmd: %s, msg: %s", cmd, msg)
 		return
+	} else {
+		uid = msg.(*jpb.SignInRsp).Uid
+		jlog.Debugf("cmd: %s, msg: %s", cmd, msg)
 	}
-	htp.uid = msg.(*jpb.SignInRsp).Uid
 
-	jlog.Debugf("cmd: %s, msg: %s", cmd, msg)
-
-	htp.rsp = &jpb.Pong{}
-	cmd, msg = htp.send(jpb.CMD_PING, &jpb.Ping{})
-
-	jlog.Debugf("cmd: %s, msg: %s", cmd, msg)
+	// htp.rsp = &jpb.Pong{}
+	// cmd, msg = htp.send(jpb.CMD_PING, &jpb.Ping{})
+	// jlog.Debugf("cmd: %s, msg: %s", cmd, msg)
 }
 
 func (htp *Http) sendAuth(cmd jpb.CMD, msg proto.Message) (jpb.CMD, proto.Message) {
@@ -115,7 +103,7 @@ func (htp *Http) encodeRsa(cmd jpb.CMD, msg proto.Message) []byte {
 	raw := make([]byte, cmdSize+dataSize+aesKeySize+checksumSize)
 	binary.LittleEndian.PutUint16(raw, uint16(cmd))
 	copy(raw[cmdSize:], data)
-	copy(raw[cmdSize+dataSize:], htp.aesKey)
+	copy(raw[cmdSize+dataSize:], aesKey)
 	binary.LittleEndian.PutUint32(raw[cmdSize+dataSize+aesKeySize:], crc32.ChecksumIEEE(raw[:cmdSize+dataSize+aesKeySize]))
 	err = jglobal.RsaEncrypt(htp.pubKey, &raw)
 	if err != nil {
@@ -134,7 +122,7 @@ func (htp *Http) encodeAes(cmd jpb.CMD, msg proto.Message) []byte {
 	binary.LittleEndian.PutUint16(raw, uint16(cmd))
 	copy(raw[cmdSize:], data)
 	binary.LittleEndian.PutUint32(raw[cmdSize+dataSize:], crc32.ChecksumIEEE(raw[:cmdSize+dataSize]))
-	if err = jglobal.AesEncrypt(htp.aesKey, &raw); err != nil {
+	if err = jglobal.AesEncrypt(aesKey, &raw); err != nil {
 		jlog.Fatal(err)
 	}
 	raw2 := make([]byte, uidSize+len(raw))
@@ -144,7 +132,7 @@ func (htp *Http) encodeAes(cmd jpb.CMD, msg proto.Message) []byte {
 }
 
 func (htp *Http) decode(raw []byte) (jpb.CMD, proto.Message) {
-	err := jglobal.AesDecrypt(htp.aesKey, &raw)
+	err := jglobal.AesDecrypt(aesKey, &raw)
 	if err != nil {
 		jlog.Fatal(err)
 	}

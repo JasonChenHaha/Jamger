@@ -6,7 +6,6 @@ import (
 	"jconfig"
 	"jlog"
 	"jpb"
-	"net/http"
 )
 
 var NAME string
@@ -25,30 +24,33 @@ const (
 	GRP_CENTER = 3
 )
 const (
-	MONGO_ACCOUNT = "account"
+	MONGO_USER = "user"
 )
 
 type AllInt interface {
 	~int | ~uint | ~int8 | ~uint8 | ~int16 | ~uint16 | ~int32 | ~uint32 | ~int64 | ~uint64
 }
+
 type AllSInt interface {
 	~int | ~int8 | ~int16 | ~int32 | ~int64
 }
+
 type AllUInt interface {
 	~uint | ~uint8 | ~uint16 | ~uint32 | ~uint64
 }
+
 type AllFloat interface {
 	~float32 | ~float64
 }
+
 type AllIntString interface {
 	AllInt | string
 }
+
 type Pack struct {
-	Cmd    jpb.CMD
-	Data   any
-	Id     uint64
-	W      http.ResponseWriter
-	AesKey []byte
+	Cmd  jpb.CMD
+	Data any
+	User any
 }
 
 // ------------------------- outside -------------------------

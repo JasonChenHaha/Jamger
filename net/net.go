@@ -18,19 +18,24 @@ var Rpc *jnrpc.Rpc
 // ------------------------- outside -------------------------
 
 func Init() {
+	Tcp = jtcp.NewTcp()
 	if jconfig.Get("tcp") != nil {
-		Tcp = jtcp.NewTcp().AsServer()
+		Tcp.AsServer()
 	}
+	Kcp = jkcp.NewKcp()
 	if jconfig.Get("kcp") != nil {
-		Kcp = jkcp.NewKcp().AsServer()
+		Kcp.AsServer()
 	}
+	Web = jweb.NewWeb()
 	if jconfig.Get("web") != nil {
-		Web = jweb.NewWeb()
+		Web.AsServer()
 	}
+	Http = jhttp.NewHttp()
 	if jconfig.Get("http") != nil {
-		Http = jhttp.NewHttp().AsServer()
+		Http.AsServer()
 	}
+	Rpc = jnrpc.NewRpc()
 	if jconfig.Get("rpc") != nil {
-		Rpc = jnrpc.NewRpc().AsServer()
+		Rpc.AsServer()
 	}
 }

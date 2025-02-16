@@ -18,6 +18,8 @@ import (
 // ------------------------- outside -------------------------
 
 func Init() {
+	jnet.Rpc.Encoder(rpcEncode)
+	jnet.Rpc.Decoder(rpcDecode)
 	jnet.Rpc.Register(jpb.CMD_PING, ping, &jpb.Ping{})
 	jnet.Rpc.Register(jpb.CMD_SIGN_UP_REQ, signUp, &jpb.SignUpReq{})
 	jnet.Rpc.Register(jpb.CMD_SIGN_IN_REQ, signIn, &jpb.SignInReq{})
@@ -43,11 +45,11 @@ func signUp(pack *jglobal.Pack) {
 	}
 	// 判断账号是否存在
 	in := &jmongo.Input{
-		Col:    jglobal.MONGO_ACCOUNT,
+		Col:    jglobal.MONGO_USER,
 		Filter: bson.M{"id": req.Id},
 	}
 	if err := jdb.Mongo.FindOne(in, &bson.M{}); err == nil {
-		rsp.Code = jpb.CODE_ACCOUNT_EXIST
+		rsp.Code = jpb.CODE_USER_EXIST
 		return
 	} else if err != mongo.ErrNoDocuments {
 		rsp.Code = jpb.CODE_SVR_ERR
@@ -62,9 +64,9 @@ func signUp(pack *jglobal.Pack) {
 		}
 		// 获取自增id
 		in := &jmongo.Input{
-			Col:    jglobal.MONGO_ACCOUNT,
-			Filter: bson.M{"_id": 0},
-			Update: bson.M{"$inc": bson.M{"counter": 1}},
+			Col:    jglobal.MONGO_USER,
+			Filter: bson.M{"_id": int64(0)},
+			Update: bson.M{"$inc": bson.M{"counter": int64(1)}},
 			Upsert: true,
 			RetDoc: options.After,
 		}
@@ -77,7 +79,7 @@ func signUp(pack *jglobal.Pack) {
 		}
 		// 创建
 		in = &jmongo.Input{
-			Col:    jglobal.MONGO_ACCOUNT,
+			Col:    jglobal.MONGO_USER,
 			Insert: bson.M{"_id": out["counter"], "id": req.Id, "pwd": secret},
 		}
 		err = jdb.Mongo.InsertOne(in)
@@ -102,7 +104,7 @@ func signIn(pack *jglobal.Pack) {
 	}
 	// 账号校验
 	in := &jmongo.Input{
-		Col:    jglobal.MONGO_ACCOUNT,
+		Col:    jglobal.MONGO_USER,
 		Filter: bson.M{"id": req.Id},
 	}
 	out := bson.M{}
@@ -124,5 +126,5 @@ func signIn(pack *jglobal.Pack) {
 		}
 	}
 	// 校验通过
-	rsp.Uid = uint32(out["_id"].(int32))
+	rsp.Uid = uint32(out["_id"].(int64))
 }
