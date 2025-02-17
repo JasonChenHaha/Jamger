@@ -72,9 +72,6 @@ func (rpc *Rpc) AsClient(addr string) *Rpc {
 	return rpc
 }
 
-func Encoder2() {
-}
-
 func (rpc *Rpc) Encoder(fun func(*jglobal.Pack) error) {
 	encoder = fun
 }
@@ -153,6 +150,24 @@ func (rpc *Rpc) Call(pack *jglobal.Pack, msg proto.Message) bool {
 	}
 	pack.Data = msg
 	return true
+}
+
+func (rpc *Rpc) Send(pack *jglobal.Pack) bool {
+	var err error
+	pack.Data, err = proto.Marshal(pack.Data.(proto.Message))
+	if err != nil {
+		jlog.Errorf("%s, cmd: %d", err, pack.Cmd)
+		return false
+	}
+	if err = encoder(pack); err != nil {
+		jlog.Error(err)
+		return false
+	}
+	_, err := rpc.client.Post(rpc.addr, "", bytes.NewBuffer(pack.Data.([]byte)))
+	if err != nil {
+		jlog.Errorf("%s, %d", err, pack.Cmd)
+		return false
+	}
 }
 
 // ------------------------- inside -------------------------

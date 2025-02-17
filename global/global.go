@@ -8,6 +8,7 @@ import (
 	"jpb"
 )
 
+var ID int
 var NAME string
 var ZONE int
 var GROUP int
@@ -61,9 +62,16 @@ func Init() {
 	GROUP = jconfig.GetInt("group")
 	INDEX = jconfig.GetInt("index")
 	SERVER = fmt.Sprintf("%s-%d", NAME, INDEX)
+	ID = ZONE*100000000 + GROUP*10000 + INDEX
 	key, err := RsaLoadPrivateKey(jconfig.GetString("rsa.privateKey"))
 	if err != nil {
 		jlog.Fatal(err)
 	}
 	RSA_PRIVATE_KEY = key
+}
+
+func ParseServerID(id int) (int, int) {
+	group := id % 100000000 / 10000
+	index := id % 10000
+	return group, index
 }

@@ -11,6 +11,7 @@ import (
 
 const (
 	uidSize      = 4
+	gateSize     = 4
 	cmdSize      = 2
 	aesKeySize   = 16
 	checksumSize = 4
@@ -50,26 +51,27 @@ func tcpEncode(pack *jglobal.Pack) error {
 // |    2     |    4    |       |    2    |   ...    |      4       |   |
 // +----------+---------+-------+---------+----------+--------------+---+
 
-func tcpDecode(pack *jglobal.Pack) (uint32, error) {
+func tcpDecode(pack *jglobal.Pack) error {
 	raw := pack.Data.([]byte)
 	uid := binary.LittleEndian.Uint32(raw)
 	user := juser.GetUser(uid)
 	if user == nil {
-		return 0, fmt.Errorf("no such user, uid = %d", uid)
+		return fmt.Errorf("no such user, uid = %d", uid)
 	}
 	user.Lock()
+	user.SetGate(jglobal.ID)
 	pack.User = user
 	raw = raw[uidSize:]
 	if err := jglobal.AesDecrypt(user.AesKey, &raw); err != nil {
-		return 0, err
+		return err
 	}
 	posChecksum := len(raw) - checksumSize
 	if binary.LittleEndian.Uint32(raw[posChecksum:]) != crc32.ChecksumIEEE(raw[:posChecksum]) {
-		return 0, fmt.Errorf("checksum failed")
+		return fmt.Errorf("checksum failed")
 	}
 	pack.Cmd = jpb.CMD(binary.LittleEndian.Uint16(raw[:cmdSize]))
 	pack.Data = raw[cmdSize:posChecksum]
-	return uid, nil
+	return nil
 }
 
 // server http pack structure:
@@ -136,6 +138,7 @@ func httpDecode(url string, pack *jglobal.Pack) error {
 			return fmt.Errorf("no such user, uid = %d", uid)
 		}
 		user.Lock()
+		user.SetGate(jglobal.ID)
 		pack.User = user
 		raw = raw[uidSize:]
 		if err := jglobal.AesDecrypt(user.AesKey, &raw); err != nil {
@@ -162,23 +165,32 @@ func httpDecode(url string, pack *jglobal.Pack) error {
 	return nil
 }
 
+// rpc pack head structure:
+// +------------------------------+
+// |             head             |
+// +---------+----------+---------+
+// |   uid   |   gate   |   cmd   |
+// +---------+----------+---------+
+// |    4    |    4     |    2    |
+// +------------------------------+
 // rpc pack structure:
-// +------------------------------+
-// |             pack             |
-// +---------+---------+----------+
-// |   uid   |   cmd   |   data   |
-// +---------+---------+----------+
-// |    4    |    2    |   ...    |
-// +------------------------------+
+// +---------------------+
+// |        pack         |
+// +----------+----------+
+// |   head   |   data   |
+// +----------+----------+
+// |    ..    |    ..    |
+// +----------+----------+
 
 func rpcEncode(pack *jglobal.Pack) error {
 	data := pack.Data.([]byte)
-	raw := make([]byte, uidSize+cmdSize+len(data))
+	raw := make([]byte, uidSize+gateSize+cmdSize+len(data))
 	if user, ok := pack.User.(*juser.User); ok {
-		binary.LittleEndian.PutUint32(raw, uint32(user.Uid))
+		binary.LittleEndian.PutUint32(raw, user.Uid)
+		binary.LittleEndian.PutUint32(raw[uidSize:], uint32(user.Gate))
 	}
-	binary.LittleEndian.PutUint16(raw[uidSize:], uint16(pack.Cmd))
-	copy(raw[uidSize+cmdSize:], data)
+	binary.LittleEndian.PutUint16(raw[uidSize+gateSize:], uint16(pack.Cmd))
+	copy(raw[uidSize+gateSize+cmdSize:], data)
 	pack.Data = raw
 	return nil
 }
@@ -194,7 +206,10 @@ func rpcDecode(pack *jglobal.Pack) error {
 		user.Lock()
 		pack.User = user
 	}
-	pack.Cmd = jpb.CMD(binary.LittleEndian.Uint16(raw[uidSize:]))
-	pack.Data = raw[uidSize+cmdSize:]
+	if user, ok := pack.User.(*juser.User); ok {
+		user.SetGate(int(binary.LittleEndian.Uint32(raw[uidSize:])))
+	}
+	pack.Cmd = jpb.CMD(binary.LittleEndian.Uint16(raw[uidSize+gateSize:]))
+	pack.Data = raw[uidSize+gateSize+cmdSize:]
 	return nil
 }

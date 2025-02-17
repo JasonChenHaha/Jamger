@@ -7,6 +7,7 @@ import (
 	"jmongo"
 	"jnet"
 	"jpb"
+	"jrpc"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -18,6 +19,7 @@ import (
 // ------------------------- outside -------------------------
 
 func Init() {
+	jrpc.Connect(jglobal.GRP_GATE)
 	jnet.Rpc.Encoder(rpcEncode)
 	jnet.Rpc.Decoder(rpcDecode)
 	jnet.Rpc.Register(jpb.CMD_PING, ping, &jpb.Ping{})

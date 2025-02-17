@@ -9,33 +9,41 @@ import (
 )
 
 const (
-	uidSize      = 4
-	cmdSize      = 2
-	aesKeySize   = 16
-	checksumSize = 4
+	uidSize  = 4
+	gateSize = 4
+	cmdSize  = 2
 )
 
 // ------------------------- package -------------------------
 
-// server http pack structure:
-//       +--------------------+
-//       |        pack        |
-//       +---------+----------+
-// aes ( |   cmd   |   data   | )
-//       +---------+----------+
-//       |    2    |   ...    |
-//       +---------+----------+
+// rpc pack head structure:
+// +------------------------------+
+// |             head             |
+// +---------+----------+---------+
+// |   uid   |   gate   |   cmd   |
+// +---------+----------+---------+
+// |    4    |    4     |    2    |
+// +------------------------------+
+// rpc pack structure:
+// +---------------------+
+// |        pack         |
+// +----------+----------+
+// |   head   |   data   |
+// +----------+----------+
+// |    ..    |    ..    |
+// +----------+----------+
 
 func rpcEncode(pack *jglobal.Pack) error {
 	data := pack.Data.([]byte)
-	raw := make([]byte, uidSize+cmdSize+len(data))
+	raw := make([]byte, uidSize+gateSize+cmdSize+len(data))
 	if pack.User != nil {
 		user := pack.User.(*juser.User)
 		user.Unlock()
 		binary.LittleEndian.PutUint32(raw, uint32(user.Uid))
+		binary.LittleEndian.PutUint32(raw[uidSize:], uint32(user.Gate))
 	}
-	binary.LittleEndian.PutUint16(raw[uidSize:], uint16(pack.Cmd))
-	copy(raw[uidSize+cmdSize:], data)
+	binary.LittleEndian.PutUint16(raw[uidSize+gateSize:], uint16(pack.Cmd))
+	copy(raw[uidSize+gateSize+cmdSize:], data)
 	pack.Data = raw
 	return nil
 }
@@ -51,7 +59,10 @@ func rpcDecode(pack *jglobal.Pack) error {
 		user.Lock()
 		pack.User = user
 	}
-	pack.Cmd = jpb.CMD(binary.LittleEndian.Uint16(raw[uidSize:]))
-	pack.Data = raw[uidSize+cmdSize:]
+	if pack.User != nil {
+		pack.User.(*juser.User).SetGate(int(binary.LittleEndian.Uint32(raw[uidSize:])))
+	}
+	pack.Cmd = jpb.CMD(binary.LittleEndian.Uint16(raw[uidSize+gateSize:]))
+	pack.Data = raw[uidSize+gateSize+cmdSize:]
 	return nil
 }

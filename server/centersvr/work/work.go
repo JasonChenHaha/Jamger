@@ -4,12 +4,14 @@ import (
 	"jglobal"
 	"jnet"
 	"jpb"
+	"jrpc"
 	"juser"
 )
 
 // ------------------------- outside -------------------------
 
 func Init() {
+	jrpc.Connect(jglobal.GRP_GATE)
 	jnet.Rpc.Encoder(rpcEncode)
 	jnet.Rpc.Decoder(rpcDecode)
 	jnet.Rpc.Register(jpb.CMD_PING, ping, &jpb.Ping{})

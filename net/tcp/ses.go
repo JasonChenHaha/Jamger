@@ -15,7 +15,7 @@ const (
 )
 
 type Ses struct {
-	id       uint32
+	id       uint64
 	tcp      *Tcp
 	con      *net.TCPConn
 	rTimeout time.Duration
@@ -26,8 +26,9 @@ type Ses struct {
 
 // ------------------------- package -------------------------
 
-func newSes(tcp *Tcp, con net.Conn) *Ses {
+func newSes(tcp *Tcp, con net.Conn, id uint64) *Ses {
 	ses := &Ses{
+		id:       id,
 		tcp:      tcp,
 		con:      con.(*net.TCPConn),
 		rTimeout: time.Duration(jconfig.GetInt("tcp.rTimeout")) * time.Millisecond,
@@ -68,16 +69,16 @@ func (ses *Ses) recvGoro() {
 			}
 			data, err := ses.recvBytes()
 			if err != nil {
-				ses.tcp.delete(ses)
+				ses.tcp.delete(ses.id)
 				return
 			}
 			pack := &jglobal.Pack{Data: data}
-			id, err := decoder(pack)
+			err = decoder(pack)
 			if err != nil {
-				ses.tcp.delete(ses)
+				ses.tcp.delete(ses.id)
 				return
 			}
-			ses.tcp.receive(ses.id, pack)
+			ses.tcp.receive(ses, pack)
 		}
 	}
 }

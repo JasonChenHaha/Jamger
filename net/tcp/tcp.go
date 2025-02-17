@@ -7,6 +7,7 @@ import (
 	"jpb"
 	"net"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"jschedule"
@@ -20,14 +21,14 @@ type Handler struct {
 }
 
 type Tcp struct {
-	tmpSes  sync.Map
+	idc     uint64
 	ses     sync.Map
 	counter uint64
 	handler map[jpb.CMD]*Handler
 }
 
 var encoder func(*jglobal.Pack) error
-var decoder func(*jglobal.Pack) (uint32, error)
+var decoder func(*jglobal.Pack) error
 
 // ------------------------- outside -------------------------
 
@@ -57,7 +58,7 @@ func (tcp *Tcp) Encoder(fun func(*jglobal.Pack) error) {
 	encoder = fun
 }
 
-func (tcp *Tcp) Decoder(fun func(*jglobal.Pack) (uint32, error)) {
+func (tcp *Tcp) Decoder(fun func(*jglobal.Pack) error) {
 	decoder = fun
 }
 
@@ -68,34 +69,25 @@ func (tcp *Tcp) Register(cmd jpb.CMD, fun func(*jglobal.Pack), msg proto.Message
 	}
 }
 
-func (tcp *Tcp) Send(uid uint32, msg proto.Message) {
-
-}
-
 // ------------------------- package -------------------------
 
-func (tcp *Tcp) receive(pack *jglobal.Pack) {
+func (tcp *Tcp) receive(ses *Ses, pack *jglobal.Pack) {
 	han := tcp.handler[pack.Cmd]
 	if han != nil {
 		msg := proto.Clone(han.msg)
 		if err := proto.Unmarshal(pack.Data.([]byte), msg); err != nil {
 			jlog.Warnf("%s, %d", err, pack.Cmd)
-			tcp.delete(id)
+			tcp.delete(ses.id)
 			return
 		}
 		han.fun(pack)
 	} else {
 		if tcp.handler[jpb.CMD_PROXY] == nil {
 			jlog.Error("no proxy cmd.")
-			tcp.delete(id)
+			tcp.delete(ses.id)
 			return
 		}
 		tcp.handler[jpb.CMD_PROXY].fun(pack)
-	}
-	obj, ok := tcp.ses.Load(id)
-	if !ok {
-		jlog.Errorf("session not found")
-		return
 	}
 	if o, ok := pack.Data.(proto.Message); ok {
 		tmp, err := proto.Marshal(o)
@@ -105,7 +97,7 @@ func (tcp *Tcp) receive(pack *jglobal.Pack) {
 		}
 		pack.Data = tmp
 	}
-	obj.(*Ses).send(pack)
+	ses.send(pack)
 }
 
 // ------------------------- inside -------------------------
@@ -123,26 +115,18 @@ func (tcp *Tcp) accept(listener net.Listener) {
 }
 
 func (tcp *Tcp) add(con net.Conn) {
-	ses := newSes(tcp, con)
-	tcp.tmpSes.Store(ses, nil)
+	id := atomic.AddUint64(&tcp.idc, 1)
+	ses := newSes(tcp, con, id)
+	tcp.ses.Store(id, ses)
 	tcp.counter++
 	ses.run()
 }
 
-func (tcp *Tcp) Bind(ses *Ses) {
-	tcp.tmpSes.Delete(ses)
-	tcp.ses.Store(ses.id, ses)
-}
-
-func (tcp *Tcp) delete(ses *Ses) {
-	if _, ok := tcp.ses.Load(ses.id); ok {
-		tcp.ses.Delete(ses.id)
+func (tcp *Tcp) delete(id uint64) {
+	if obj, ok := tcp.ses.Load(id); ok {
+		tcp.ses.Delete(id)
 		tcp.counter--
-		ses.close()
-	} else if _, ok := tcp.tmpSes.Load(ses); ok {
-		tcp.tmpSes.Delete(ses)
-		tcp.counter--
-		ses.close()
+		obj.(*Ses).close()
 	}
 }
 

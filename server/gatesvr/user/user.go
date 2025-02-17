@@ -18,7 +18,6 @@ var users sync.Map
 // 所有属性的写需要使用对应的set方法，以驱动数据定时落地
 type User struct {
 	*juserBase.Base
-	Uid uint32
 	*Auth
 	ticker any
 }
@@ -48,7 +47,6 @@ func GetUser(uid uint32) *User {
 		}
 		user := &User{
 			Base: juserBase.NewBase(uid),
-			Uid:  uid,
 		}
 		user.Auth = newAuth(user, mData, rData)
 		user.ticker = jschedule.DoEvery(time.Second, user.tick)
