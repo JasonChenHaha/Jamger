@@ -61,6 +61,11 @@ func Connect(group int) {
 	jetcd.Watch(group, join, leave)
 }
 
+// 全部
+func GetAllTarget(group int) []*jnrpc.Rpc {
+	return Rpc.server[group].Values()
+}
+
 // 指定
 func GetDirectTarget(group int, index int) *jnrpc.Rpc {
 	Rpc.mutex.RLock()
@@ -84,17 +89,17 @@ func GetRoundRobinTarget(group int) *jnrpc.Rpc {
 }
 
 // 固定哈希
-func GetFixHashTarget(group int, key int) *jnrpc.Rpc {
+func GetFixHashTarget(group int, key uint32) *jnrpc.Rpc {
 	Rpc.mutex.RLock()
 	defer Rpc.mutex.RUnlock()
 	if hs, ok := Rpc.server[group]; ok {
-		return hs.IndexOf(key % hs.Len())
+		return hs.IndexOf(int(key % uint32(hs.Len())))
 	}
 	return nil
 }
 
 // 一致性哈希
-func GetConsistentHashTarget(group int, key int) *jnrpc.Rpc {
+func GetConsistentHashTarget(group int, key uint32) *jnrpc.Rpc {
 	Rpc.mutex.RLock()
 	defer Rpc.mutex.RUnlock()
 	if ml, ok := Rpc.maglev[group]; ok {

@@ -6,6 +6,7 @@ import (
 	"jglobal"
 	"jlog"
 	"jpb"
+	"juBase"
 	"net/http"
 
 	"google.golang.org/protobuf/proto"
@@ -87,14 +88,21 @@ func (htp *Http) receive(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		pack.Data = msg
+		if r.URL.Path == "/" {
+			pack.User.(juBase.Locker).Lock()
+			han.fun(pack)
+			pack.User.(juBase.Locker).UnLock()
+		} else {
+			han.fun(pack)
+		}
 	} else {
 		han = htp.handler[jpb.CMD_PROXY]
 		if han == nil {
 			jlog.Error("no proxy cmd.")
 			return
 		}
+		han.fun(pack)
 	}
-	han.fun(pack)
 	if o, ok := pack.Data.(proto.Message); ok {
 		tmp, err := proto.Marshal(o)
 		if err != nil {

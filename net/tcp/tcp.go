@@ -5,6 +5,7 @@ import (
 	"jglobal"
 	"jlog"
 	"jpb"
+	"juBase"
 	"net"
 	"sync"
 	"sync/atomic"
@@ -28,7 +29,7 @@ type Tcp struct {
 }
 
 var encoder func(*jglobal.Pack) error
-var decoder func(*jglobal.Pack) error
+var decoder func(uint64, *jglobal.Pack) error
 
 // ------------------------- outside -------------------------
 
@@ -58,7 +59,7 @@ func (tcp *Tcp) Encoder(fun func(*jglobal.Pack) error) {
 	encoder = fun
 }
 
-func (tcp *Tcp) Decoder(fun func(*jglobal.Pack) error) {
+func (tcp *Tcp) Decoder(fun func(uint64, *jglobal.Pack) error) {
 	decoder = fun
 }
 
@@ -66,6 +67,23 @@ func (tcp *Tcp) Register(cmd jpb.CMD, fun func(*jglobal.Pack), msg proto.Message
 	tcp.handler[cmd] = &Handler{
 		fun: fun,
 		msg: msg,
+	}
+}
+
+func (tcp *Tcp) Send(id uint64, pack *jglobal.Pack) {
+	if o, ok := pack.Data.(proto.Message); ok {
+		tmp, err := proto.Marshal(o)
+		if err != nil {
+			jlog.Errorf("%s, cmd: %d", err, pack.Cmd)
+			return
+		}
+		pack.Data = tmp
+	}
+	if o, ok := tcp.ses.Load(id); !ok {
+		jlog.Errorf("no session, %d", id)
+		return
+	} else {
+		o.(*Ses).send(pack)
 	}
 }
 
@@ -80,7 +98,10 @@ func (tcp *Tcp) receive(ses *Ses, pack *jglobal.Pack) {
 			tcp.delete(ses.id)
 			return
 		}
+		pack.Data = msg
+		pack.User.(juBase.Locker).Lock()
 		han.fun(pack)
+		pack.User.(juBase.Locker).UnLock()
 	} else {
 		if tcp.handler[jpb.CMD_PROXY] == nil {
 			jlog.Error("no proxy cmd.")
@@ -89,15 +110,6 @@ func (tcp *Tcp) receive(ses *Ses, pack *jglobal.Pack) {
 		}
 		tcp.handler[jpb.CMD_PROXY].fun(pack)
 	}
-	if o, ok := pack.Data.(proto.Message); ok {
-		tmp, err := proto.Marshal(o)
-		if err != nil {
-			jlog.Errorf("%s, cmd: %d", err, pack.Cmd)
-			return
-		}
-		pack.Data = tmp
-	}
-	ses.send(pack)
 }
 
 // ------------------------- inside -------------------------

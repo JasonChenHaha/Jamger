@@ -69,12 +69,14 @@ func (ses *Ses) recvGoro() {
 			}
 			data, err := ses.recvBytes()
 			if err != nil {
+				jlog.Error(err)
 				ses.tcp.delete(ses.id)
 				return
 			}
 			pack := &jglobal.Pack{Data: data}
-			err = decoder(pack)
+			err = decoder(ses.id, pack)
 			if err != nil {
+				jlog.Error(err)
 				ses.tcp.delete(ses.id)
 				return
 			}
@@ -129,7 +131,7 @@ func (ses *Ses) sendBytes(pack *jglobal.Pack) error {
 	size := len(data)
 	raw := make([]byte, packSize+size)
 	binary.LittleEndian.PutUint16(raw, uint16(size))
-	copy(raw[packSize:], raw)
+	copy(raw[packSize:], data)
 	for pos := 0; pos < size; {
 		n, err := ses.con.Write(raw)
 		if err != nil {

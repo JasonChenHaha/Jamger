@@ -30,7 +30,6 @@ const (
 
 func tcpEncode(pack *jglobal.Pack) error {
 	user := pack.User.(*juser.User)
-	user.Lock()
 	data := pack.Data.([]byte)
 	raw := make([]byte, cmdSize+len(data))
 	binary.LittleEndian.PutUint16(raw, uint16(pack.Cmd))
@@ -51,15 +50,15 @@ func tcpEncode(pack *jglobal.Pack) error {
 // |    2     |    4    |       |    2    |   ...    |      4       |   |
 // +----------+---------+-------+---------+----------+--------------+---+
 
-func tcpDecode(pack *jglobal.Pack) error {
+func tcpDecode(id uint64, pack *jglobal.Pack) error {
 	raw := pack.Data.([]byte)
 	uid := binary.LittleEndian.Uint32(raw)
 	user := juser.GetUser(uid)
 	if user == nil {
 		return fmt.Errorf("no such user, uid = %d", uid)
 	}
-	user.Lock()
-	user.SetGate(jglobal.ID)
+	user.Redis.Load()
+	user.SetSesId(id)
 	pack.User = user
 	raw = raw[uidSize:]
 	if err := jglobal.AesDecrypt(user.AesKey, &raw); err != nil {
@@ -86,7 +85,6 @@ func tcpDecode(pack *jglobal.Pack) error {
 func httpEncode(url string, pack *jglobal.Pack) error {
 	if url == "/" {
 		user := pack.User.(*juser.User)
-		user.Unlock()
 		data := pack.Data.([]byte)
 		raw := make([]byte, cmdSize+len(data))
 		binary.LittleEndian.PutUint16(raw, uint16(pack.Cmd))
@@ -137,8 +135,6 @@ func httpDecode(url string, pack *jglobal.Pack) error {
 		if user == nil {
 			return fmt.Errorf("no such user, uid = %d", uid)
 		}
-		user.Lock()
-		user.SetGate(jglobal.ID)
 		pack.User = user
 		raw = raw[uidSize:]
 		if err := jglobal.AesDecrypt(user.AesKey, &raw); err != nil {
@@ -203,11 +199,7 @@ func rpcDecode(pack *jglobal.Pack) error {
 		if user == nil {
 			return fmt.Errorf("no such user, uid = %d", uid)
 		}
-		user.Lock()
 		pack.User = user
-	}
-	if user, ok := pack.User.(*juser.User); ok {
-		user.SetGate(int(binary.LittleEndian.Uint32(raw[uidSize:])))
 	}
 	pack.Cmd = jpb.CMD(binary.LittleEndian.Uint16(raw[uidSize+gateSize:]))
 	pack.Data = raw[uidSize+gateSize+cmdSize:]

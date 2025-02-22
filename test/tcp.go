@@ -34,8 +34,8 @@ func testTcp() {
 
 	// tcp.sendWithAes(jpb.CMD_PING, nil)
 	// tcp.recv()
-	// go tcp.heartbeat()
-	// jglobal.Keep()
+	go tcp.heartbeat()
+	jglobal.Keep()
 }
 
 func (tcp *Tcp) heartbeat() {

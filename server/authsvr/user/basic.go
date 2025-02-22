@@ -5,15 +5,14 @@ import (
 	"jglobal"
 	"jlog"
 	"jmongo"
-	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 )
 
 type Basic struct {
-	user    *User
-	Id      string
-	LoginTs int64
+	user *User
+	Id   string
+	Pwd  []byte
 }
 
 // ------------------------- package -------------------------
@@ -24,7 +23,7 @@ func newBasic(user *User) *Basic {
 }
 
 func (basic *Basic) Load() {
-	if basic.LoginTs != 0 {
+	if basic.Pwd != nil {
 		return
 	}
 	in := &jmongo.Input{
@@ -37,15 +36,21 @@ func (basic *Basic) Load() {
 		jlog.Error(err)
 		return
 	}
-	if v, ok := mData["basic"]; ok {
+	if v, ok := mData["auth"]; ok {
 		mData = v.(map[string]any)
-		basic.LoginTs = mData["loginTs"].(int64)
+		basic.Id = mData["id"].(string)
+		basic.Pwd = mData["pwd"].([]byte)
 	}
 }
 
 // ------------------------- outside -------------------------
 
-func (basic *Basic) SetLoginTs() {
-	basic.LoginTs = time.Now().Unix()
-	basic.user.DirtyMongo["basic.loginTs"] = basic.LoginTs
+func (basic *Basic) SetId(id string) {
+	basic.Id = id
+	basic.user.DirtyMongo["basic.id"] = id
+}
+
+func (basic *Basic) SetPwd(pwd []byte) {
+	basic.Pwd = pwd
+	basic.user.DirtyMongo["basic.pwd"] = pwd
 }

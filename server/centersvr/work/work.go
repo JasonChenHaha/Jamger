@@ -32,4 +32,8 @@ func login(pack *jglobal.Pack) {
 	pack.Cmd = jpb.CMD_LOGIN_RSP
 	pack.Data = rsp
 	user.SetLoginTs()
+	jnet.BroadcastToC(&jglobal.Pack{
+		Cmd:  jpb.CMD_LOGIN_RSP,
+		Data: &jpb.LoginRsp{},
+	})
 }

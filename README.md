@@ -1,3 +1,3 @@
 # Jamger
-基于etcd的配置管理
-通信加密
+检查nrpc.Send之后收到的回包是否有多余的数据，只需要Code
+开发centersvr主动发送数据逻辑

@@ -48,6 +48,8 @@ func NewHashSlice[T1 AllIntString, T2 comparable]() *HashSlice[T1, T2] {
 	}
 }
 
+// 哈希和切片结合
+// 适用既需要快速访问, 又需要有序访问的场景
 type HashSlice[T1 AllIntString, T2 comparable] struct {
 	hash  map[T1]T2
 	slice []T2

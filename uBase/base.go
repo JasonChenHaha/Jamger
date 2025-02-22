@@ -1,11 +1,10 @@
-package juserBase
+package juBase
 
 import (
 	"jdb"
 	"jglobal"
 	"jlog"
 	"jmongo"
-	"jrpc"
 	"sync"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -15,11 +14,13 @@ const (
 	EXPIRE = 10 // 60 * 10
 )
 
+type Locker interface {
+	Lock()
+	UnLock()
+}
+
 type Base struct {
-	Uid  uint32
-	Gate int
-	// ---
-	uidStr      string
+	key         string
 	DirtyRedis  map[string]any
 	dirtyRedis2 []any
 	DirtyMongo  map[string]any
@@ -31,8 +32,7 @@ type Base struct {
 
 func NewBase(uid uint32) *Base {
 	base := &Base{
-		Uid:         uid,
-		uidStr:      jglobal.Itoa(uid),
+		key:         jglobal.Itoa(uid),
 		DirtyRedis:  map[string]any{},
 		dirtyRedis2: []any{},
 		DirtyMongo:  map[string]any{},
@@ -41,15 +41,11 @@ func NewBase(uid uint32) *Base {
 	return base
 }
 
-func (base *Base) SetGate(gate int) {
-	base.Gate = gate
-}
-
 func (base *Base) Lock() {
 	base.mutex.Lock()
 }
 
-func (base *Base) Unlock() {
+func (base *Base) UnLock() {
 	base.mutex.Unlock()
 }
 
@@ -67,15 +63,6 @@ func (base *Base) Tick() bool {
 		return true
 	}
 	return false
-}
-
-func (base *Base) Send(pack *jglobal.Pack) {
-	target := jrpc.GetDirectTarget(jglobal.ParseServerID(base.Gate))
-	if target == nil {
-		jlog.Errorf("no target, serverID: %d", base.Gate)
-		return
-	}
-	target.Send(pack)
 }
 
 // ------------------------- inside -------------------------
@@ -104,7 +91,7 @@ func (base *Base) flush(needLock bool) error {
 			base.mutex.Unlock()
 		}
 		if len(base.dirtyRedis2) > 0 {
-			if _, err := jdb.Redis.HSet(base.uidStr, base.dirtyRedis2...); err != nil {
+			if _, err := jdb.Redis.HSet(base.key, base.dirtyRedis2...); err != nil {
 				jlog.Error(err)
 				return err
 			}
@@ -112,7 +99,7 @@ func (base *Base) flush(needLock bool) error {
 		if len(dirtyMongo) > 0 {
 			in := &jmongo.Input{
 				Col:    jglobal.MONGO_USER,
-				Filter: bson.M{"_id": base.uidStr},
+				Filter: bson.M{"_id": base.key},
 				Update: bson.M{"$set": dirtyMongo},
 				Upsert: true,
 			}

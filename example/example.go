@@ -180,16 +180,16 @@ func mongo() {
 }
 
 func redis() {
-	res, _ := jdb.Redis.Do("SET", "jamger", "123", "EX", 3)
-	jlog.Debug(res)
-	res, _ = jdb.Redis.Do("GET", "jamger")
-	jlog.Debug(reflect.TypeOf(res).Kind())
+	rsp, _ := jdb.Redis.Do("SET", "jamger", "123", "EX", 3)
+	jlog.Debug(rsp)
+	rsp, _ = jdb.Redis.Do("GET", "jamger")
+	jlog.Debug(reflect.TypeOf(rsp).Kind())
 	scr := `
 		local value = redis.call('GET', KEYS[1])
 		return value
 	`
-	res, _ = jdb.Redis.DoScript(scr, []string{"jamger"})
-	jlog.Debug(res)
+	rsp, _ = jdb.Redis.DoScript(scr, []string{"jamger"})
+	jlog.Debug(rsp)
 }
 
 func schedule() {
@@ -227,11 +227,11 @@ func event() {
 
 func rpc() {
 	// f := func(target any) {
-	// 	res, err := target.(jpb.AuthClient).Signup(context.Background(), &jpb.SignUpReq{})
+	// 	rsp, err := target.(jpb.AuthClient).Signup(context.Background(), &jpb.SignUpReq{})
 	// 	if err != nil {
 	// 		jlog.Error(err)
 	// 	} else {
-	// 		jlog.Debug(res)
+	// 		jlog.Debug(rsp)
 	// 	}
 	// }
 

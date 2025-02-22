@@ -1,25 +1,21 @@
 package juser
 
 import (
-	"jdb"
-	"jglobal"
 	"jlog"
-	"jmongo"
 	"jschedule"
-	"juserBase"
+	"juBase"
 	"sync"
 	"time"
-
-	"go.mongodb.org/mongo-driver/bson"
 )
 
 var users sync.Map
 
 // 所有属性的写需要使用对应的set方法，以驱动数据定时落地
 type User struct {
-	*juserBase.Base
-	Uid uint32
-	*Auth
+	*juBase.Base
+	*Redis
+	*Basic
+	Uid    uint32
 	ticker any
 }
 
@@ -28,34 +24,31 @@ type User struct {
 func Init() {}
 
 func GetUser(uid uint32) *User {
-	if user, ok := users.Load(uid); ok {
-		return user.(*User)
+	if v, ok := users.Load(uid); ok {
+		user := v.(*User)
+		user.Refresh()
+		return user
 	} else {
-		in := &jmongo.Input{
-			Col:     jglobal.MONGO_USER,
-			Filter:  bson.M{"_id": uid},
-			Project: bson.M{"auth": 1},
-		}
-		mData := map[string]any{}
-		if err := jdb.Mongo.FindOne(in, &mData); err != nil {
-			jlog.Error(err)
-			return nil
-		}
-		rData, err := jdb.Redis.HGetAll(jglobal.Itoa(uid))
-		if err != nil {
-			jlog.Error(err)
-			return nil
-		}
 		user := &User{
-			Base: juserBase.NewBase(uid),
 			Uid:  uid,
+			Base: juBase.NewBase(uid),
 		}
-		user.Auth = newAuth(user, mData, rData)
+		user.Basic = newBasic(user)
+		user.Redis = newRedis(user)
 		user.ticker = jschedule.DoEvery(time.Second, user.tick)
 		users.Store(uid, user)
 		return user
 	}
 }
+
+// func (user *User) Send(pack *jglobal.Pack) {
+// 	target := jrpc.GetDirectTarget(jglobal.ParseServerID(user.Gate))
+// 	if target == nil {
+// 		jlog.Errorf("no target, serverID: %d", user.Gate)
+// 		return
+// 	}
+// 	target.Send(pack)
+// }
 
 // ------------------------- inside -------------------------
 

@@ -38,7 +38,6 @@ func rpcEncode(pack *jglobal.Pack) error {
 	raw := make([]byte, uidSize+gateSize+cmdSize+len(data))
 	if pack.User != nil {
 		user := pack.User.(*juser.User)
-		user.Unlock()
 		binary.LittleEndian.PutUint32(raw, uint32(user.Uid))
 		binary.LittleEndian.PutUint32(raw[uidSize:], uint32(user.Gate))
 	}
@@ -57,7 +56,6 @@ func rpcDecode(pack *jglobal.Pack) error {
 			if user == nil {
 				return fmt.Errorf("no such user, uid = %d", uid)
 			}
-			user.Lock()
 			pack.User = user
 		}
 	}
