@@ -14,6 +14,11 @@ const (
 	EXPIRE = 10 // 60 * 10
 )
 
+type SesIder interface {
+	GetSesId() uint64
+	SetSesId(uint64)
+}
+
 type Locker interface {
 	Lock()
 	UnLock()
@@ -21,11 +26,12 @@ type Locker interface {
 
 type Base struct {
 	key         string
+	counter     int
+	expire      int
+	mutex       sync.Mutex
 	DirtyRedis  map[string]any
 	dirtyRedis2 []any
 	DirtyMongo  map[string]any
-	expire      int
-	mutex       sync.Mutex
 }
 
 // ------------------------- outside -------------------------
@@ -41,6 +47,10 @@ func NewBase(uid uint32) *Base {
 	return base
 }
 
+func (base *Base) IsNew() bool {
+	return base.counter == 0
+}
+
 func (base *Base) Lock() {
 	base.mutex.Lock()
 }
@@ -49,7 +59,8 @@ func (base *Base) UnLock() {
 	base.mutex.Unlock()
 }
 
-func (base *Base) Refresh() {
+func (base *Base) Touch() {
+	base.counter++
 	base.expire = EXPIRE
 }
 

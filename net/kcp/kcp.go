@@ -55,7 +55,7 @@ func (kcp *Kcp) Register(cmd jpb.CMD, handler Handler) {
 func (kcp *Kcp) Send(id uint64, cmd jpb.CMD, data []byte) {
 	obj, ok := kcp.ses.Load(id)
 	if !ok {
-		jlog.Errorf("session %d not found", id)
+		jlog.Errorf("session(%d) not found", id)
 		return
 	}
 	obj.(*Ses).send(&Pack{

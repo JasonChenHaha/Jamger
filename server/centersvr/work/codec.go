@@ -53,7 +53,7 @@ func rpcDecode(pack *jglobal.Pack) error {
 	if pack.User == nil && uid != 0 {
 		user := juser.GetUser(uid)
 		if user == nil {
-			return fmt.Errorf("no such user, uid = %d", uid)
+			return fmt.Errorf("no such user, uid(%d)", uid)
 		}
 		pack.User = user
 	}

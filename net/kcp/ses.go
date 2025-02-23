@@ -72,8 +72,6 @@ func (ses *Ses) recvGoro() {
 				case jpb.CMD_CLOSE:
 					ses.kc.delete(ses.id)
 					return
-				case jpb.CMD_PING:
-					ses.kc.Send(ses.id, jpb.CMD_PONG, []byte{})
 				default:
 					ses.kc.receive(ses.id, pack)
 				}

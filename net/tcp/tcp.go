@@ -6,6 +6,7 @@ import (
 	"jlog"
 	"jpb"
 	"juBase"
+	"juser"
 	"net"
 	"sync"
 	"sync/atomic"
@@ -70,19 +71,21 @@ func (tcp *Tcp) Register(cmd jpb.CMD, fun func(*jglobal.Pack), msg proto.Message
 	}
 }
 
-func (tcp *Tcp) Send(id uint64, pack *jglobal.Pack) {
-	if o, ok := pack.Data.(proto.Message); ok {
-		tmp, err := proto.Marshal(o)
-		if err != nil {
-			jlog.Errorf("%s, cmd: %d", err, pack.Cmd)
-			return
-		}
-		pack.Data = tmp
-	}
+func (tcp *Tcp) Send(pack *jglobal.Pack) {
+	id := pack.User.(juBase.SesIder).GetSesId()
 	if o, ok := tcp.ses.Load(id); !ok {
-		jlog.Errorf("no session, %d", id)
+		jlog.Errorf("no session(%d)", id)
 		return
 	} else {
+		if o, ok := pack.Data.(proto.Message); ok {
+			tmp, err := proto.Marshal(o)
+			if err != nil {
+				jlog.Errorf("%s, cmd(%d)", err, pack.Cmd)
+				return
+			}
+			pack.Data = tmp
+		}
+		jlog.Debugf("tcp send to %d, cmd(%d), data(%v)", pack.User.(*juser.User).Uid, pack.Cmd, pack.Data)
 		o.(*Ses).send(pack)
 	}
 }
@@ -94,7 +97,7 @@ func (tcp *Tcp) receive(ses *Ses, pack *jglobal.Pack) {
 	if han != nil {
 		msg := proto.Clone(han.msg)
 		if err := proto.Unmarshal(pack.Data.([]byte), msg); err != nil {
-			jlog.Warnf("%s, %d", err, pack.Cmd)
+			jlog.Warnf("%s, cmd(%d)", err, pack.Cmd)
 			tcp.delete(ses.id)
 			return
 		}

@@ -11,6 +11,7 @@ import (
 	"jlog"
 	"jpb"
 	"net/http"
+	"os"
 
 	"google.golang.org/protobuf/proto"
 )
@@ -32,18 +33,19 @@ func testHttp() {
 
 	var cmd jpb.CMD
 	var msg proto.Message
+	id, pwd := os.Args[2], os.Args[3]
 
 	htp.rsp = &jpb.SignUpRsp{}
 	cmd, msg = htp.sendAuth(jpb.CMD_SIGN_UP_REQ, &jpb.SignUpReq{
-		Id:  "gaga",
-		Pwd: "123456",
+		Id:  id,
+		Pwd: pwd,
 	})
 	jlog.Debugf("cmd: %s, msg: %s", cmd, msg)
 
 	htp.rsp = &jpb.SignInRsp{}
 	cmd, msg = htp.sendAuth(jpb.CMD_SIGN_IN_REQ, &jpb.SignInReq{
-		Id:  "gaga",
-		Pwd: "123456",
+		Id:  id,
+		Pwd: pwd,
 	})
 	if cmd == jpb.CMD_GATE_INFO {
 		jlog.Debugf("cmd: %s, msg: %s", cmd, msg)
@@ -52,10 +54,6 @@ func testHttp() {
 		uid = msg.(*jpb.SignInRsp).Uid
 		jlog.Debugf("cmd: %s, msg: %s", cmd, msg)
 	}
-
-	// htp.rsp = &jpb.Pong{}
-	// cmd, msg = htp.send(jpb.CMD_PING, &jpb.Ping{})
-	// jlog.Debugf("cmd: %s, msg: %s", cmd, msg)
 }
 
 func (htp *Http) sendAuth(cmd jpb.CMD, msg proto.Message) (jpb.CMD, proto.Message) {

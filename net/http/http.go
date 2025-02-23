@@ -84,7 +84,7 @@ func (htp *Http) receive(w http.ResponseWriter, r *http.Request) {
 	if han != nil {
 		msg := proto.Clone(han.template)
 		if err = proto.Unmarshal(pack.Data.([]byte), msg); err != nil {
-			jlog.Warnf("%s, cmd: %d", err, pack.Cmd)
+			jlog.Warnf("%s, cmd(%d)", err, pack.Cmd)
 			return
 		}
 		pack.Data = msg
@@ -106,7 +106,7 @@ func (htp *Http) receive(w http.ResponseWriter, r *http.Request) {
 	if o, ok := pack.Data.(proto.Message); ok {
 		tmp, err := proto.Marshal(o)
 		if err != nil {
-			jlog.Errorf("%s, cmd: %d", err, pack.Cmd)
+			jlog.Errorf("%s, cmd(%d)", err, pack.Cmd)
 			return
 		}
 		pack.Data = tmp

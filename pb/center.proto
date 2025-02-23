@@ -8,3 +8,7 @@ message LoginReq {}
 message LoginRsp {
     CODE code = 1;
 }
+
+message Notify {
+    string msg = 1;
+}

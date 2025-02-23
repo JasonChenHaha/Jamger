@@ -67,8 +67,6 @@ func (ses *Ses) recvGoro() {
 			pack := unserializeData(data)
 			switch pack.Cmd {
 			case jpb.CMD_HEARTBEAT:
-			case jpb.CMD_PING:
-				ses.web.Send(ses.id, jpb.CMD_PONG, []byte{})
 			default:
 				ses.web.receive(ses.id, pack)
 			}

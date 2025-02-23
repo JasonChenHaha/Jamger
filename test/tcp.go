@@ -16,21 +16,25 @@ import (
 
 type Tcp struct {
 	con net.Conn
-	cmd jpb.CMD
-	rsp proto.Message
+	msg map[jpb.CMD]proto.Message
 }
 
 func testTcp() {
 	jlog.Info("<test tcp>")
-	tcp := &Tcp{}
+	tcp := &Tcp{
+		msg: map[jpb.CMD]proto.Message{},
+	}
 	addr := jconfig.GetString("tcp.addr")
 	con, _ := net.Dial("tcp", addr)
 	jlog.Info("connect to server ", addr)
 	tcp.con = con
 
-	tcp.rsp = &jpb.LoginRsp{}
+	tcp.msg[jpb.CMD_NOTIFY] = &jpb.Notify{}
+	tcp.msg[jpb.CMD_LOGIN_RSP] = &jpb.LoginRsp{}
+
+	go tcp.recv()
+
 	tcp.sendWithAes(jpb.CMD_LOGIN_REQ, &jpb.LoginReq{})
-	tcp.recv()
 
 	// tcp.sendWithAes(jpb.CMD_PING, nil)
 	// tcp.recv()
@@ -71,17 +75,19 @@ func (tcp *Tcp) sendWithAes(cmd jpb.CMD, msg proto.Message) {
 }
 
 func (tcp *Tcp) recv() {
-	raw := make([]byte, packSize)
-	_, err := io.ReadFull(tcp.con, raw)
-	if err == io.EOF {
-		jlog.Debug("close by server")
-		return
+	for {
+		raw := make([]byte, packSize)
+		_, err := io.ReadFull(tcp.con, raw)
+		if err == io.EOF {
+			jlog.Debug("close by server")
+			return
+		}
+		size := binary.LittleEndian.Uint16(raw)
+		raw = make([]byte, size)
+		io.ReadFull(tcp.con, raw)
+		jglobal.AesDecrypt(aesKey, &raw)
+		cmd := jpb.CMD(binary.LittleEndian.Uint16(raw))
+		proto.Unmarshal(raw[cmdSize:], tcp.msg[cmd])
+		jlog.Infof("cmd(%d), %v", cmd, tcp.msg[cmd])
 	}
-	size := binary.LittleEndian.Uint16(raw)
-	raw = make([]byte, size)
-	io.ReadFull(tcp.con, raw)
-	jglobal.AesDecrypt(aesKey, &raw)
-	tcp.cmd = jpb.CMD(binary.LittleEndian.Uint16(raw))
-	proto.Unmarshal(raw[cmdSize:], tcp.rsp)
-	jlog.Infof("cmd = %d, msg = %s", tcp.cmd, tcp.rsp)
 }

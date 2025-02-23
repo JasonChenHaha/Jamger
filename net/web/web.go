@@ -66,7 +66,7 @@ func (web *Web) Register(cmd jpb.CMD, handler Handler) {
 func (web *Web) Send(id uint64, cmd jpb.CMD, data []byte) {
 	obj, ok := web.ses.Load(id)
 	if !ok {
-		jlog.Errorf("session %d not found", id)
+		jlog.Errorf("session(%d) not found", id)
 		return
 	}
 	obj.(*Ses).send(makePack(cmd, data))

@@ -1,6 +1,7 @@
 package juser
 
 import (
+	"bytes"
 	"jdb"
 	"jglobal"
 	"jlog"
@@ -16,13 +17,11 @@ type Redis struct {
 
 func newRedis(user *User) *Redis {
 	re := &Redis{user: user}
+	re.load()
 	return re
 }
 
-func (redis *Redis) Load() {
-	if redis.AesKey != nil {
-		return
-	}
+func (redis *Redis) load() {
 	rData, err := jdb.Redis.HGetAll(jglobal.Itoa(redis.user.Uid))
 	if err != nil {
 		jlog.Error(err)
@@ -39,11 +38,15 @@ func (redis *Redis) Load() {
 // ------------------------- inside -------------------------
 
 func (redis *Redis) SetGate(gate int) {
-	redis.Gate = gate
-	redis.user.DirtyRedis["gate"] = gate
+	if redis.Gate != gate {
+		redis.Gate = gate
+		redis.user.DirtyRedis["gate"] = gate
+	}
 }
 
 func (redis *Redis) SetAesKey(aesKey []byte) {
-	redis.AesKey = aesKey
-	redis.user.DirtyRedis["aesKey"] = aesKey
+	if !bytes.Equal(redis.AesKey, aesKey) {
+		redis.AesKey = aesKey
+		redis.user.DirtyRedis["aesKey"] = aesKey
+	}
 }

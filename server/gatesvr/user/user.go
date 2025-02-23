@@ -1,7 +1,6 @@
 package juser
 
 import (
-	"jlog"
 	"jschedule"
 	"juBase"
 	"sync"
@@ -16,7 +15,7 @@ type User struct {
 	*Redis
 	*Basic
 	Uid    uint32
-	SesId  uint64
+	sesId  uint64
 	ticker any
 }
 
@@ -27,7 +26,7 @@ func Init() {}
 func GetUser(uid uint32) *User {
 	if v, ok := users.Load(uid); ok {
 		user := v.(*User)
-		user.Refresh()
+		user.Touch()
 		return user
 	} else {
 		user := &User{
@@ -42,17 +41,21 @@ func GetUser(uid uint32) *User {
 	}
 }
 
-// func (user *User) Send(pack *jglobal.Pack) {
-// 	target := jrpc.GetDirectTarget(jglobal.ParseServerID(user.Gate))
-// 	if target == nil {
-// 		jlog.Errorf("no target, serverID: %d", user.Gate)
-// 		return
-// 	}
-// 	target.Send(pack)
-// }
+func Range(fun func(k, v any) bool) {
+	users.Range(fun)
+}
+
+func (user *User) Load() {
+	user.Basic.load()
+	user.Redis.load()
+}
+
+func (user *User) GetSesId() uint64 {
+	return user.sesId
+}
 
 func (user *User) SetSesId(id uint64) {
-	user.SesId = id
+	user.sesId = id
 }
 
 // ------------------------- inside -------------------------
@@ -63,7 +66,6 @@ func (user *User) destory() {
 }
 
 func (user *User) tick() {
-	jlog.Debug("user tick")
 	if user.Base.Tick() {
 		user.destory()
 	}

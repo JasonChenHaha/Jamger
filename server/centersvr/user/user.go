@@ -1,7 +1,6 @@
 package juser
 
 import (
-	"jlog"
 	"jschedule"
 	"juBase"
 	"sync"
@@ -26,7 +25,7 @@ func Init() {}
 func GetUser(uid uint32) *User {
 	if v, ok := users.Load(uid); ok {
 		user := v.(*User)
-		user.Refresh()
+		user.Touch()
 		return user
 	} else {
 		user := &User{
@@ -41,14 +40,10 @@ func GetUser(uid uint32) *User {
 	}
 }
 
-// func (user *User) Send(pack *jglobal.Pack) {
-// 	target := jrpc.GetDirectTarget(jglobal.ParseServerID(user.Gate))
-// 	if target == nil {
-// 		jlog.Errorf("no target, serverID: %d", user.Gate)
-// 		return
-// 	}
-// 	target.Send(pack)
-// }
+func (user *User) Load() {
+	user.Basic.load()
+	user.Redis.load()
+}
 
 // ------------------------- inside -------------------------
 
@@ -58,7 +53,6 @@ func (user *User) destory() {
 }
 
 func (user *User) tick() {
-	jlog.Debug("user tick")
 	if user.Base.Tick() {
 		user.destory()
 	}

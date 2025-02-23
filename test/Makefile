@@ -1,7 +1,15 @@
-PROJ_NAME = $(notdir $(CURDIR))
+SERVER = $(notdir $(CURDIR))
 
-all:
+run:
 	@echo test...
 	@go run ./ ./config.yml
 
-.PHONY: all
+build:
+	@echo build...
+	go build -o ./test
+
+start:
+	@echo start...
+	./test ./config.yml
+
+.PHONY: run build start

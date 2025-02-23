@@ -15,13 +15,11 @@ type Redis struct {
 
 func newRedis(user *User) *Redis {
 	re := &Redis{user: user}
+	re.load()
 	return re
 }
 
-func (redis *Redis) Load() {
-	if redis.Gate != 0 {
-		return
-	}
+func (redis *Redis) load() {
 	rsp, err := jdb.Redis.HGet(jglobal.Itoa(redis.user.Id), "gate")
 	if err != nil {
 		jlog.Error(err)

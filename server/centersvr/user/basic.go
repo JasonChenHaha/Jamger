@@ -20,13 +20,11 @@ type Basic struct {
 
 func newBasic(user *User) *Basic {
 	basic := &Basic{user: user}
+	basic.load()
 	return basic
 }
 
-func (basic *Basic) Load() {
-	if basic.LoginTs != 0 {
-		return
-	}
+func (basic *Basic) load() {
 	in := &jmongo.Input{
 		Col:     jglobal.MONGO_USER,
 		Filter:  bson.M{"_id": basic.user.Uid},

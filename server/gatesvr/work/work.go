@@ -18,11 +18,11 @@ func Init() {
 	jnet.Http.Encoder(httpEncode)
 	jnet.Http.Decoder(httpDecode)
 	jnet.Http.Register(jpb.CMD_PROXY, proxy, nil)
-	jnet.Http.Register(jpb.CMD_PING, ping, &jpb.Ping{})
 	jnet.Http.Register(jpb.CMD_SIGN_IN_REQ, signIn, &jpb.SignInReq{})
 	jnet.Rpc.Encoder(rpcEncode)
 	jnet.Rpc.Decoder(rpcDecode)
-	jnet.Rpc.Register(jpb.CMD_PROXY, send, nil)
+	jnet.Rpc.Register(jpb.CMD_TOC, sendToC, nil)
+	jnet.Rpc.Register(jpb.CMD_BROADCAST, broadcast, nil)
 	jnet.Tcp.Encoder(tcpEncode)
 	jnet.Tcp.Decoder(tcpDecode)
 	jnet.Tcp.Register(jpb.CMD_PROXY, proxy, nil)
@@ -30,11 +30,6 @@ func Init() {
 }
 
 // ------------------------- inside -------------------------
-
-func ping(pack *jglobal.Pack) {
-	pack.Cmd = jpb.CMD_PONG
-	pack.Data = &jpb.Pong{}
-}
 
 // 透传
 func proxy(pack *jglobal.Pack) {
@@ -77,8 +72,7 @@ func signIn(pack *jglobal.Pack) {
 // 登录
 func login(pack *jglobal.Pack) {
 	user := pack.User.(*juser.User)
-	defer jnet.Tcp.Send(user.SesId, pack)
-	// req := pack.Data.(*jpb.LoginReq)
+	defer jnet.Tcp.Send(pack)
 	target := jrpc.GetConsistentHashTarget(jglobal.GRP_CENTER, user.Uid)
 	if target == nil {
 		pack.Cmd = jpb.CMD_GATE_INFO
@@ -92,11 +86,27 @@ func login(pack *jglobal.Pack) {
 	}
 	rsp := pack.Data.(*jpb.LoginRsp)
 	if rsp.Code == jpb.CODE_OK {
+		if !user.IsNew() {
+			user.Load()
+		}
 		user.SetGate(jglobal.ID)
 	}
 }
 
 // 发送
-func send(pack *jglobal.Pack) {
-	jnet.Tcp.Send(pack.User.(*juser.User).SesId, pack)
+func sendToC(pack *jglobal.Pack) {
+	jnet.Tcp.Send(pack)
+}
+
+// 广播
+func broadcast(pack *jglobal.Pack) {
+	juser.Range(func(k, v any) bool {
+		p := &jglobal.Pack{
+			Cmd:  pack.Cmd,
+			Data: pack.Data,
+			User: v,
+		}
+		jnet.Tcp.Send(p)
+		return true
+	})
 }

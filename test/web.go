@@ -24,9 +24,6 @@ func testWeb() {
 	web.con = con
 
 	go web.heartbeat()
-
-	web.send(jpb.CMD_PING, []byte{})
-	web.recv()
 }
 
 func (web *Web) heartbeat() {

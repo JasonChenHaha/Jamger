@@ -1,6 +1,7 @@
 package juser
 
 import (
+	"bytes"
 	"jdb"
 	"jglobal"
 	"jlog"
@@ -19,13 +20,11 @@ type Basic struct {
 
 func newBasic(user *User) *Basic {
 	basic := &Basic{user: user}
+	basic.load()
 	return basic
 }
 
-func (basic *Basic) Load() {
-	if basic.Pwd != nil {
-		return
-	}
+func (basic *Basic) load() {
 	in := &jmongo.Input{
 		Col:     jglobal.MONGO_USER,
 		Filter:  bson.M{"_id": basic.user.Uid},
@@ -46,11 +45,15 @@ func (basic *Basic) Load() {
 // ------------------------- outside -------------------------
 
 func (basic *Basic) SetId(id string) {
-	basic.Id = id
-	basic.user.DirtyMongo["basic.id"] = id
+	if basic.Id != id {
+		basic.Id = id
+		basic.user.DirtyMongo["basic.id"] = id
+	}
 }
 
 func (basic *Basic) SetPwd(pwd []byte) {
-	basic.Pwd = pwd
-	basic.user.DirtyMongo["basic.pwd"] = pwd
+	if !bytes.Equal(basic.Pwd, pwd) {
+		basic.Pwd = pwd
+		basic.user.DirtyMongo["basic.pwd"] = pwd
+	}
 }

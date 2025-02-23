@@ -96,13 +96,13 @@ func (rpc *Rpc) Proxy(pack *jglobal.Pack) bool {
 	}
 	rsp, err := rpc.client.Post(rpc.addr, "", bytes.NewBuffer(pack.Data.([]byte)))
 	if err != nil {
-		jlog.Errorf("%s, %d", err, pack.Cmd)
+		jlog.Errorf("%s, cmd(%d)", err, pack.Cmd)
 		return false
 	}
 	defer rsp.Body.Close()
 	body, err := io.ReadAll(rsp.Body)
 	if err != nil {
-		jlog.Errorf("%s, %d", err, pack.Cmd)
+		jlog.Errorf("%s, cmd(%d)", err, pack.Cmd)
 		return false
 	}
 	if len(body) == 0 {
@@ -122,7 +122,7 @@ func (rpc *Rpc) Call(pack *jglobal.Pack, msg proto.Message) bool {
 	var err error
 	pack.Data, err = proto.Marshal(pack.Data.(proto.Message))
 	if err != nil {
-		jlog.Errorf("%s, cmd: %d", err, pack.Cmd)
+		jlog.Errorf("%s, cmd(%d)", err, pack.Cmd)
 		return false
 	}
 	if err = encoder(pack); err != nil {
@@ -131,13 +131,13 @@ func (rpc *Rpc) Call(pack *jglobal.Pack, msg proto.Message) bool {
 	}
 	rsp, err := rpc.client.Post(rpc.addr, "", bytes.NewBuffer(pack.Data.([]byte)))
 	if err != nil {
-		jlog.Errorf("%s, %d", err, pack.Cmd)
+		jlog.Errorf("%s, cmd(%d)", err, pack.Cmd)
 		return false
 	}
 	defer rsp.Body.Close()
 	body, err := io.ReadAll(rsp.Body)
 	if err != nil {
-		jlog.Errorf("%s, %d", err, pack.Cmd)
+		jlog.Errorf("%s, cmd(%d)", err, pack.Cmd)
 		return false
 	}
 	if len(body) == 0 {
@@ -150,7 +150,7 @@ func (rpc *Rpc) Call(pack *jglobal.Pack, msg proto.Message) bool {
 		return false
 	}
 	if err = proto.Unmarshal(pack.Data.([]byte), msg); err != nil {
-		jlog.Errorf("%s, %d", err, pack.Cmd)
+		jlog.Errorf("%s, cmd(%d)", err, pack.Cmd)
 		return false
 	}
 	pack.Data = msg
@@ -159,24 +159,26 @@ func (rpc *Rpc) Call(pack *jglobal.Pack, msg proto.Message) bool {
 
 // 请求模式发送
 func (rpc *Rpc) Send(pack *jglobal.Pack) {
-	var err error
-	pack.Data, err = proto.Marshal(pack.Data.(proto.Message))
-	if err != nil {
-		jlog.Errorf("%s, cmd: %d", err, pack.Cmd)
-		return
-	}
-	if err = encoder(pack); err != nil {
+	if err := encoder(pack); err != nil {
 		jlog.Error(err)
 		return
 	}
-	// rpc.client.Timeout = time.Nanosecond
-	rsp, err := rpc.client.Post(rpc.addr, "", bytes.NewBuffer(pack.Data.([]byte)))
-	// rpc.client.Timeout = rpc.timeout
-	// if err != nil && err != context.DeadlineExceeded {
-	// 	jlog.Errorf("%s, %d", err, pack.Cmd)
-	// }
+	rsp, err := rpc.client.Post(rpc.addr+"/c", "", bytes.NewBuffer(pack.Data.([]byte)))
 	if err != nil {
-		jlog.Errorf("%s, %d", err, pack.Cmd)
+		jlog.Errorf("%s, cmd(%d)", err, pack.Cmd)
+	}
+	rsp.Body.Close()
+}
+
+// 广播
+func (rpc *Rpc) Broadcast(pack *jglobal.Pack) {
+	if err := encoder(pack); err != nil {
+		jlog.Error(err)
+		return
+	}
+	rsp, err := rpc.client.Post(rpc.addr+"/b", "", bytes.NewBuffer(pack.Data.([]byte)))
+	if err != nil {
+		jlog.Errorf("%s, cmd(%d)", err, pack.Cmd)
 	}
 	rsp.Body.Close()
 }
@@ -194,11 +196,16 @@ func (rpc *Rpc) receive(w http.ResponseWriter, r *http.Request) {
 		jlog.Error(err)
 		return
 	}
-	han := rpc.handler[pack.Cmd]
-	if han != nil {
+	switch r.URL.Path {
+	case "/":
+		han := rpc.handler[pack.Cmd]
+		if han == nil {
+			jlog.Warnf("cmd(%d) not exist", pack.Cmd)
+			return
+		}
 		msg := proto.Clone(han.msg)
 		if err = proto.Unmarshal(pack.Data.([]byte), msg); err != nil {
-			jlog.Warnf("%s, %d", err, pack.Cmd)
+			jlog.Warnf("%s, cmd(%d)", err, pack.Cmd)
 			return
 		}
 		pack.Data = msg
@@ -209,27 +216,37 @@ func (rpc *Rpc) receive(w http.ResponseWriter, r *http.Request) {
 		} else {
 			han.fun(pack)
 		}
-	} else {
-		han = rpc.handler[jpb.CMD_PROXY]
-		if han == nil {
-			jlog.Warn("cmd not exist, ", pack.Cmd)
-			return
+		if o, ok := pack.Data.(proto.Message); ok {
+			pack.Data, err = proto.Marshal(o)
+			if err != nil {
+				jlog.Error(err)
+				return
+			}
 		}
-		// 根据业务实际需要决定是否需要加锁
-		han.fun(pack)
-	}
-	if o, ok := pack.Data.(proto.Message); ok {
-		pack.Data, err = proto.Marshal(o)
-		if err != nil {
+		if err = encoder(pack); err != nil {
 			jlog.Error(err)
 			return
 		}
-	}
-	if err = encoder(pack); err != nil {
-		jlog.Error(err)
-		return
-	}
-	if _, err = w.Write(pack.Data.([]byte)); err != nil {
-		jlog.Error(err)
+		if _, err = w.Write(pack.Data.([]byte)); err != nil {
+			jlog.Error(err)
+		}
+	case "/c":
+		// 发给客户端
+		w.WriteHeader(http.StatusOK)
+		han := rpc.handler[jpb.CMD_TOC]
+		if han == nil {
+			jlog.Warn("proxy not exist")
+			return
+		}
+		han.fun(pack)
+	case "/b":
+		// 广播
+		w.WriteHeader(http.StatusOK)
+		han := rpc.handler[jpb.CMD_BROADCAST]
+		if han == nil {
+			jlog.Warn("broadcast not exist")
+			return
+		}
+		han.fun(pack)
 	}
 }

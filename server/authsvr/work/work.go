@@ -22,17 +22,11 @@ func Init() {
 	jrpc.Connect(jglobal.GRP_GATE)
 	jnet.Rpc.Encoder(rpcEncode)
 	jnet.Rpc.Decoder(rpcDecode)
-	jnet.Rpc.Register(jpb.CMD_PING, ping, &jpb.Ping{})
 	jnet.Rpc.Register(jpb.CMD_SIGN_UP_REQ, signUp, &jpb.SignUpReq{})
 	jnet.Rpc.Register(jpb.CMD_SIGN_IN_REQ, signIn, &jpb.SignInReq{})
 }
 
 // ------------------------- inside -------------------------
-
-func ping(pack *jglobal.Pack) {
-	pack.Cmd = jpb.CMD_PONG
-	pack.Data = &jpb.Pong{}
-}
 
 // 注册
 func signUp(pack *jglobal.Pack) {

@@ -22,9 +22,6 @@ func testKcp() {
 	kc.con = con
 
 	go kc.heartbeat()
-
-	kc.send(jpb.CMD_PING, []byte{})
-	kc.recv()
 }
 
 func (kc *Kcp) heartbeat() {
