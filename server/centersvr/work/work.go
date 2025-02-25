@@ -2,6 +2,7 @@ package jwork
 
 import (
 	"jglobal"
+	"jlog"
 	"jnet"
 	"jpb"
 	"jrpc"
@@ -11,17 +12,28 @@ import (
 // ------------------------- outside -------------------------
 
 func Init() {
+	jrpc.Connect(jglobal.GRP_CENTER)
 	jrpc.Connect(jglobal.GRP_GATE)
 	jnet.Rpc.Encoder(rpcEncode)
 	jnet.Rpc.Decoder(rpcDecode)
+	jnet.Rpc.Register(jpb.CMD_DEL_USER, deleteUser, &jpb.DelUserReq{})
 	jnet.Rpc.Register(jpb.CMD_LOGIN_REQ, login, &jpb.LoginReq{})
 }
 
 // ------------------------- inside -------------------------
 
+// 缓存清理
+func deleteUser(pack *jglobal.Pack) {
+	jlog.Debug("delete user ", pack.Ctx)
+	req := pack.Data.(*jpb.DelUserReq)
+	pack.Data = &jpb.DelUserRsp{}
+	juser.DelUser(req.Uid)
+}
+
 // 登录
 func login(pack *jglobal.Pack) {
-	user := pack.User.(*juser.User)
+	jlog.Debug("login!!!!!!!!!")
+	user := pack.Ctx.(*juser.User)
 	rsp := &jpb.LoginRsp{}
 	pack.Cmd = jpb.CMD_LOGIN_RSP
 	pack.Data = rsp

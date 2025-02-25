@@ -9,11 +9,11 @@ import (
 	"github.com/robfig/cron/v3"
 )
 
-var sch *schedule
-
 type schedule struct {
 	cron *cron.Cron
 }
+
+var sch *schedule
 
 // ------------------------- outside -------------------------
 

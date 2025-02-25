@@ -8,6 +8,7 @@ import (
 	"jmongo"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type Basic struct {
@@ -28,17 +29,17 @@ func (basic *Basic) load() {
 	in := &jmongo.Input{
 		Col:     jglobal.MONGO_USER,
 		Filter:  bson.M{"_id": basic.user.Uid},
-		Project: bson.M{"auth": 1},
+		Project: bson.M{"basic": 1},
 	}
-	mData := map[string]any{}
+	mData := primitive.M{}
 	if err := jdb.Mongo.FindOne(in, &mData); err != nil {
 		jlog.Error(err)
 		return
 	}
-	if v, ok := mData["auth"]; ok {
-		mData = v.(map[string]any)
+	if v, ok := mData["basic"]; ok {
+		mData = v.(primitive.M)
 		basic.Id = mData["id"].(string)
-		basic.Pwd = mData["pwd"].([]byte)
+		basic.Pwd = mData["pwd"].(primitive.Binary).Data
 	}
 }
 

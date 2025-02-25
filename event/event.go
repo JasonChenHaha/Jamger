@@ -14,8 +14,6 @@ const (
 	EVENT_TEST_2 = "jamger"
 )
 
-var ev *event
-
 type LocalHandler func(context any) // handler有义务将高耗时逻辑放入协程中处理，防止delay后续事件
 
 type RemoteHandler func(message *nsq.Message) error
@@ -25,6 +23,8 @@ type event struct {
 	producer     *nsq.Producer
 	consumer     map[string]*nsq.Consumer
 }
+
+var ev *event
 
 // ------------------------- outside -------------------------
 

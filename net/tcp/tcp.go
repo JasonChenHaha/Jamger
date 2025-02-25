@@ -5,7 +5,6 @@ import (
 	"jglobal"
 	"jlog"
 	"jpb"
-	"juBase"
 	"juser"
 	"net"
 	"sync"
@@ -18,8 +17,8 @@ import (
 )
 
 type Handler struct {
-	fun func(*jglobal.Pack)
-	msg proto.Message
+	fun      func(*jglobal.Pack)
+	template proto.Message
 }
 
 type Tcp struct {
@@ -64,15 +63,15 @@ func (tcp *Tcp) Decoder(fun func(uint64, *jglobal.Pack) error) {
 	decoder = fun
 }
 
-func (tcp *Tcp) Register(cmd jpb.CMD, fun func(*jglobal.Pack), msg proto.Message) {
+func (tcp *Tcp) Register(cmd jpb.CMD, fun func(*jglobal.Pack), template proto.Message) {
 	tcp.handler[cmd] = &Handler{
-		fun: fun,
-		msg: msg,
+		fun:      fun,
+		template: template,
 	}
 }
 
 func (tcp *Tcp) Send(pack *jglobal.Pack) {
-	id := pack.User.(juBase.SesIder).GetSesId()
+	id := pack.Ctx.(jglobal.SesIder).GetSesId()
 	if o, ok := tcp.ses.Load(id); !ok {
 		jlog.Errorf("no session(%d)", id)
 		return
@@ -85,7 +84,7 @@ func (tcp *Tcp) Send(pack *jglobal.Pack) {
 			}
 			pack.Data = tmp
 		}
-		jlog.Debugf("tcp send to %d, cmd(%d), data(%v)", pack.User.(*juser.User).Uid, pack.Cmd, pack.Data)
+		jlog.Debugf("tcp send to %d, cmd(%d), data(%v)", pack.Ctx.(*juser.User).Uid, pack.Cmd, pack.Data)
 		o.(*Ses).send(pack)
 	}
 }
@@ -95,16 +94,16 @@ func (tcp *Tcp) Send(pack *jglobal.Pack) {
 func (tcp *Tcp) receive(ses *Ses, pack *jglobal.Pack) {
 	han := tcp.handler[pack.Cmd]
 	if han != nil {
-		msg := proto.Clone(han.msg)
+		msg := proto.Clone(han.template)
 		if err := proto.Unmarshal(pack.Data.([]byte), msg); err != nil {
 			jlog.Warnf("%s, cmd(%d)", err, pack.Cmd)
 			tcp.delete(ses.id)
 			return
 		}
 		pack.Data = msg
-		pack.User.(juBase.Locker).Lock()
+		pack.Ctx.(jglobal.Locker).Lock()
 		han.fun(pack)
-		pack.User.(juBase.Locker).UnLock()
+		pack.Ctx.(jglobal.Locker).UnLock()
 	} else {
 		if tcp.handler[jpb.CMD_PROXY] == nil {
 			jlog.Error("no proxy cmd.")

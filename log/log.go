@@ -12,14 +12,14 @@ import (
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
-var log *Log
-
 type LogFormater struct{}
 
 type Log struct {
 	*logrus.Logger
 	skip int
 }
+
+var log *Log
 
 // ------------------------- inside -------------------------
 

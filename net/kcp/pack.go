@@ -20,15 +20,15 @@ import (
 // +----------+----------+----------+----------+
 // |    2     |   ...    |    2     |   ...    |
 
-const (
-	HeadSize = 2
-	CmdSize  = 2
-)
-
 type Pack struct {
 	Cmd  jpb.CMD
 	Data []byte
 }
+
+const (
+	HeadSize = 2
+	CmdSize  = 2
+)
 
 // ------------------------- package -------------------------
 

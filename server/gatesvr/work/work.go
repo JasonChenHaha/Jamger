@@ -13,6 +13,7 @@ import (
 // ------------------------- outside -------------------------
 
 func Init() {
+	jrpc.Connect(jglobal.GRP_GATE)
 	jrpc.Connect(jglobal.GRP_AUTH)
 	jrpc.Connect(jglobal.GRP_CENTER)
 	jnet.Http.Encoder(httpEncode)
@@ -61,7 +62,7 @@ func signIn(pack *jglobal.Pack) {
 	rsp := pack.Data.(*jpb.SignInRsp)
 	if rsp.Code == jpb.CODE_OK {
 		// 缓存aesKey
-		if _, err := jdb.Redis.HSet(jglobal.Itoa(rsp.Uid), "aesKey", pack.User); err != nil {
+		if _, err := jdb.Redis.HSet(jglobal.Itoa(rsp.Uid), "aesKey", pack.Ctx); err != nil {
 			jlog.Error(err)
 			pack.Cmd = jpb.CMD_GATE_INFO
 			pack.Data = &jpb.Error{Code: jpb.CODE_SVR_ERR}
@@ -71,7 +72,7 @@ func signIn(pack *jglobal.Pack) {
 
 // 登录
 func login(pack *jglobal.Pack) {
-	user := pack.User.(*juser.User)
+	user := pack.Ctx.(*juser.User)
 	defer jnet.Tcp.Send(pack)
 	target := jrpc.GetConsistentHashTarget(jglobal.GRP_CENTER, user.Uid)
 	if target == nil {
@@ -86,9 +87,6 @@ func login(pack *jglobal.Pack) {
 	}
 	rsp := pack.Data.(*jpb.LoginRsp)
 	if rsp.Code == jpb.CODE_OK {
-		if !user.IsNew() {
-			user.Load()
-		}
 		user.SetGate(jglobal.ID)
 	}
 }
@@ -104,7 +102,7 @@ func broadcast(pack *jglobal.Pack) {
 		p := &jglobal.Pack{
 			Cmd:  pack.Cmd,
 			Data: pack.Data,
-			User: v,
+			Ctx:  v,
 		}
 		jnet.Tcp.Send(p)
 		return true

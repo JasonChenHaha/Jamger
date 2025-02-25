@@ -36,8 +36,8 @@ const (
 func rpcEncode(pack *jglobal.Pack) error {
 	data := pack.Data.([]byte)
 	raw := make([]byte, uidSize+gateSize+cmdSize+len(data))
-	if pack.User != nil {
-		user := pack.User.(*juser.User)
+	if pack.Ctx != nil {
+		user := pack.Ctx.(*juser.User)
 		binary.LittleEndian.PutUint32(raw, uint32(user.Uid))
 		binary.LittleEndian.PutUint32(raw[uidSize:], uint32(user.Gate))
 	}
@@ -50,15 +50,15 @@ func rpcEncode(pack *jglobal.Pack) error {
 func rpcDecode(pack *jglobal.Pack) error {
 	raw := pack.Data.([]byte)
 	uid := binary.LittleEndian.Uint32(raw)
-	if pack.User == nil && uid != 0 {
+	if pack.Ctx == nil && uid != 0 {
 		user := juser.GetUser(uid)
 		if user == nil {
 			return fmt.Errorf("no such user, uid(%d)", uid)
 		}
-		pack.User = user
+		pack.Ctx = user
 	}
-	if pack.User != nil {
-		pack.User.(*juser.User).SetGate(int(binary.LittleEndian.Uint32(raw[uidSize:])))
+	if pack.Ctx != nil {
+		pack.Ctx.(*juser.User).SetGate(int(binary.LittleEndian.Uint32(raw[uidSize:])))
 	}
 	pack.Cmd = jpb.CMD(binary.LittleEndian.Uint16(raw[uidSize+gateSize:]))
 	pack.Data = raw[uidSize+gateSize+cmdSize:]

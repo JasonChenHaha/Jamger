@@ -7,8 +7,6 @@ import (
 	"time"
 )
 
-var users sync.Map
-
 // 所有属性的写需要使用对应的set方法，以驱动数据定时落地
 type User struct {
 	*juBase.Base
@@ -18,6 +16,8 @@ type User struct {
 	sesId  uint64
 	ticker any
 }
+
+var users sync.Map
 
 // ------------------------- outside -------------------------
 
@@ -58,15 +58,15 @@ func (user *User) SetSesId(id uint64) {
 	user.sesId = id
 }
 
-// ------------------------- inside -------------------------
-
-func (user *User) destory() {
+func (user *User) Destory() {
 	jschedule.Stop(user.ticker)
 	users.Delete(user.Uid)
 }
 
+// ------------------------- inside -------------------------
+
 func (user *User) tick() {
 	if user.Base.Tick() {
-		user.destory()
+		user.Destory()
 	}
 }

@@ -29,7 +29,7 @@ const (
 // +----------+-------+---------+----------+---+
 
 func tcpEncode(pack *jglobal.Pack) error {
-	user := pack.User.(*juser.User)
+	user := pack.Ctx.(*juser.User)
 	data := pack.Data.([]byte)
 	raw := make([]byte, cmdSize+len(data))
 	binary.LittleEndian.PutUint16(raw, uint16(pack.Cmd))
@@ -58,7 +58,7 @@ func tcpDecode(id uint64, pack *jglobal.Pack) error {
 		return fmt.Errorf("no such user, uid(%d)", uid)
 	}
 	user.SetSesId(id)
-	pack.User = user
+	pack.Ctx = user
 	raw = raw[uidSize:]
 	if err := jglobal.AesDecrypt(user.AesKey, &raw); err != nil {
 		return err
@@ -83,7 +83,7 @@ func tcpDecode(id uint64, pack *jglobal.Pack) error {
 
 func httpEncode(url string, pack *jglobal.Pack) error {
 	if url == "/" {
-		user := pack.User.(*juser.User)
+		user := pack.Ctx.(*juser.User)
 		data := pack.Data.([]byte)
 		raw := make([]byte, cmdSize+len(data))
 		binary.LittleEndian.PutUint16(raw, uint16(pack.Cmd))
@@ -99,8 +99,8 @@ func httpEncode(url string, pack *jglobal.Pack) error {
 		raw := make([]byte, cmdSize+len(data))
 		binary.LittleEndian.PutUint16(raw, uint16(pack.Cmd))
 		copy(raw[cmdSize:], data)
-		if pack.User != nil {
-			if err := jglobal.AesEncrypt(pack.User.([]byte), &raw); err != nil {
+		if pack.Ctx != nil {
+			if err := jglobal.AesEncrypt(pack.Ctx.([]byte), &raw); err != nil {
 				return err
 			}
 		}
@@ -134,7 +134,7 @@ func httpDecode(url string, pack *jglobal.Pack) error {
 		if user == nil {
 			return fmt.Errorf("no such user, uid(%d)", uid)
 		}
-		pack.User = user
+		pack.Ctx = user
 		raw = raw[uidSize:]
 		if err := jglobal.AesDecrypt(user.AesKey, &raw); err != nil {
 			return err
@@ -155,7 +155,7 @@ func httpDecode(url string, pack *jglobal.Pack) error {
 		}
 		pack.Cmd = jpb.CMD(binary.LittleEndian.Uint16(raw))
 		pack.Data = raw[cmdSize : pos-aesKeySize]
-		pack.User = raw[pos-aesKeySize : pos] // 取巧设计
+		pack.Ctx = raw[pos-aesKeySize : pos]
 	}
 	return nil
 }
@@ -180,7 +180,7 @@ func httpDecode(url string, pack *jglobal.Pack) error {
 func rpcEncode(pack *jglobal.Pack) error {
 	data := pack.Data.([]byte)
 	raw := make([]byte, uidSize+gateSize+cmdSize+len(data))
-	if user, ok := pack.User.(*juser.User); ok {
+	if user, ok := pack.Ctx.(*juser.User); ok {
 		binary.LittleEndian.PutUint32(raw, user.Uid)
 		binary.LittleEndian.PutUint32(raw[uidSize:], uint32(user.Gate))
 	}
@@ -193,12 +193,12 @@ func rpcEncode(pack *jglobal.Pack) error {
 func rpcDecode(pack *jglobal.Pack) error {
 	raw := pack.Data.([]byte)
 	uid := binary.LittleEndian.Uint32(raw)
-	if pack.User == nil && uid != 0 {
+	if pack.Ctx == nil && uid != 0 {
 		user := juser.GetUser(uid)
 		if user == nil {
 			return fmt.Errorf("no such user, uid(%d)", uid)
 		}
-		pack.User = user
+		pack.Ctx = user
 	}
 	pack.Cmd = jpb.CMD(binary.LittleEndian.Uint16(raw[uidSize+gateSize:]))
 	pack.Data = raw[uidSize+gateSize+cmdSize:]

@@ -41,8 +41,9 @@ func signUp(pack *jglobal.Pack) {
 	}
 	// 判断账号是否存在
 	in := &jmongo.Input{
-		Col:    jglobal.MONGO_USER,
-		Filter: bson.M{"id": req.Id},
+		Col:     jglobal.MONGO_USER,
+		Filter:  bson.M{"basic.id": req.Id},
+		Project: bson.M{"_id": 1},
 	}
 	if err := jdb.Mongo.FindOne(in, &bson.M{}); err == nil {
 		rsp.Code = jpb.CODE_USER_EXIST
@@ -60,11 +61,12 @@ func signUp(pack *jglobal.Pack) {
 		}
 		// 获取自增id
 		in := &jmongo.Input{
-			Col:    jglobal.MONGO_USER,
-			Filter: bson.M{"_id": int64(0)},
-			Update: bson.M{"$inc": bson.M{"counter": int64(1)}},
-			Upsert: true,
-			RetDoc: options.After,
+			Col:     jglobal.MONGO_USER,
+			Filter:  bson.M{"_id": int64(0)},
+			Update:  bson.M{"$inc": bson.M{"counter": int64(1)}},
+			Upsert:  true,
+			RetDoc:  options.After,
+			Project: bson.M{"counter": 1},
 		}
 		out := bson.M{}
 		err = jdb.Mongo.FindOneAndUpdate(in, &out)
@@ -76,7 +78,7 @@ func signUp(pack *jglobal.Pack) {
 		// 创建
 		in = &jmongo.Input{
 			Col:    jglobal.MONGO_USER,
-			Insert: bson.M{"_id": out["counter"], "id": req.Id, "pwd": secret},
+			Insert: bson.M{"_id": out["counter"], "basic": bson.M{"id": req.Id, "pwd": secret}},
 		}
 		err = jdb.Mongo.InsertOne(in)
 		if err != nil {
@@ -100,8 +102,9 @@ func signIn(pack *jglobal.Pack) {
 	}
 	// 账号校验
 	in := &jmongo.Input{
-		Col:    jglobal.MONGO_USER,
-		Filter: bson.M{"id": req.Id},
+		Col:     jglobal.MONGO_USER,
+		Filter:  bson.M{"basic.id": req.Id},
+		Project: bson.M{"basic.pwd": 1},
 	}
 	out := bson.M{}
 	if err := jdb.Mongo.FindOne(in, &out); err == mongo.ErrNoDocuments {
@@ -113,7 +116,7 @@ func signIn(pack *jglobal.Pack) {
 		rsp.Code = jpb.CODE_SVR_ERR
 		return
 	} else {
-		secret := out["pwd"].(primitive.Binary)
+		secret := out["basic"].(primitive.M)["pwd"].(primitive.Binary)
 		err := bcrypt.CompareHashAndPassword(secret.Data, []byte(req.Pwd))
 		if err != nil {
 			// 密码错误

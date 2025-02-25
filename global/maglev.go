@@ -6,11 +6,11 @@ import (
 	"github.com/dchest/siphash"
 )
 
-const THE_NUM = 65537
-
 type Maglev[T comparable] struct {
 	lookup []T
 }
+
+const THE_NUM = 65537
 
 // ------------------------- outside -------------------------
 
@@ -51,7 +51,7 @@ func (ml *Maglev[T]) genLookupTable(node map[int]T) {
 	permutation := map[int][]uint64{}
 	for k := range node {
 		permutation[k] = make([]uint64, THE_NUM)
-		for i := 0; i < THE_NUM; i++ {
+		for i := range THE_NUM {
 			by := []byte(strconv.Itoa(k))
 			offset := siphash.Hash(0, 0, by) % THE_NUM
 			ship := siphash.Hash(1, 1, by)%(THE_NUM-1) + 1

@@ -12,14 +12,14 @@ import (
 // +----------+----------+----------+----------+
 // |    2     |   ...    |    2     |   ...    |
 
-const (
-	CmdSize = 2
-)
-
 type Pack struct {
 	Cmd  jpb.CMD
 	Data []byte
 }
+
+const (
+	CmdSize = 2
+)
 
 // ------------------------- package -------------------------
 

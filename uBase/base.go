@@ -10,23 +10,8 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 )
 
-const (
-	EXPIRE = 10 // 60 * 10
-)
-
-type SesIder interface {
-	GetSesId() uint64
-	SetSesId(uint64)
-}
-
-type Locker interface {
-	Lock()
-	UnLock()
-}
-
 type Base struct {
-	key         string
-	counter     int
+	key         uint32
 	expire      int
 	mutex       sync.Mutex
 	DirtyRedis  map[string]any
@@ -34,21 +19,21 @@ type Base struct {
 	DirtyMongo  map[string]any
 }
 
+const (
+	EXPIRE = 10 // 60 * 10
+)
+
 // ------------------------- outside -------------------------
 
 func NewBase(uid uint32) *Base {
 	base := &Base{
-		key:         jglobal.Itoa(uid),
+		key:         uid,
 		DirtyRedis:  map[string]any{},
 		dirtyRedis2: []any{},
 		DirtyMongo:  map[string]any{},
 		expire:      EXPIRE,
 	}
 	return base
-}
-
-func (base *Base) IsNew() bool {
-	return base.counter == 0
 }
 
 func (base *Base) Lock() {
@@ -60,7 +45,6 @@ func (base *Base) UnLock() {
 }
 
 func (base *Base) Touch() {
-	base.counter++
 	base.expire = EXPIRE
 }
 
@@ -102,7 +86,7 @@ func (base *Base) flush(needLock bool) error {
 			base.mutex.Unlock()
 		}
 		if len(base.dirtyRedis2) > 0 {
-			if _, err := jdb.Redis.HSet(base.key, base.dirtyRedis2...); err != nil {
+			if _, err := jdb.Redis.HSet(jglobal.Itoa(base.key), base.dirtyRedis2...); err != nil {
 				jlog.Error(err)
 				return err
 			}

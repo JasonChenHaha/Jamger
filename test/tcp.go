@@ -4,7 +4,6 @@ import (
 	"encoding/binary"
 	"hash/crc32"
 	"io"
-	"jconfig"
 	"jglobal"
 	"jlog"
 	"jpb"
@@ -24,9 +23,8 @@ func testTcp() {
 	tcp := &Tcp{
 		msg: map[jpb.CMD]proto.Message{},
 	}
-	addr := jconfig.GetString("tcp.addr")
-	con, _ := net.Dial("tcp", addr)
-	jlog.Info("connect to server ", addr)
+	con, _ := net.Dial("tcp", tcpAddr)
+	jlog.Info("connect to server ", tcpAddr)
 	tcp.con = con
 
 	tcp.msg[jpb.CMD_NOTIFY] = &jpb.Notify{}

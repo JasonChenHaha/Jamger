@@ -207,7 +207,6 @@ func schedule() {
 	jschedule.Stop(id)
 	id = jschedule.DoAt(20*time.Second, func() {
 		jlog.Debug("doat")
-
 	})
 	jschedule.Stop(id)
 }

@@ -10,19 +10,20 @@ import (
 	"time"
 )
 
-const (
-	packSize = 2
-)
-
 type Ses struct {
 	id       uint64
 	tcp      *Tcp
 	con      *net.TCPConn
+	user     jglobal.User
 	rTimeout time.Duration
 	sTimeout time.Duration
 	sChan    chan *jglobal.Pack
 	qChan    chan any
 }
+
+const (
+	packSize = 2
+)
 
 // ------------------------- package -------------------------
 
@@ -54,6 +55,9 @@ func (ses *Ses) send(pack *jglobal.Pack) {
 func (ses *Ses) close() {
 	ses.qChan <- 0
 	ses.qChan <- 0
+	if ses.user != nil {
+		ses.user.Destory()
+	}
 }
 
 // ------------------------- inside -------------------------
@@ -80,6 +84,7 @@ func (ses *Ses) recvGoro() {
 				ses.tcp.delete(ses.id)
 				return
 			}
+			ses.user = pack.Ctx.(jglobal.User)
 			ses.tcp.receive(ses, pack)
 		}
 	}

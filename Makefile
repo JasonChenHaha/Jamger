@@ -48,8 +48,8 @@ pb:
 	@cd ./pb && make -s;
 
 test:
-	@cd ./test && make -s;
-
+	@cd ./test && make -s id=$(id) pwd=$(pwd);
+	
 redis:
 	@~/redis/src/redis-cli
 

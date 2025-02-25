@@ -8,26 +8,6 @@ import (
 	"jpb"
 )
 
-var ID int
-var NAME string
-var ZONE int
-var GROUP int
-var INDEX int
-var SERVER string
-var RSA_PRIVATE_KEY *rsa.PrivateKey
-
-const (
-	SVR_GATE   = "gatesvr"
-	GRP_GATE   = 1
-	SVR_AUTH   = "authsvr"
-	GRP_AUTH   = 2
-	SVR_CENTER = "centersvr"
-	GRP_CENTER = 3
-)
-const (
-	MONGO_USER = "user"
-)
-
 type AllInt interface {
 	~int | ~uint | ~int8 | ~uint8 | ~int16 | ~uint16 | ~int32 | ~uint32 | ~int64 | ~uint64
 }
@@ -48,11 +28,44 @@ type AllIntString interface {
 	AllInt | string
 }
 
+type User interface {
+	Destory()
+}
+
+type SesIder interface {
+	GetSesId() uint64
+}
+
+type Locker interface {
+	Lock()
+	UnLock()
+}
+
 type Pack struct {
 	Cmd  jpb.CMD
 	Data any
-	User any
+	Ctx  any
 }
+
+const (
+	SVR_GATE   = "gatesvr"
+	GRP_GATE   = 1
+	SVR_AUTH   = "authsvr"
+	GRP_AUTH   = 2
+	SVR_CENTER = "centersvr"
+	GRP_CENTER = 3
+)
+const (
+	MONGO_USER = "user"
+)
+
+var ID int
+var NAME string
+var ZONE int
+var GROUP int
+var INDEX int
+var SERVER string
+var RSA_PRIVATE_KEY *rsa.PrivateKey
 
 // ------------------------- outside -------------------------
 

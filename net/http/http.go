@@ -6,7 +6,6 @@ import (
 	"jglobal"
 	"jlog"
 	"jpb"
-	"juBase"
 	"net/http"
 
 	"google.golang.org/protobuf/proto"
@@ -89,9 +88,9 @@ func (htp *Http) receive(w http.ResponseWriter, r *http.Request) {
 		}
 		pack.Data = msg
 		if r.URL.Path == "/" {
-			pack.User.(juBase.Locker).Lock()
+			pack.Ctx.(jglobal.Locker).Lock()
 			han.fun(pack)
-			pack.User.(juBase.Locker).UnLock()
+			pack.Ctx.(jglobal.Locker).UnLock()
 		} else {
 			han.fun(pack)
 		}

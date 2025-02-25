@@ -11,7 +11,6 @@ import (
 	"jlog"
 	"jpb"
 	"net/http"
-	"os"
 
 	"google.golang.org/protobuf/proto"
 )
@@ -33,7 +32,6 @@ func testHttp() {
 
 	var cmd jpb.CMD
 	var msg proto.Message
-	id, pwd := os.Args[2], os.Args[3]
 
 	htp.rsp = &jpb.SignUpRsp{}
 	cmd, msg = htp.sendAuth(jpb.CMD_SIGN_UP_REQ, &jpb.SignUpReq{
@@ -76,8 +74,7 @@ func (htp *Http) sendAuth(cmd jpb.CMD, msg proto.Message) (jpb.CMD, proto.Messag
 
 func (htp *Http) send(cmd jpb.CMD, msg proto.Message) (jpb.CMD, proto.Message) {
 	raw := htp.encodeAes(cmd, msg)
-	addr := jconfig.GetString("http.addr")
-	rsp, err := http.Post("http://"+addr, "", bytes.NewBuffer(raw))
+	rsp, err := http.Post("http://"+httpAddr, "", bytes.NewBuffer(raw))
 	if err != nil {
 		jlog.Fatal(err)
 	}

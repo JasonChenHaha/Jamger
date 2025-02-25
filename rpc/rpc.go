@@ -16,19 +16,20 @@ import (
 	"google.golang.org/grpc"
 )
 
-var Rpc *rpc
-
 type rpc struct {
-	server     map[int]*jglobal.HashSlice[int, *jnrpc.Rpc] // map[group] = hs[index, client]
-	maglev     map[int]*jglobal.Maglev[*jnrpc.Rpc]         // map[group] = maglev
-	roundrobin map[int]uint                                // map[group] = cnt
-	mutex      sync.RWMutex
+	server       map[int]*jglobal.HashSlice[int, *jnrpc.Rpc] // map[group] = hs[index, client]
+	maglev       map[int]*jglobal.Maglev[*jnrpc.Rpc]         // map[group] = maglev
+	backupMaglev *jglobal.Maglev[*jnrpc.Rpc]
+	roundrobin   map[int]uint // map[group] = cnt
+	mutex        sync.RWMutex
 }
+
+var rc *rpc
 
 // ------------------------- outside -------------------------
 
-func Init() {
-	Rpc = &rpc{
+func Init() *rpc {
+	rc = &rpc{
 		server:     map[int]*jglobal.HashSlice[int, *jnrpc.Rpc]{},
 		maglev:     map[int]*jglobal.Maglev[*jnrpc.Rpc]{},
 		roundrobin: map[int]uint{},
@@ -36,6 +37,7 @@ func Init() {
 	if jconfig.Get("debug") != nil {
 		jschedule.DoEvery(time.Duration(jconfig.GetInt("debug.interval"))*time.Millisecond, watch)
 	}
+	return rc
 }
 
 func Server(desc *grpc.ServiceDesc, svr any) {
@@ -63,26 +65,26 @@ func Connect(group int) {
 
 // 全部
 func GetAllTarget(group int) []*jnrpc.Rpc {
-	return Rpc.server[group].Values()
+	return rc.server[group].Values()
 }
 
 // 指定
 func GetDirectTarget(group int, index int) *jnrpc.Rpc {
-	Rpc.mutex.RLock()
-	defer Rpc.mutex.RUnlock()
-	if _, ok := Rpc.server[group]; ok {
-		return Rpc.server[group].Get(index)
+	rc.mutex.RLock()
+	defer rc.mutex.RUnlock()
+	if _, ok := rc.server[group]; ok {
+		return rc.server[group].Get(index)
 	}
 	return nil
 }
 
 // 轮询
 func GetRoundRobinTarget(group int) *jnrpc.Rpc {
-	Rpc.mutex.RLock()
-	defer Rpc.mutex.RUnlock()
-	if hs, ok := Rpc.server[group]; ok {
-		index := Rpc.roundrobin[group]
-		Rpc.roundrobin[group]++
+	rc.mutex.RLock()
+	defer rc.mutex.RUnlock()
+	if hs, ok := rc.server[group]; ok {
+		index := rc.roundrobin[group]
+		rc.roundrobin[group]++
 		return hs.IndexOf(int(index % uint(hs.Len())))
 	}
 	return nil
@@ -90,9 +92,9 @@ func GetRoundRobinTarget(group int) *jnrpc.Rpc {
 
 // 固定哈希
 func GetFixHashTarget(group int, key uint32) *jnrpc.Rpc {
-	Rpc.mutex.RLock()
-	defer Rpc.mutex.RUnlock()
-	if hs, ok := Rpc.server[group]; ok {
+	rc.mutex.RLock()
+	defer rc.mutex.RUnlock()
+	if hs, ok := rc.server[group]; ok {
 		return hs.IndexOf(int(key % uint32(hs.Len())))
 	}
 	return nil
@@ -100,10 +102,20 @@ func GetFixHashTarget(group int, key uint32) *jnrpc.Rpc {
 
 // 一致性哈希
 func GetConsistentHashTarget(group int, key uint32) *jnrpc.Rpc {
-	Rpc.mutex.RLock()
-	defer Rpc.mutex.RUnlock()
-	if ml, ok := Rpc.maglev[group]; ok {
+	rc.mutex.RLock()
+	defer rc.mutex.RUnlock()
+	if ml, ok := rc.maglev[group]; ok {
 		return ml.Get(key)
+	}
+	return nil
+}
+
+// 获得本group集群上一次建立一致性哈希映射时，key映射到的节点
+func GetLastConsistentHashTarget(key uint32) *jnrpc.Rpc {
+	rc.mutex.RLock()
+	defer rc.mutex.RUnlock()
+	if rc.backupMaglev != nil {
+		return rc.backupMaglev.Get(key)
 	}
 	return nil
 }
@@ -111,27 +123,32 @@ func GetConsistentHashTarget(group int, key uint32) *jnrpc.Rpc {
 // ------------------------- inside -------------------------
 
 func join(group int, index int, info map[string]any) {
-	Rpc.mutex.Lock()
-	defer Rpc.mutex.Unlock()
-	if _, ok := Rpc.server[group]; !ok {
-		Rpc.server[group] = jglobal.NewHashSlice[int, *jnrpc.Rpc]()
+	rc.mutex.Lock()
+	defer rc.mutex.Unlock()
+	jlog.Debugf("this is %d,%d, join %d,%d", jglobal.GROUP, jglobal.INDEX, group, index)
+	if _, ok := rc.server[group]; !ok {
+		rc.server[group] = jglobal.NewHashSlice[int, *jnrpc.Rpc]()
 	}
-	Rpc.server[group].Insert(group, jnrpc.NewRpc().AsClient(info["addr"].(string)))
-	Rpc.maglev[group] = jglobal.NewMaglev[*jnrpc.Rpc](Rpc.server[group].KeyValues())
+	rc.server[group].Insert(index, jnrpc.NewRpc().AsClient(info["addr"].(string)))
+	if group == jglobal.GROUP && rc.maglev[group] != nil {
+		rc.backupMaglev = rc.maglev[group]
+	}
+	rc.maglev[group] = jglobal.NewMaglev(rc.server[group].KeyValues())
 }
 
 func leave(group int, index int, info map[string]any) {
-	Rpc.mutex.Lock()
-	defer Rpc.mutex.Unlock()
-	if Rpc.server[group] != nil {
-		hs := Rpc.server[group]
+	rc.mutex.Lock()
+	defer rc.mutex.Unlock()
+	if rc.server[group] != nil {
+		jlog.Debugf("this is %d,%d, leave %d,%d", jglobal.GROUP, jglobal.INDEX, group, index)
+		hs := rc.server[group]
 		hs.Del(index)
 		if hs.Len() > 0 {
-			Rpc.maglev[group] = jglobal.NewMaglev[*jnrpc.Rpc](Rpc.server[group].KeyValues())
+			rc.maglev[group] = jglobal.NewMaglev(rc.server[group].KeyValues())
 		} else {
-			delete(Rpc.server, group)
-			delete(Rpc.maglev, group)
-			delete(Rpc.roundrobin, group)
+			delete(rc.server, group)
+			delete(rc.maglev, group)
+			delete(rc.roundrobin, group)
 		}
 	}
 }
@@ -139,13 +156,13 @@ func leave(group int, index int, info map[string]any) {
 // ------------------------- debug -------------------------
 
 func watch() {
-	for k, v := range Rpc.server {
+	for k, v := range rc.server {
 		jlog.Debugf("server %d -> %d", k, v.Len())
 	}
-	for k := range Rpc.maglev {
+	for k := range rc.maglev {
 		jlog.Debug("maglev ", k)
 	}
-	for k, v := range Rpc.roundrobin {
+	for k, v := range rc.roundrobin {
 		jlog.Debugf("roundrobin %d -> %d", k, v)
 	}
 }

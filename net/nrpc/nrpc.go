@@ -9,7 +9,6 @@ import (
 	"jglobal"
 	"jlog"
 	"jpb"
-	"juBase"
 	"net"
 	"net/http"
 	"time"
@@ -118,7 +117,7 @@ func (rpc *Rpc) Proxy(pack *jglobal.Pack) bool {
 }
 
 // 请求响应模式发送
-func (rpc *Rpc) Call(pack *jglobal.Pack, msg proto.Message) bool {
+func (rpc *Rpc) Call(pack *jglobal.Pack, template proto.Message) bool {
 	var err error
 	pack.Data, err = proto.Marshal(pack.Data.(proto.Message))
 	if err != nil {
@@ -149,16 +148,16 @@ func (rpc *Rpc) Call(pack *jglobal.Pack, msg proto.Message) bool {
 		jlog.Error(err)
 		return false
 	}
-	if err = proto.Unmarshal(pack.Data.([]byte), msg); err != nil {
+	if err = proto.Unmarshal(pack.Data.([]byte), template); err != nil {
 		jlog.Errorf("%s, cmd(%d)", err, pack.Cmd)
 		return false
 	}
-	pack.Data = msg
+	pack.Data = template
 	return true
 }
 
-// 请求模式发送
-func (rpc *Rpc) Send(pack *jglobal.Pack) {
+// 发给客户端
+func (rpc *Rpc) SendToC(pack *jglobal.Pack) {
 	if err := encoder(pack); err != nil {
 		jlog.Error(err)
 		return
@@ -170,8 +169,8 @@ func (rpc *Rpc) Send(pack *jglobal.Pack) {
 	rsp.Body.Close()
 }
 
-// 广播
-func (rpc *Rpc) Broadcast(pack *jglobal.Pack) {
+// 广播给客户端
+func (rpc *Rpc) BroadcastToC(pack *jglobal.Pack) {
 	if err := encoder(pack); err != nil {
 		jlog.Error(err)
 		return
@@ -209,10 +208,10 @@ func (rpc *Rpc) receive(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		pack.Data = msg
-		if pack.User != nil {
-			pack.User.(juBase.Locker).Lock()
+		if pack.Ctx != nil {
+			pack.Ctx.(jglobal.Locker).Lock()
 			han.fun(pack)
-			pack.User.(juBase.Locker).UnLock()
+			pack.Ctx.(jglobal.Locker).UnLock()
 		} else {
 			han.fun(pack)
 		}

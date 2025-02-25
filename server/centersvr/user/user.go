@@ -7,8 +7,6 @@ import (
 	"time"
 )
 
-var users sync.Map
-
 // 所有属性的写需要使用对应的set方法，以驱动数据定时落地
 type User struct {
 	*juBase.Base
@@ -18,25 +16,37 @@ type User struct {
 	ticker any
 }
 
+var users sync.Map
+
 // ------------------------- outside -------------------------
 
 func Init() {}
 
 func GetUser(uid uint32) *User {
 	if v, ok := users.Load(uid); ok {
-		user := v.(*User)
-		user.Touch()
-		return user
-	} else {
-		user := &User{
-			Uid:  uid,
-			Base: juBase.NewBase(uid),
+		if juBase.IsProtectMode(uid) {
+			users.Delete(uid)
+		} else {
+			user := v.(*User)
+			user.Touch()
+			return user
 		}
-		user.Basic = newBasic(user)
-		user.Redis = newRedis(user)
-		user.ticker = jschedule.DoEvery(time.Second, user.tick)
-		users.Store(uid, user)
-		return user
+	}
+	user := &User{
+		Uid:  uid,
+		Base: juBase.NewBase(uid),
+	}
+	user.Basic = newBasic(user)
+	user.Redis = newRedis(user)
+	user.ticker = jschedule.DoEvery(time.Second, user.tick)
+	users.Store(uid, user)
+	return user
+}
+
+func DelUser(uid uint32) {
+	if v, ok := users.Load(uid); ok {
+		v.(*User).destory()
+		users.Delete(uid)
 	}
 }
 
