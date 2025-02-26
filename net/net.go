@@ -54,7 +54,7 @@ func BroadcastToC(pack *jglobal.Pack) bool {
 		jlog.Errorf("%s, cmd(%d)", err, pack.Cmd)
 		return false
 	}
-	targets := jrpc.GetAllTarget(jglobal.GRP_GATE)
+	targets := jrpc.Rpc.GetAllTarget(jglobal.GRP_GATE)
 	for _, v := range targets {
 		v.BroadcastToC(pack)
 	}
@@ -74,7 +74,7 @@ func SendToC(pack *jglobal.Pack, ids ...uint32) bool {
 		user := juser.GetUser(id)
 		if user.Gate != 0 {
 			group, index := jglobal.ParseServerID(user.Gate)
-			target := jrpc.GetDirectTarget(group, index)
+			target := jrpc.Rpc.GetDirectTarget(group, index)
 			if target != nil {
 				pack.Ctx = user
 				target.SendToC(pack)

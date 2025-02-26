@@ -199,9 +199,9 @@ func schedule() {
 	jschedule.Stop(id)
 	id = jschedule.DoCron("* * * * * *", func() {
 		jlog.Debug("docron")
-		jevent.LocalPublish(jevent.EVENT_TEST_1, nil)
+		jevent.Event.LocalPublish(jevent.EVENT_TEST_1, nil)
 		if jglobal.SERVER == "jamger1" {
-			jevent.RemotePublish(jevent.EVENT_TEST_2, []byte("recv remote event"))
+			jevent.Event.RemotePublish(jevent.EVENT_TEST_2, []byte("recv remote event"))
 		}
 	})
 	jschedule.Stop(id)
@@ -212,46 +212,17 @@ func schedule() {
 }
 
 func event() {
-	jevent.LocalRegister(jevent.EVENT_TEST_1, func(context any) {
+	jevent.Event.LocalRegister(jevent.EVENT_TEST_1, func(context any) {
 		jlog.Debug("recv local event")
 	})
-	jevent.LocalRegister(jevent.EVENT_TEST_1, func(context any) {
+	jevent.Event.LocalRegister(jevent.EVENT_TEST_1, func(context any) {
 		jlog.Debug("recv local event")
 	})
-	jevent.RemoteRegister(jevent.EVENT_TEST_2, func(msg *nsq.Message) error {
+	jevent.Event.RemoteRegister(jevent.EVENT_TEST_2, func(msg *nsq.Message) error {
 		jlog.Debug(jglobal.SERVER, string(msg.Body))
 		return nil
 	})
 }
 
 func rpc() {
-	// f := func(target any) {
-	// 	rsp, err := target.(jpb.AuthClient).Signup(context.Background(), &jpb.SignUpReq{})
-	// 	if err != nil {
-	// 		jlog.Error(err)
-	// 	} else {
-	// 		jlog.Debug(rsp)
-	// 	}
-	// }
-
-	// if jglobal.NAME == jglobal.SVR_AUTH {
-	// 	jrpc.Server(&jpb.Auth_ServiceDesc, &AuthServer{})
-	// }
-	// if jglobal.NAME == jglobal.SVR_GATE {
-	// 	jrpc.Connect(jglobal.GRP_AUTH, jpb.NewAuthClient)
-	// 	jschedule.DoCron("*/5 * * * * *", func() {
-	// 		if target := jrpc.GetTarget(jglobal.GRP_AUTH, 1); target != nil {
-	// 			f(target)
-	// 		}
-	// 		// if target := jrpc.GetFixHashTarget(jglobal.GRP_AUTH, i); target != nil {
-	// 		// 	f(target)
-	// 		// }
-	// 		// if target := jrpc.GetRoundRobinTarget(jglobal.GRP_AUTH); target != nil {
-	// 		// 	f(target)
-	// 		// }
-	// 		// if target := jrpc.GetConsistentHashTarget(jglobal.GRP_AUTH, i); target != nil {
-	// 		// 	f(target)
-	// 		// }
-	// 	})
-	// }
 }

@@ -24,30 +24,30 @@ type event struct {
 	consumer     map[string]*nsq.Consumer
 }
 
-var ev *event
+var Event *event
 
 // ------------------------- outside -------------------------
 
 func Init() {
-	ev = &event{
+	Event = &event{
 		localHandler: map[uint32][]LocalHandler{},
 		consumer:     map[string]*nsq.Consumer{},
 	}
 }
 
-func LocalRegister(id uint32, handler LocalHandler) {
-	ev.localHandler[id] = append(ev.localHandler[id], handler)
+func (o *event) LocalRegister(id uint32, handler LocalHandler) {
+	o.localHandler[id] = append(o.localHandler[id], handler)
 }
 
-func LocalPublish(id uint32, context any) {
-	if o, ok := ev.localHandler[id]; ok {
-		for _, v := range o {
+func (o *event) LocalPublish(id uint32, context any) {
+	if v, ok := o.localHandler[id]; ok {
+		for _, v := range v {
 			v(context)
 		}
 	}
 }
 
-func RemoteRegister(id string, handler RemoteHandler) {
+func (o *event) RemoteRegister(id string, handler RemoteHandler) {
 	consumer, err := nsq.NewConsumer(id, jglobal.SERVER, nsq.NewConfig())
 	if err != nil {
 		jlog.Panic(err)
@@ -58,19 +58,19 @@ func RemoteRegister(id string, handler RemoteHandler) {
 	if err != nil {
 		jlog.Panic(err)
 	}
-	ev.consumer[id] = consumer
+	o.consumer[id] = consumer
 }
 
-func RemotePublish(id string, data []byte) {
-	if ev.producer == nil {
+func (o *event) RemotePublish(id string, data []byte) {
+	if o.producer == nil {
 		producer, err := nsq.NewProducer(jconfig.GetString("nsq.addr"), nsq.NewConfig())
 		if err != nil {
 			jlog.Panic(err)
 		}
 		producer.SetLogger(jlog.Logger(), nsq.LogLevelWarning)
-		ev.producer = producer
+		o.producer = producer
 	}
-	err := ev.producer.Publish(id, data)
+	err := o.producer.Publish(id, data)
 	if err != nil {
 		log.Panic(err)
 	}

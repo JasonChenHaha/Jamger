@@ -1,6 +1,8 @@
 package jglobal
 
 import (
+	"slices"
+	"sort"
 	"strconv"
 
 	"github.com/dchest/siphash"
@@ -20,59 +22,65 @@ func NewMaglev[T comparable](node map[int]T) *Maglev[T] {
 	return m
 }
 
-func (ml *Maglev[T]) Get(key any) T {
+func (o *Maglev[T]) Get(key any) T {
 	var id uint64
-	switch o := key.(type) {
+	switch v := key.(type) {
 	case string:
-		id = siphash.Hash(0, 0, []byte(o))
+		id = siphash.Hash(0, 0, []byte(v))
 	case int:
-		id = uint64(o)
+		id = uint64(v)
 	case uint:
-		id = uint64(o)
+		id = uint64(v)
 	case int16:
-		id = uint64(o)
+		id = uint64(v)
 	case uint16:
-		id = uint64(o)
+		id = uint64(v)
 	case int32:
-		id = uint64(o)
+		id = uint64(v)
 	case uint32:
-		id = uint64(o)
+		id = uint64(v)
 	case int64:
-		id = uint64(o)
+		id = uint64(v)
 	case uint64:
-		id = uint64(o)
+		id = uint64(v)
 	}
-	return ml.lookup[id%THE_NUM]
+	return o.lookup[id%THE_NUM]
 }
 
 // ------------------------- inside -------------------------
 
-func (ml *Maglev[T]) genLookupTable(node map[int]T) {
+func (o *Maglev[T]) genLookupTable(node map[int]T) {
 	permutation := map[int][]uint64{}
+	keys := []int{}
 	for k := range node {
-		permutation[k] = make([]uint64, THE_NUM)
+		keys = append(keys, k)
+	}
+	sort.Ints(keys)
+	for _, v := range keys {
+		permutation[v] = make([]uint64, THE_NUM)
 		for i := range THE_NUM {
-			by := []byte(strconv.Itoa(k))
+			by := []byte(strconv.Itoa(v))
 			offset := siphash.Hash(0, 0, by) % THE_NUM
 			ship := siphash.Hash(1, 1, by)%(THE_NUM-1) + 1
-			permutation[k][i] = (offset + uint64(i)*ship) % THE_NUM
+			permutation[v][i] = (offset + uint64(i)*ship) % THE_NUM
 		}
 	}
 	var zero T
 	n := uint64(0)
 	for {
-		for k := range permutation {
-			for len(permutation[k]) > 0 {
-				idx := permutation[k][0]
-				permutation[k] = permutation[k][1:]
-				if ml.lookup[idx] == zero {
-					ml.lookup[idx] = node[k]
+		for i := len(keys) - 1; i >= 0; i-- {
+			v := keys[i]
+			for len(permutation[v]) > 0 {
+				idx := permutation[v][0]
+				permutation[v] = permutation[v][1:]
+				if o.lookup[idx] == zero {
+					o.lookup[idx] = node[v]
 					n++
 					break
 				}
 			}
-			if len(permutation[k]) == 0 {
-				delete(permutation, k)
+			if len(permutation[v]) == 0 {
+				keys = slices.Delete(keys, i, i+1)
 			}
 		}
 		if len(permutation) == 0 || n == THE_NUM {

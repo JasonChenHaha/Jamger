@@ -9,37 +9,66 @@ package juBase
 
 import (
 	"jglobal"
+	"jnrpc"
 	"jpb"
-	"jrpc"
 	"jschedule"
+	"sync"
+	"time"
 )
 
-type Protect struct {
-	rec map[uint32]struct{}
+type Rpc interface {
+	GetLastConsistentHashTarget(uint32) *jnrpc.Rpc
+	GetConsistentHashTarget(int, uint32) *jnrpc.Rpc
 }
 
-var prot *Protect
+type protect struct {
+	rpc    Rpc
+	enable bool
+	rec    map[uint32]struct{}
+	ticker any
+	mutex  sync.RWMutex
+}
+
+var Protect *protect
 
 // ------------------------- outside -------------------------
 
-func CreateProtect() {
-	prot = &Protect{}
-	jschedule.DoAt(EXPIRE, func() {
-		prot = nil
+func Init(rpc Rpc) {
+	Protect = &protect{
+		rpc: rpc,
+		rec: map[uint32]struct{}{},
+	}
+}
+
+func (o *protect) Activate() {
+	o.mutex.Lock()
+	defer o.mutex.Unlock()
+	if o.enable {
+		jschedule.Stop(o.ticker)
+		o.rec = map[uint32]struct{}{}
+	}
+	o.enable = true
+	o.ticker = jschedule.DoAt(EXPIRE*time.Second, func() {
+		o.mutex.Lock()
+		defer o.mutex.Unlock()
+		o.enable = false
+		o.rec = map[uint32]struct{}{}
 	})
 }
 
-func IsProtectMode(uid uint32) bool {
-	if prot != nil {
-		if _, ok := prot.rec[uid]; !ok {
+func (o *protect) IsProtectMode(uid uint32) bool {
+	o.mutex.RLock()
+	defer o.mutex.RUnlock()
+	if o.enable {
+		if _, ok := o.rec[uid]; !ok {
 			// 如果两次映射的节点不同，说明发生了路由变动
-			if target := jrpc.GetLastConsistentHashTarget(uid); target != jrpc.GetConsistentHashTarget(jglobal.GROUP, uid) {
+			if target := o.rpc.GetLastConsistentHashTarget(uid); target != o.rpc.GetConsistentHashTarget(jglobal.GROUP, uid) {
 				go target.Call(&jglobal.Pack{
 					Cmd:  jpb.CMD_DEL_USER,
 					Data: &jpb.DelUserReq{Uid: uid},
 				}, &jpb.DelUserRsp{})
 			}
-			prot.rec[uid] = struct{}{}
+			o.rec[uid] = struct{}{}
 			return true
 		}
 	}

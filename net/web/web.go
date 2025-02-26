@@ -30,16 +30,16 @@ func NewWeb() *Web {
 	return &Web{}
 }
 
-func (web *Web) AsServer() *Web {
-	web.handler = map[jpb.CMD]Handler{}
-	web.upgrader = &websocket.Upgrader{
+func (o *Web) AsServer() *Web {
+	o.handler = map[jpb.CMD]Handler{}
+	o.upgrader = &websocket.Upgrader{
 		CheckOrigin: func(r *http.Request) bool {
 			return true
 		},
 	}
 	go func() {
 		mux := http.NewServeMux()
-		mux.HandleFunc("/", web.accept)
+		mux.HandleFunc("/", o.accept)
 		server := &http.Server{
 			Addr:    jconfig.GetString("web.addr"),
 			Handler: mux,
@@ -50,21 +50,21 @@ func (web *Web) AsServer() *Web {
 		}
 	}()
 	if jconfig.Get("debug") != nil {
-		jschedule.DoEvery(time.Duration(jconfig.GetInt("debug.interval"))*time.Millisecond, web.watch)
+		jschedule.DoEvery(time.Duration(jconfig.GetInt("debug.interval"))*time.Millisecond, o.watch)
 	}
-	return web
+	return o
 }
 
-func (web *Web) AsClient() *Web {
-	return web
+func (o *Web) AsClient() *Web {
+	return o
 }
 
-func (web *Web) Register(cmd jpb.CMD, handler Handler) {
-	web.handler[cmd] = handler
+func (o *Web) Register(cmd jpb.CMD, handler Handler) {
+	o.handler[cmd] = handler
 }
 
-func (web *Web) Send(id uint64, cmd jpb.CMD, data []byte) {
-	obj, ok := web.ses.Load(id)
+func (o *Web) Send(id uint64, cmd jpb.CMD, data []byte) {
+	obj, ok := o.ses.Load(id)
 	if !ok {
 		jlog.Errorf("session(%d) not found", id)
 		return
@@ -74,32 +74,32 @@ func (web *Web) Send(id uint64, cmd jpb.CMD, data []byte) {
 
 // ------------------------- inside -------------------------
 
-func (web *Web) accept(w http.ResponseWriter, r *http.Request) {
-	con, err := web.upgrader.Upgrade(w, r, nil)
+func (o *Web) accept(w http.ResponseWriter, r *http.Request) {
+	con, err := o.upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		jlog.Error(err)
 	}
-	web.add(con)
+	o.add(con)
 }
 
-func (web *Web) add(con *websocket.Conn) {
-	id := atomic.AddUint64(&web.idc, 1)
-	ses := newSes(web, con, id)
-	web.ses.Store(id, ses)
-	web.counter++
+func (o *Web) add(con *websocket.Conn) {
+	id := atomic.AddUint64(&o.idc, 1)
+	ses := newSes(o, con, id)
+	o.ses.Store(id, ses)
+	o.counter++
 	ses.run()
 }
 
-func (web *Web) delete(id uint64) {
-	if obj, ok := web.ses.Load(id); ok {
-		web.ses.Delete(id)
-		web.counter--
+func (o *Web) delete(id uint64) {
+	if obj, ok := o.ses.Load(id); ok {
+		o.ses.Delete(id)
+		o.counter--
 		obj.(*Ses).close()
 	}
 }
 
-func (web *Web) receive(id uint64, pack *Pack) {
-	fu, ok := web.handler[pack.Cmd]
+func (o *Web) receive(id uint64, pack *Pack) {
+	fu, ok := o.handler[pack.Cmd]
 	if !ok {
 		jlog.Warn("cmd not exist, ", pack.Cmd)
 		return
@@ -109,6 +109,6 @@ func (web *Web) receive(id uint64, pack *Pack) {
 
 // ------------------------- debug -------------------------
 
-func (web *Web) watch() {
-	jlog.Debug("connecting ", web.counter)
+func (o *Web) watch() {
+	jlog.Debug("connecting ", o.counter)
 }

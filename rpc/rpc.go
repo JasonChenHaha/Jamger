@@ -6,14 +6,11 @@ import (
 	"jglobal"
 	"jlog"
 	"jnrpc"
-	"log"
-	"net"
+	"juBase"
 	"sync"
 	"time"
 
 	"jschedule"
-
-	"google.golang.org/grpc"
 )
 
 type rpc struct {
@@ -24,145 +21,134 @@ type rpc struct {
 	mutex        sync.RWMutex
 }
 
-var rc *rpc
+var Rpc *rpc
 
 // ------------------------- outside -------------------------
 
 func Init() *rpc {
-	rc = &rpc{
+	Rpc = &rpc{
 		server:     map[int]*jglobal.HashSlice[int, *jnrpc.Rpc]{},
 		maglev:     map[int]*jglobal.Maglev[*jnrpc.Rpc]{},
 		roundrobin: map[int]uint{},
 	}
 	if jconfig.Get("debug") != nil {
-		jschedule.DoEvery(time.Duration(jconfig.GetInt("debug.interval"))*time.Millisecond, watch)
+		jschedule.DoEvery(time.Duration(jconfig.GetInt("debug.interval"))*time.Millisecond, Rpc.watch)
 	}
-	return rc
+	return Rpc
 }
 
-func Server(desc *grpc.ServiceDesc, svr any) {
-	lis, err := net.Listen("tcp", jconfig.GetString("grpc.addr"))
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	s := grpc.NewServer()
-	if t, ok := svr.(interface{ testEmbeddedByValue() }); ok {
-		t.testEmbeddedByValue()
-	}
-	s.RegisterService(desc, svr)
-	go func() {
-		err = s.Serve(lis)
-		if err != nil {
-			log.Fatal(err)
-		}
-	}()
-}
-
-func Connect(group int) {
-	jetcd.Watch(group, join, leave)
+func (o *rpc) Connect(group int) {
+	jetcd.Etcd.Watch(group, Rpc.join, Rpc.leave)
 }
 
 // 全部
-func GetAllTarget(group int) []*jnrpc.Rpc {
-	return rc.server[group].Values()
+func (o *rpc) GetAllTarget(group int) []*jnrpc.Rpc {
+	return o.server[group].Values()
 }
 
 // 指定
-func GetDirectTarget(group int, index int) *jnrpc.Rpc {
-	rc.mutex.RLock()
-	defer rc.mutex.RUnlock()
-	if _, ok := rc.server[group]; ok {
-		return rc.server[group].Get(index)
+func (o *rpc) GetDirectTarget(group int, index int) *jnrpc.Rpc {
+	o.mutex.RLock()
+	defer o.mutex.RUnlock()
+	if _, ok := o.server[group]; ok {
+		return o.server[group].Get(index)
 	}
 	return nil
 }
 
 // 轮询
-func GetRoundRobinTarget(group int) *jnrpc.Rpc {
-	rc.mutex.RLock()
-	defer rc.mutex.RUnlock()
-	if hs, ok := rc.server[group]; ok {
-		index := rc.roundrobin[group]
-		rc.roundrobin[group]++
+func (o *rpc) GetRoundRobinTarget(group int) *jnrpc.Rpc {
+	o.mutex.RLock()
+	defer o.mutex.RUnlock()
+	if hs, ok := o.server[group]; ok {
+		index := o.roundrobin[group]
+		o.roundrobin[group]++
 		return hs.IndexOf(int(index % uint(hs.Len())))
 	}
 	return nil
 }
 
 // 固定哈希
-func GetFixHashTarget(group int, key uint32) *jnrpc.Rpc {
-	rc.mutex.RLock()
-	defer rc.mutex.RUnlock()
-	if hs, ok := rc.server[group]; ok {
+func (o *rpc) GetFixHashTarget(group int, key uint32) *jnrpc.Rpc {
+	o.mutex.RLock()
+	defer o.mutex.RUnlock()
+	if hs, ok := o.server[group]; ok {
 		return hs.IndexOf(int(key % uint32(hs.Len())))
 	}
 	return nil
 }
 
 // 一致性哈希
-func GetConsistentHashTarget(group int, key uint32) *jnrpc.Rpc {
-	rc.mutex.RLock()
-	defer rc.mutex.RUnlock()
-	if ml, ok := rc.maglev[group]; ok {
+func (o *rpc) GetConsistentHashTarget(group int, key uint32) *jnrpc.Rpc {
+	o.mutex.RLock()
+	defer o.mutex.RUnlock()
+	if ml, ok := o.maglev[group]; ok {
 		return ml.Get(key)
 	}
 	return nil
 }
 
 // 获得本group集群上一次建立一致性哈希映射时，key映射到的节点
-func GetLastConsistentHashTarget(key uint32) *jnrpc.Rpc {
-	rc.mutex.RLock()
-	defer rc.mutex.RUnlock()
-	if rc.backupMaglev != nil {
-		return rc.backupMaglev.Get(key)
+func (o *rpc) GetLastConsistentHashTarget(key uint32) *jnrpc.Rpc {
+	o.mutex.RLock()
+	defer o.mutex.RUnlock()
+	if o.backupMaglev != nil {
+		return o.backupMaglev.Get(key)
 	}
 	return nil
 }
 
 // ------------------------- inside -------------------------
 
-func join(group int, index int, info map[string]any) {
-	rc.mutex.Lock()
-	defer rc.mutex.Unlock()
+func (o *rpc) join(group int, index int, info map[string]any) {
+	o.mutex.Lock()
+	defer o.mutex.Unlock()
 	jlog.Debugf("this is %d,%d, join %d,%d", jglobal.GROUP, jglobal.INDEX, group, index)
-	if _, ok := rc.server[group]; !ok {
-		rc.server[group] = jglobal.NewHashSlice[int, *jnrpc.Rpc]()
+	if _, ok := o.server[group]; !ok {
+		o.server[group] = jglobal.NewHashSlice[int, *jnrpc.Rpc]()
 	}
-	rc.server[group].Insert(index, jnrpc.NewRpc().AsClient(info["addr"].(string)))
-	if group == jglobal.GROUP && rc.maglev[group] != nil {
-		rc.backupMaglev = rc.maglev[group]
+	activate := false
+	if index == jglobal.INDEX && o.server[group].Get(index) == nil {
+		activate = true
 	}
-	rc.maglev[group] = jglobal.NewMaglev(rc.server[group].KeyValues())
+	o.server[group].Insert(index, jnrpc.NewRpc().AsClient(info["addr"].(string)))
+	if group == jglobal.GROUP && o.maglev[group] != nil {
+		o.backupMaglev = o.maglev[group]
+	}
+	o.maglev[group] = jglobal.NewMaglev(o.server[group].KeyValues())
+	if activate {
+		// 如果本节点是新加入进来的，进入protect模式
+		juBase.Protect.Activate()
+	}
 }
 
-func leave(group int, index int, info map[string]any) {
-	rc.mutex.Lock()
-	defer rc.mutex.Unlock()
-	if rc.server[group] != nil {
+func (o *rpc) leave(group int, index int, info map[string]any) {
+	o.mutex.Lock()
+	defer o.mutex.Unlock()
+	if o.server[group] != nil {
 		jlog.Debugf("this is %d,%d, leave %d,%d", jglobal.GROUP, jglobal.INDEX, group, index)
-		hs := rc.server[group]
+		hs := o.server[group]
 		hs.Del(index)
 		if hs.Len() > 0 {
-			rc.maglev[group] = jglobal.NewMaglev(rc.server[group].KeyValues())
+			o.maglev[group] = jglobal.NewMaglev(o.server[group].KeyValues())
 		} else {
-			delete(rc.server, group)
-			delete(rc.maglev, group)
-			delete(rc.roundrobin, group)
+			delete(o.server, group)
+			delete(o.maglev, group)
+			delete(o.roundrobin, group)
 		}
 	}
 }
 
 // ------------------------- debug -------------------------
 
-func watch() {
-	for k, v := range rc.server {
+func (o *rpc) watch() {
+	for k, v := range o.server {
 		jlog.Debugf("server %d -> %d", k, v.Len())
 	}
-	for k := range rc.maglev {
+	for k := range o.maglev {
 		jlog.Debug("maglev ", k)
 	}
-	for k, v := range rc.roundrobin {
+	for k, v := range o.roundrobin {
 		jlog.Debugf("roundrobin %d -> %d", k, v)
 	}
 }

@@ -20,45 +20,45 @@ func NewQueue[T any]() *Queue[T] {
 	}
 }
 
-func (que *Queue[T]) Push(data T) {
-	que.buffer[que.w] = data
-	que.w++
-	if que.w == que.size {
-		que.w = 0
+func (o *Queue[T]) Push(data T) {
+	o.buffer[o.w] = data
+	o.w++
+	if o.w == o.size {
+		o.w = 0
 	}
-	if que.w == que.r {
-		size0, size1 := len(que.buffer), 0
+	if o.w == o.r {
+		size0, size1 := len(o.buffer), 0
 		if size0 < 1024 {
 			size1 = size0 * 2
 		} else {
 			size1 = size0 + size0/4
 		}
 		buffer := make([]T, size1)
-		copy(buffer, que.buffer[que.r:])
-		copy(buffer[size0-que.r:], que.buffer[:que.r])
-		que.buffer = buffer
-		que.size = size1
-		que.r = 0
-		que.w = size0
+		copy(buffer, o.buffer[o.r:])
+		copy(buffer[size0-o.r:], o.buffer[:o.r])
+		o.buffer = buffer
+		o.size = size1
+		o.r = 0
+		o.w = size0
 	}
 }
 
-func (que *Queue[T]) Peek() (T, bool) {
-	if que.r == que.w {
+func (o *Queue[T]) Peek() (T, bool) {
+	if o.r == o.w {
 		var zero T
 		return zero, false
 	}
-	return que.buffer[que.r], true
+	return o.buffer[o.r], true
 }
 
-func (que *Queue[T]) Pop() T {
-	if que.r == que.w {
+func (o *Queue[T]) Pop() T {
+	if o.r == o.w {
 		jlog.Panic("queue is empty.")
 	}
-	tmp := que.buffer[que.r]
-	que.r++
-	if que.r == que.size {
-		que.r = 0
+	tmp := o.buffer[o.r]
+	o.r++
+	if o.r == o.size {
+		o.r = 0
 	}
 	return tmp
 }

@@ -13,9 +13,9 @@ import (
 // ------------------------- outside -------------------------
 
 func Init() {
-	jrpc.Connect(jglobal.GRP_GATE)
-	jrpc.Connect(jglobal.GRP_AUTH)
-	jrpc.Connect(jglobal.GRP_CENTER)
+	jrpc.Rpc.Connect(jglobal.GRP_GATE)
+	jrpc.Rpc.Connect(jglobal.GRP_AUTH)
+	jrpc.Rpc.Connect(jglobal.GRP_CENTER)
 	jnet.Http.Encoder(httpEncode)
 	jnet.Http.Decoder(httpDecode)
 	jnet.Http.Register(jpb.CMD_PROXY, proxy, nil)
@@ -34,7 +34,7 @@ func Init() {
 
 // 透传
 func proxy(pack *jglobal.Pack) {
-	target := jrpc.GetRoundRobinTarget(jglobal.GetGroup(pack.Cmd))
+	target := jrpc.Rpc.GetRoundRobinTarget(jglobal.GetGroup(pack.Cmd))
 	if target == nil {
 		pack.Cmd = jpb.CMD_GATE_INFO
 		pack.Data = &jpb.Error{Code: jpb.CODE_SVR_ERR}
@@ -48,7 +48,7 @@ func proxy(pack *jglobal.Pack) {
 
 // auth登录
 func signIn(pack *jglobal.Pack) {
-	target := jrpc.GetRoundRobinTarget(jglobal.GetGroup(pack.Cmd))
+	target := jrpc.Rpc.GetRoundRobinTarget(jglobal.GetGroup(pack.Cmd))
 	if target == nil {
 		pack.Cmd = jpb.CMD_GATE_INFO
 		pack.Data = &jpb.Error{Code: jpb.CODE_SVR_ERR}
@@ -74,7 +74,7 @@ func signIn(pack *jglobal.Pack) {
 func login(pack *jglobal.Pack) {
 	user := pack.Ctx.(*juser.User)
 	defer jnet.Tcp.Send(pack)
-	target := jrpc.GetConsistentHashTarget(jglobal.GRP_CENTER, user.Uid)
+	target := jrpc.Rpc.GetConsistentHashTarget(jglobal.GRP_CENTER, user.Uid)
 	if target == nil {
 		pack.Cmd = jpb.CMD_GATE_INFO
 		pack.Data = &jpb.Error{Code: jpb.CODE_SVR_ERR}

@@ -7,7 +7,6 @@ import (
 	"jglobal"
 	"jlog"
 	"jschedule"
-	"juBase"
 	"strings"
 	"time"
 
@@ -23,12 +22,12 @@ type etcd struct {
 	watch  map[int][2]Handler             // map[group] = [joinHandler, leaveHandler]
 }
 
-var etc *etcd
+var Etcd *etcd
 
 // ------------------------- outside -------------------------
 
 func Init() {
-	etc = &etcd{
+	Etcd = &etcd{
 		server: map[int]map[int]map[string]any{},
 		watch:  map[int][2]Handler{},
 	}
@@ -36,48 +35,57 @@ func Init() {
 	if err != nil {
 		jlog.Fatal(err)
 	}
-	etc.Client = cli
-	etc.upload()
-	jschedule.DoAt(3*time.Second, etc.update)
-	jschedule.DoEvery(time.Duration(jconfig.GetInt("etcd.update"))*time.Millisecond, etc.update)
+	Etcd.Client = cli
+	jschedule.DoAt(time.Second, Etcd.upload)
+	jschedule.DoAt(3*time.Second, Etcd.update)
+	jschedule.DoEvery(time.Duration(jconfig.GetInt("etcd.update"))*time.Millisecond, Etcd.update)
 }
 
-func Watch(group int, join Handler, leave Handler) {
-	etc.watch[group] = [2]Handler{join, leave}
+func (o *etcd) Watch(group int, join Handler, leave Handler) {
+	o.watch[group] = [2]Handler{join, leave}
 }
 
 // ------------------------- inside -------------------------
 
-func (etc *etcd) upload() {
-	if etc.lease == nil {
-		lease, err := etc.Grant(context.Background(), int64(jconfig.GetInt("etcd.keepalive")/1000))
+func (o *etcd) upload() {
+begin:
+	if o.lease == nil {
+		group, index, info := jglobal.GROUP, jglobal.INDEX, map[string]any{"addr": ""}
+		if o.server[group] == nil {
+			o.server[group] = map[int]map[string]any{}
+		}
+		o.server[group][index] = info
+		o.watch[jglobal.GROUP][0](group, index, info)
+		lease, err := o.Grant(context.Background(), int64(jconfig.GetInt("etcd.keepalive")/1000))
 		if err != nil {
 			jlog.Fatal(err)
 		}
-		etc.lease = lease
+		o.lease = lease
 		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(jconfig.GetInt("etcd.timeout"))*time.Second)
 		defer cancel()
 		key := fmt.Sprintf("/%d/%d/%d", jglobal.ZONE, jglobal.GROUP, jglobal.INDEX)
-		_, err = etc.Put(ctx, key, jglobal.SerializeServerInfo(), clientv3.WithLease(etc.lease.ID))
+		_, err = o.Put(ctx, key, jglobal.SerializeServerInfo(), clientv3.WithLease(o.lease.ID))
 		if err != nil {
 			jlog.Fatal(err)
 		}
 	} else {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(jconfig.GetInt("etcd.timeout"))*time.Second)
 		defer cancel()
-		_, err := etc.KeepAliveOnce(ctx, etc.lease.ID)
+		_, err := o.KeepAliveOnce(ctx, o.lease.ID)
 		if err != nil {
 			jlog.Error(err)
-			etc.lease = nil
-			juBase.CreateProtect()
+			if err.Error() == "etcdserver: requested lease not found" {
+				o.lease = nil
+				goto begin
+			}
 		}
 	}
 }
 
-func (etc *etcd) update() {
+func (o *etcd) update() {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(jconfig.GetInt("etcd.timeout"))*time.Second)
 	defer cancel()
-	rsp, err := etc.Get(ctx, fmt.Sprintf("/%d/", jglobal.ZONE), clientv3.WithPrefix())
+	rsp, err := o.Get(ctx, fmt.Sprintf("/%d/", jglobal.ZONE), clientv3.WithPrefix())
 	if err != nil {
 		jlog.Error(err)
 	}
@@ -90,23 +98,23 @@ func (etc *etcd) update() {
 		}
 		info := jglobal.UnserializeServerInfo(kv.Value)
 		tmp[group][index] = info
-		if etc.server[group] == nil || etc.server[group][index] == nil {
+		if o.server[group] == nil || o.server[group][index] == nil {
 			// join
-			if _, ok := etc.watch[group]; ok {
-				etc.watch[group][0](group, index, info)
+			if _, ok := o.watch[group]; ok {
+				o.watch[group][0](group, index, info)
 			}
 		}
 	}
-	for group, v := range etc.server {
+	for group, v := range o.server {
 		for index, info := range v {
 			if tmp[group] == nil || tmp[group][index] == nil {
 				// leave
-				if _, ok := etc.watch[group]; ok {
-					etc.watch[group][1](group, index, info)
+				if _, ok := o.watch[group]; ok {
+					o.watch[group][1](group, index, info)
 				}
 			}
 		}
 	}
-	etc.server = tmp
-	etc.upload()
+	o.server = tmp
+	o.upload()
 }

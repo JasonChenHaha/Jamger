@@ -30,37 +30,37 @@ func NewHttp() *Http {
 	return &Http{}
 }
 
-func (htp *Http) AsServer() *Http {
-	htp.handler = map[jpb.CMD]*Handler{}
+func (o *Http) AsServer() *Http {
+	o.handler = map[jpb.CMD]*Handler{}
 	go func() {
-		htp.mux = http.NewServeMux()
-		htp.mux.HandleFunc("/", htp.receive)
+		o.mux = http.NewServeMux()
+		o.mux.HandleFunc("/", o.receive)
 		server := &http.Server{
 			Addr:    jconfig.GetString("http.addr"),
-			Handler: htp.mux,
+			Handler: o.mux,
 		}
 		jlog.Info("listen on ", jconfig.GetString("http.addr"))
 		if err := server.ListenAndServe(); err != nil {
 			jlog.Fatal(err)
 		}
 	}()
-	return htp
+	return o
 }
 
-func (htp *Http) AsClient() *Http {
-	return htp
+func (o *Http) AsClient() *Http {
+	return o
 }
 
-func (htp *Http) Encoder(fun func(string, *jglobal.Pack) error) {
+func (o *Http) Encoder(fun func(string, *jglobal.Pack) error) {
 	encoder = fun
 }
 
-func (htp *Http) Decoder(fun func(string, *jglobal.Pack) error) {
+func (o *Http) Decoder(fun func(string, *jglobal.Pack) error) {
 	decoder = fun
 }
 
-func (htp *Http) Register(cmd jpb.CMD, fun func(*jglobal.Pack), template proto.Message) {
-	htp.handler[cmd] = &Handler{
+func (o *Http) Register(cmd jpb.CMD, fun func(*jglobal.Pack), template proto.Message) {
+	o.handler[cmd] = &Handler{
 		fun:      fun,
 		template: template,
 	}
@@ -68,7 +68,7 @@ func (htp *Http) Register(cmd jpb.CMD, fun func(*jglobal.Pack), template proto.M
 
 // ------------------------- inside -------------------------
 
-func (htp *Http) receive(w http.ResponseWriter, r *http.Request) {
+func (o *Http) receive(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		jlog.Error(err)
@@ -79,7 +79,7 @@ func (htp *Http) receive(w http.ResponseWriter, r *http.Request) {
 		jlog.Warn(err)
 		return
 	}
-	han := htp.handler[pack.Cmd]
+	han := o.handler[pack.Cmd]
 	if han != nil {
 		msg := proto.Clone(han.template)
 		if err = proto.Unmarshal(pack.Data.([]byte), msg); err != nil {
@@ -95,15 +95,15 @@ func (htp *Http) receive(w http.ResponseWriter, r *http.Request) {
 			han.fun(pack)
 		}
 	} else {
-		han = htp.handler[jpb.CMD_PROXY]
+		han = o.handler[jpb.CMD_PROXY]
 		if han == nil {
 			jlog.Error("no proxy cmd.")
 			return
 		}
 		han.fun(pack)
 	}
-	if o, ok := pack.Data.(proto.Message); ok {
-		tmp, err := proto.Marshal(o)
+	if v, ok := pack.Data.(proto.Message); ok {
+		tmp, err := proto.Marshal(v)
 		if err != nil {
 			jlog.Errorf("%s, cmd(%d)", err, pack.Cmd)
 			return

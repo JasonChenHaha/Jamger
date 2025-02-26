@@ -11,6 +11,7 @@ import (
 	"jnet"
 	"jrpc"
 	"jschedule"
+	"juBase"
 	"juser"
 	"jwork"
 )
@@ -28,6 +29,7 @@ func main() {
 	jmeta.Init()
 	jetcd.Init()
 	jrpc.Init()
+	juBase.Init(jrpc.Rpc)
 	juser.Init()
 	jwork.Init()
 	jglobal.Keep()

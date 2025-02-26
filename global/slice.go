@@ -55,53 +55,53 @@ type HashSlice[T1 AllIntString, T2 comparable] struct {
 	slice []T2
 }
 
-func (hs *HashSlice[T1, T2]) Insert(key T1, data T2) {
-	hs.hash[key] = data
-	hs.slice = append(hs.slice, data)
+func (o *HashSlice[T1, T2]) Insert(key T1, data T2) {
+	o.hash[key] = data
+	o.slice = append(o.slice, data)
 }
 
-func (hs *HashSlice[T1, T2]) Len() int {
-	return len(hs.slice)
+func (o *HashSlice[T1, T2]) Len() int {
+	return len(o.slice)
 }
 
-func (hs *HashSlice[T1, T2]) Get(key T1) T2 {
-	return hs.hash[key]
+func (o *HashSlice[T1, T2]) Get(key T1) T2 {
+	return o.hash[key]
 }
 
-func (hs *HashSlice[T1, T2]) IndexOf(idx int) T2 {
-	if idx < len(hs.slice) {
-		return hs.slice[idx]
+func (o *HashSlice[T1, T2]) IndexOf(idx int) T2 {
+	if idx < len(o.slice) {
+		return o.slice[idx]
 	}
 	var zero T2
 	return zero
 }
 
-func (hs *HashSlice[T1, T2]) Keys() []T1 {
-	i, o := 0, make([]T1, len(hs.hash))
-	for k := range hs.hash {
-		o[i] = k
+func (o *HashSlice[T1, T2]) Keys() []T1 {
+	i, v := 0, make([]T1, len(o.hash))
+	for k := range o.hash {
+		v[i] = k
 		i++
 	}
-	return o
+	return v
 }
 
-func (hs *HashSlice[T1, T2]) Values() []T2 {
-	return hs.slice
+func (o *HashSlice[T1, T2]) Values() []T2 {
+	return o.slice
 }
 
-func (hs *HashSlice[T1, T2]) KeyValues() map[T1]T2 {
-	return hs.hash
+func (o *HashSlice[T1, T2]) KeyValues() map[T1]T2 {
+	return o.hash
 }
 
-func (hs *HashSlice[T1, T2]) Del(key T1) {
-	if _, ok := hs.hash[key]; !ok {
+func (o *HashSlice[T1, T2]) Del(key T1) {
+	if _, ok := o.hash[key]; !ok {
 		return
 	}
-	for k, v := range hs.slice {
-		if hs.hash[key] == v {
-			hs.slice = append(hs.slice[:k], hs.slice[k+1:]...)
+	for k, v := range o.slice {
+		if o.hash[key] == v {
+			o.slice = append(o.slice[:k], o.slice[k+1:]...)
 			break
 		}
 	}
-	delete(hs.hash, key)
+	delete(o.hash, key)
 }

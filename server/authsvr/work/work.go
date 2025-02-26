@@ -19,7 +19,8 @@ import (
 // ------------------------- outside -------------------------
 
 func Init() {
-	jrpc.Connect(jglobal.GRP_GATE)
+	jrpc.Rpc.Connect(jglobal.GRP_AUTH)
+	jrpc.Rpc.Connect(jglobal.GRP_GATE)
 	jnet.Rpc.Encoder(rpcEncode)
 	jnet.Rpc.Decoder(rpcDecode)
 	jnet.Rpc.Register(jpb.CMD_SIGN_UP_REQ, signUp, &jpb.SignUpReq{})

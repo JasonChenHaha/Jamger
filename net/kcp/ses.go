@@ -22,7 +22,7 @@ type Ses struct {
 // ------------------------- package -------------------------
 
 func newSes(kc *Kcp, con *kcp.UDPSession, id uint64) *Ses {
-	ses := &Ses{
+	o := &Ses{
 		kc:       kc,
 		con:      con,
 		id:       id,
@@ -32,72 +32,72 @@ func newSes(kc *Kcp, con *kcp.UDPSession, id uint64) *Ses {
 		qChan:    make(chan any, 4),
 	}
 	if jconfig.Get("kcp.noDelay") != nil {
-		ses.con.SetNoDelay(1, jconfig.GetInt("kcp.noDelay.interval"), jconfig.GetInt("kcp.noDelay.resend"), jconfig.GetInt("kcp.noDelay.nc"))
+		o.con.SetNoDelay(1, jconfig.GetInt("kcp.noDelay.interval"), jconfig.GetInt("kcp.noDelay.resend"), jconfig.GetInt("kcp.noDelay.nc"))
 	}
-	return ses
+	return o
 }
 
-func (ses *Ses) run() {
-	go ses.recvGoro()
-	go ses.sendGoro()
+func (o *Ses) run() {
+	go o.recvGoro()
+	go o.sendGoro()
 }
 
-func (ses *Ses) send(pack *Pack) {
-	ses.sChan <- pack
+func (o *Ses) send(pack *Pack) {
+	o.sChan <- pack
 }
 
-func (ses *Ses) close() {
-	ses.qChan <- 0
-	ses.qChan <- 0
+func (o *Ses) close() {
+	o.qChan <- 0
+	o.qChan <- 0
 }
 
 // ------------------------- inside -------------------------
 
-func (ses *Ses) recvGoro() {
+func (o *Ses) recvGoro() {
 	for {
 		select {
-		case <-ses.qChan:
+		case <-o.qChan:
 			return
 		default:
-			if ses.rTimeout > 0 {
-				ses.con.SetReadDeadline(time.Now().Add(ses.rTimeout))
+			if o.rTimeout > 0 {
+				o.con.SetReadDeadline(time.Now().Add(o.rTimeout))
 			}
-			pack, err := recvPack(ses.con)
+			pack, err := recvPack(o.con)
 			if err != nil {
-				ses.kc.delete(ses.id)
+				o.kc.delete(o.id)
 				return
 			} else {
 				switch pack.Cmd {
 				case jpb.CMD_HEARTBEAT:
 				case jpb.CMD_CLOSE:
-					ses.kc.delete(ses.id)
+					o.kc.delete(o.id)
 					return
 				default:
-					ses.kc.receive(ses.id, pack)
+					o.kc.receive(o.id, pack)
 				}
 			}
 		}
 	}
 }
 
-func (ses *Ses) sendGoro() {
+func (o *Ses) sendGoro() {
 	defer func() {
-		err := ses.con.Close()
+		err := o.con.Close()
 		if err != nil {
 			jlog.Error(err)
 		}
 	}()
 	for {
 		select {
-		case <-ses.qChan:
+		case <-o.qChan:
 			return
-		case pack := <-ses.sChan:
-			if ses.sTimeout > 0 {
-				ses.con.SetWriteDeadline(time.Now().Add(ses.sTimeout))
+		case pack := <-o.sChan:
+			if o.sTimeout > 0 {
+				o.con.SetWriteDeadline(time.Now().Add(o.sTimeout))
 			}
-			if err := sendPack(ses.con, pack); err != nil {
+			if err := sendPack(o.con, pack); err != nil {
 				jlog.Error(err)
-				ses.kc.delete(ses.id)
+				o.kc.delete(o.id)
 				return
 			}
 		}

@@ -37,47 +37,47 @@ func NewTcp() *Tcp {
 	return &Tcp{}
 }
 
-func (tcp *Tcp) AsServer() *Tcp {
-	tcp.handler = map[jpb.CMD]*Handler{}
+func (o *Tcp) AsServer() *Tcp {
+	o.handler = map[jpb.CMD]*Handler{}
 	listener, err := net.Listen("tcp", jconfig.GetString("tcp.addr"))
 	if err != nil {
 		jlog.Fatal(err)
 	}
 	jlog.Info("listen on ", jconfig.GetString("tcp.addr"))
-	go tcp.accept(listener)
+	go o.accept(listener)
 	if jconfig.Get("debug") != nil {
-		jschedule.DoEvery(time.Duration(jconfig.GetInt("debug.interval"))*time.Millisecond, tcp.watch)
+		jschedule.DoEvery(time.Duration(jconfig.GetInt("debug.interval"))*time.Millisecond, o.watch)
 	}
-	return tcp
+	return o
 }
 
-func (tcp *Tcp) AsClient() *Tcp {
-	return tcp
+func (o *Tcp) AsClient() *Tcp {
+	return o
 }
 
-func (tcp *Tcp) Encoder(fun func(*jglobal.Pack) error) {
+func (o *Tcp) Encoder(fun func(*jglobal.Pack) error) {
 	encoder = fun
 }
 
-func (tcp *Tcp) Decoder(fun func(uint64, *jglobal.Pack) error) {
+func (o *Tcp) Decoder(fun func(uint64, *jglobal.Pack) error) {
 	decoder = fun
 }
 
-func (tcp *Tcp) Register(cmd jpb.CMD, fun func(*jglobal.Pack), template proto.Message) {
-	tcp.handler[cmd] = &Handler{
+func (o *Tcp) Register(cmd jpb.CMD, fun func(*jglobal.Pack), template proto.Message) {
+	o.handler[cmd] = &Handler{
 		fun:      fun,
 		template: template,
 	}
 }
 
-func (tcp *Tcp) Send(pack *jglobal.Pack) {
+func (o *Tcp) Send(pack *jglobal.Pack) {
 	id := pack.Ctx.(jglobal.SesIder).GetSesId()
-	if o, ok := tcp.ses.Load(id); !ok {
+	if v, ok := o.ses.Load(id); !ok {
 		jlog.Errorf("no session(%d)", id)
 		return
 	} else {
-		if o, ok := pack.Data.(proto.Message); ok {
-			tmp, err := proto.Marshal(o)
+		if v, ok := pack.Data.(proto.Message); ok {
+			tmp, err := proto.Marshal(v)
 			if err != nil {
 				jlog.Errorf("%s, cmd(%d)", err, pack.Cmd)
 				return
@@ -85,19 +85,19 @@ func (tcp *Tcp) Send(pack *jglobal.Pack) {
 			pack.Data = tmp
 		}
 		jlog.Debugf("tcp send to %d, cmd(%d), data(%v)", pack.Ctx.(*juser.User).Uid, pack.Cmd, pack.Data)
-		o.(*Ses).send(pack)
+		v.(*Ses).send(pack)
 	}
 }
 
 // ------------------------- package -------------------------
 
-func (tcp *Tcp) receive(ses *Ses, pack *jglobal.Pack) {
-	han := tcp.handler[pack.Cmd]
+func (o *Tcp) receive(ses *Ses, pack *jglobal.Pack) {
+	han := o.handler[pack.Cmd]
 	if han != nil {
 		msg := proto.Clone(han.template)
 		if err := proto.Unmarshal(pack.Data.([]byte), msg); err != nil {
 			jlog.Warnf("%s, cmd(%d)", err, pack.Cmd)
-			tcp.delete(ses.id)
+			o.delete(ses.id)
 			return
 		}
 		pack.Data = msg
@@ -105,47 +105,47 @@ func (tcp *Tcp) receive(ses *Ses, pack *jglobal.Pack) {
 		han.fun(pack)
 		pack.Ctx.(jglobal.Locker).UnLock()
 	} else {
-		if tcp.handler[jpb.CMD_PROXY] == nil {
+		if o.handler[jpb.CMD_PROXY] == nil {
 			jlog.Error("no proxy cmd.")
-			tcp.delete(ses.id)
+			o.delete(ses.id)
 			return
 		}
-		tcp.handler[jpb.CMD_PROXY].fun(pack)
+		o.handler[jpb.CMD_PROXY].fun(pack)
 	}
 }
 
 // ------------------------- inside -------------------------
 
-func (tcp *Tcp) accept(listener net.Listener) {
+func (o *Tcp) accept(listener net.Listener) {
 	for {
 		con, err := listener.Accept()
 		if err != nil {
 			jlog.Error(err)
 			continue
 		} else {
-			tcp.add(con)
+			o.add(con)
 		}
 	}
 }
 
-func (tcp *Tcp) add(con net.Conn) {
-	id := atomic.AddUint64(&tcp.idc, 1)
-	ses := newSes(tcp, con, id)
-	tcp.ses.Store(id, ses)
-	tcp.counter++
+func (o *Tcp) add(con net.Conn) {
+	id := atomic.AddUint64(&o.idc, 1)
+	ses := newSes(o, con, id)
+	o.ses.Store(id, ses)
+	o.counter++
 	ses.run()
 }
 
-func (tcp *Tcp) delete(id uint64) {
-	if obj, ok := tcp.ses.Load(id); ok {
-		tcp.ses.Delete(id)
-		tcp.counter--
+func (o *Tcp) delete(id uint64) {
+	if obj, ok := o.ses.Load(id); ok {
+		o.ses.Delete(id)
+		o.counter--
 		obj.(*Ses).close()
 	}
 }
 
 // ------------------------- debug -------------------------
 
-func (tcp *Tcp) watch() {
-	jlog.Debug("connecting ", tcp.counter)
+func (o *Tcp) watch() {
+	jlog.Debug("connecting ", o.counter)
 }

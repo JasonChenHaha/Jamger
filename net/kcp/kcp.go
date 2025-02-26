@@ -30,30 +30,30 @@ func NewKcp() *Kcp {
 	return &Kcp{}
 }
 
-func (kcp *Kcp) AsServer() *Kcp {
-	kcp.handler = map[jpb.CMD]Handler{}
+func (o *Kcp) AsServer() *Kcp {
+	o.handler = map[jpb.CMD]Handler{}
 	listener, err := xKcp.ListenWithOptions(jconfig.GetString("kcp.addr"), nil, jconfig.GetInt("kcp.dataShards"), jconfig.GetInt("kcp.parityShards"))
 	if err != nil {
 		jlog.Fatal(err)
 	}
 	jlog.Info("listen on ", jconfig.GetString("kcp.addr"))
-	go kcp.accept(listener)
+	go o.accept(listener)
 	if jconfig.Get("debug") != nil {
-		jschedule.DoEvery(time.Duration(jconfig.GetInt("debug.interval"))*time.Millisecond, kcp.watch)
+		jschedule.DoEvery(time.Duration(jconfig.GetInt("debug.interval"))*time.Millisecond, o.watch)
 	}
-	return kcp
+	return o
 }
 
-func (kcp *Kcp) AsClient() *Kcp {
-	return kcp
+func (o *Kcp) AsClient() *Kcp {
+	return o
 }
 
-func (kcp *Kcp) Register(cmd jpb.CMD, handler Handler) {
-	kcp.handler[cmd] = handler
+func (o *Kcp) Register(cmd jpb.CMD, handler Handler) {
+	o.handler[cmd] = handler
 }
 
-func (kcp *Kcp) Send(id uint64, cmd jpb.CMD, data []byte) {
-	obj, ok := kcp.ses.Load(id)
+func (o *Kcp) Send(id uint64, cmd jpb.CMD, data []byte) {
+	obj, ok := o.ses.Load(id)
 	if !ok {
 		jlog.Errorf("session(%d) not found", id)
 		return
@@ -66,35 +66,35 @@ func (kcp *Kcp) Send(id uint64, cmd jpb.CMD, data []byte) {
 
 // ------------------------- inside -------------------------
 
-func (kcp *Kcp) accept(listener *kcp.Listener) {
+func (o *Kcp) accept(listener *kcp.Listener) {
 	for {
 		con, err := listener.AcceptKCP()
 		if err != nil {
 			log.Fatal(err)
 			continue
 		}
-		kcp.add(con)
+		o.add(con)
 	}
 }
 
-func (kcp *Kcp) add(con *kcp.UDPSession) {
-	id := atomic.AddUint64(&kcp.idc, 1)
-	ses := newSes(kcp, con, id)
-	kcp.ses.Store(id, ses)
-	kcp.counter++
+func (o *Kcp) add(con *kcp.UDPSession) {
+	id := atomic.AddUint64(&o.idc, 1)
+	ses := newSes(o, con, id)
+	o.ses.Store(id, ses)
+	o.counter++
 	ses.run()
 }
 
-func (kcp *Kcp) delete(id uint64) {
-	if obj, ok := kcp.ses.Load(id); ok {
-		kcp.ses.Delete(id)
-		kcp.counter--
+func (o *Kcp) delete(id uint64) {
+	if obj, ok := o.ses.Load(id); ok {
+		o.ses.Delete(id)
+		o.counter--
 		obj.(*Ses).close()
 	}
 }
 
-func (kcp *Kcp) receive(id uint64, pack *Pack) {
-	fu, ok := kcp.handler[pack.Cmd]
+func (o *Kcp) receive(id uint64, pack *Pack) {
+	fu, ok := o.handler[pack.Cmd]
 	if !ok {
 		jlog.Warn("cmd not exist, ", pack.Cmd)
 		return
@@ -104,6 +104,6 @@ func (kcp *Kcp) receive(id uint64, pack *Pack) {
 
 // ------------------------- debug -------------------------
 
-func (kcp *Kcp) watch() {
-	jlog.Debug("connecting ", kcp.counter)
+func (o *Kcp) watch() {
+	jlog.Debug("connecting ", o.counter)
 }

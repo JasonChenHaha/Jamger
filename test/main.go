@@ -17,7 +17,7 @@ const (
 	aesKeySize   = 16
 )
 
-var gateNum = 2
+var gateNum = 1
 var aesKey []byte
 var uid uint32
 var id string

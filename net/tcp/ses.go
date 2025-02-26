@@ -28,7 +28,7 @@ const (
 // ------------------------- package -------------------------
 
 func newSes(tcp *Tcp, con net.Conn, id uint64) *Ses {
-	ses := &Ses{
+	o := &Ses{
 		id:       id,
 		tcp:      tcp,
 		con:      con.(*net.TCPConn),
@@ -38,107 +38,107 @@ func newSes(tcp *Tcp, con net.Conn, id uint64) *Ses {
 		qChan:    make(chan any, 2),
 	}
 	if jconfig.GetBool("noDelay") {
-		ses.con.SetNoDelay(true)
+		o.con.SetNoDelay(true)
 	}
-	return ses
+	return o
 }
 
-func (ses *Ses) run() {
-	go ses.recvGoro()
-	go ses.sendGoro()
+func (o *Ses) run() {
+	go o.recvGoro()
+	go o.sendGoro()
 }
 
-func (ses *Ses) send(pack *jglobal.Pack) {
-	ses.sChan <- pack
+func (o *Ses) send(pack *jglobal.Pack) {
+	o.sChan <- pack
 }
 
-func (ses *Ses) close() {
-	ses.qChan <- 0
-	ses.qChan <- 0
-	if ses.user != nil {
-		ses.user.Destory()
+func (o *Ses) close() {
+	o.qChan <- 0
+	o.qChan <- 0
+	if o.user != nil {
+		o.user.Destory()
 	}
 }
 
 // ------------------------- inside -------------------------
 
-func (ses *Ses) recvGoro() {
+func (o *Ses) recvGoro() {
 	for {
 		select {
-		case <-ses.qChan:
+		case <-o.qChan:
 			return
 		default:
-			if ses.rTimeout > 0 {
-				ses.con.SetReadDeadline(time.Now().Add(ses.rTimeout))
+			if o.rTimeout > 0 {
+				o.con.SetReadDeadline(time.Now().Add(o.rTimeout))
 			}
-			data, err := ses.recvBytes()
+			data, err := o.recvBytes()
 			if err != nil {
 				jlog.Error(err)
-				ses.tcp.delete(ses.id)
+				o.tcp.delete(o.id)
 				return
 			}
 			pack := &jglobal.Pack{Data: data}
-			err = decoder(ses.id, pack)
+			err = decoder(o.id, pack)
 			if err != nil {
 				jlog.Error(err)
-				ses.tcp.delete(ses.id)
+				o.tcp.delete(o.id)
 				return
 			}
-			ses.user = pack.Ctx.(jglobal.User)
-			ses.tcp.receive(ses, pack)
+			o.user = pack.Ctx.(jglobal.User)
+			o.tcp.receive(o, pack)
 		}
 	}
 }
 
-func (ses *Ses) sendGoro() {
+func (o *Ses) sendGoro() {
 	defer func() {
-		err := ses.con.Close()
+		err := o.con.Close()
 		if err != nil {
 			jlog.Error(err)
 		}
 	}()
 	for {
 		select {
-		case <-ses.qChan:
+		case <-o.qChan:
 			return
-		case pack := <-ses.sChan:
-			if ses.sTimeout > 0 {
-				ses.con.SetWriteDeadline(time.Now().Add(ses.sTimeout))
+		case pack := <-o.sChan:
+			if o.sTimeout > 0 {
+				o.con.SetWriteDeadline(time.Now().Add(o.sTimeout))
 			}
 			if err := encoder(pack); err != nil {
 				jlog.Error(err)
-				ses.tcp.delete(ses.id)
+				o.tcp.delete(o.id)
 				return
 			}
-			if err := ses.sendBytes(pack); err != nil {
+			if err := o.sendBytes(pack); err != nil {
 				jlog.Error(err)
-				ses.tcp.delete(ses.id)
+				o.tcp.delete(o.id)
 			}
 		}
 	}
 }
 
-func (ses *Ses) recvBytes() ([]byte, error) {
+func (o *Ses) recvBytes() ([]byte, error) {
 	raw := make([]byte, packSize)
-	if _, err := io.ReadFull(ses.con, raw); err != nil {
+	if _, err := io.ReadFull(o.con, raw); err != nil {
 		return nil, err
 	}
 	size := binary.LittleEndian.Uint16(raw)
 	raw = make([]byte, size)
-	if _, err := io.ReadFull(ses.con, raw); err != nil {
+	if _, err := io.ReadFull(o.con, raw); err != nil {
 		return nil, err
 	}
 	return raw, nil
 }
 
-func (ses *Ses) sendBytes(pack *jglobal.Pack) error {
+func (o *Ses) sendBytes(pack *jglobal.Pack) error {
 	data := pack.Data.([]byte)
 	size := len(data)
 	raw := make([]byte, packSize+size)
 	binary.LittleEndian.PutUint16(raw, uint16(size))
 	copy(raw[packSize:], data)
 	for pos := 0; pos < size; {
-		n, err := ses.con.Write(raw)
+		n, err := o.con.Write(raw)
 		if err != nil {
 			return err
 		}

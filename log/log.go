@@ -163,6 +163,19 @@ func Panicln(args ...any) {
 	log.Panicln(args...)
 }
 
+func ToFile(file string, format string, args ...any) {
+	f, err := os.OpenFile(file, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		Error("error create file: ", err)
+		return
+	}
+	defer f.Close()
+	_, err = f.WriteString(fmt.Sprintf(format+"\n", args...))
+	if err != nil {
+		Error("error writing to file: ", err)
+	}
+}
+
 // for nsq
 func (log *Log) Output(calldepth int, s string) error {
 	switch s[:3] {

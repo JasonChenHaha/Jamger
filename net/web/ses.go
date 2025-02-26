@@ -22,7 +22,7 @@ type Ses struct {
 // ------------------------- package -------------------------
 
 func newSes(web *Web, con *websocket.Conn, id uint64) *Ses {
-	ses := &Ses{
+	o := &Ses{
 		web:      web,
 		con:      con,
 		id:       id,
@@ -31,66 +31,66 @@ func newSes(web *Web, con *websocket.Conn, id uint64) *Ses {
 		sChan:    make(chan *Pack, 4),
 		qChan:    make(chan any, 2),
 	}
-	return ses
+	return o
 }
 
-func (ses *Ses) run() {
-	go ses.recvGoro()
-	go ses.sendGoro()
+func (o *Ses) run() {
+	go o.recvGoro()
+	go o.sendGoro()
 }
 
-func (ses *Ses) send(pack *Pack) {
-	ses.sChan <- pack
+func (o *Ses) send(pack *Pack) {
+	o.sChan <- pack
 }
 
-func (ses *Ses) close() {
-	ses.qChan <- 0
-	ses.qChan <- 0
+func (o *Ses) close() {
+	o.qChan <- 0
+	o.qChan <- 0
 }
 
 // ------------------------- inside -------------------------
 
-func (ses *Ses) recvGoro() {
+func (o *Ses) recvGoro() {
 	for {
 		select {
-		case <-ses.qChan:
+		case <-o.qChan:
 			return
 		default:
-			if ses.rTimeout > 0 {
-				ses.con.SetReadDeadline(time.Now().Add(ses.rTimeout))
+			if o.rTimeout > 0 {
+				o.con.SetReadDeadline(time.Now().Add(o.rTimeout))
 			}
-			_, data, err := ses.con.ReadMessage()
+			_, data, err := o.con.ReadMessage()
 			if err != nil {
-				ses.web.delete(ses.id)
+				o.web.delete(o.id)
 				return
 			}
 			pack := unserializeData(data)
 			switch pack.Cmd {
 			case jpb.CMD_HEARTBEAT:
 			default:
-				ses.web.receive(ses.id, pack)
+				o.web.receive(o.id, pack)
 			}
 		}
 	}
 }
 
-func (ses *Ses) sendGoro() {
+func (o *Ses) sendGoro() {
 	defer func() {
-		err := ses.con.Close()
+		err := o.con.Close()
 		if err != nil {
 			jlog.Error(err)
 		}
 	}()
 	for {
 		select {
-		case <-ses.qChan:
+		case <-o.qChan:
 			return
-		case pack := <-ses.sChan:
-			if ses.sTimeout > 0 {
-				ses.con.SetWriteDeadline(time.Now().Add(ses.sTimeout))
+		case pack := <-o.sChan:
+			if o.sTimeout > 0 {
+				o.con.SetWriteDeadline(time.Now().Add(o.sTimeout))
 			}
 			data := serializePack(pack)
-			err := ses.con.WriteMessage(websocket.BinaryMessage, data)
+			err := o.con.WriteMessage(websocket.BinaryMessage, data)
 			if err != nil {
 				jlog.Error(err)
 				return
