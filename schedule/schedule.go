@@ -23,20 +23,20 @@ func Init() {
 }
 
 // 定时t时间后触发cmd
-func DoAt(t time.Duration, cmd func()) any {
+func DoAt(t time.Duration, cmd func(args ...any), args ...any) any {
 	timer := time.NewTimer(t)
 	go func() {
 		<-timer.C
-		cmd()
+		cmd(args...)
 	}()
 	return timer
 }
 
-func DoEvery(t time.Duration, cmd func()) any {
+func DoEvery(t time.Duration, cmd func(args ...any), args ...any) any {
 	ticker := time.NewTicker(t)
 	go func() {
 		for range ticker.C {
-			cmd()
+			cmd(args...)
 		}
 	}()
 	return ticker

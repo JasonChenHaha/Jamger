@@ -6,6 +6,7 @@ import (
 	"jconfig"
 	"jglobal"
 	"jlog"
+	"jschedule"
 	"os"
 )
 
@@ -17,7 +18,7 @@ const (
 	aesKeySize   = 16
 )
 
-var gateNum = 1
+var gateNum = 2
 var aesKey []byte
 var uid uint32
 var id string
@@ -25,10 +26,19 @@ var pwd string
 var httpAddr string
 var tcpAddr string
 
+func makeAddr(addr string, key string) string {
+	h := fnv.New32a()
+	h.Write([]byte(key))
+	n := h.Sum32() % uint32(gateNum)
+	return fmt.Sprintf("%s%d", addr[0:len(addr)-1], n)
+}
+
 func main() {
 	jconfig.Init()
 	jglobal.Init()
 	jlog.Init("")
+	jschedule.Init()
+
 	id, pwd = os.Args[2], os.Args[3]
 	httpAddr = makeAddr(jconfig.GetString("http.addr"), id)
 	tcpAddr = makeAddr(jconfig.GetString("tcp.addr"), id)
@@ -37,16 +47,10 @@ func main() {
 	if err != nil {
 		jlog.Fatal(err)
 	}
+
 	testHttp()
 	testTcp()
 	// testKcp()
 	// testWeb()
 	// testHttp()
-}
-
-func makeAddr(addr string, key string) string {
-	h := fnv.New32a()
-	h.Write([]byte(key))
-	n := h.Sum32() % uint32(gateNum)
-	return fmt.Sprintf("%s%d", addr[0:len(addr)-1], n)
 }

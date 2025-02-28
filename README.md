@@ -1,3 +1,2 @@
 # Jamger
-解决第一次起服时进入protect模式的问题
-研究etcd、rpc、protect在各种情况下的工况
+解决顶号问题

@@ -16,7 +16,6 @@ import (
 	"encoding/pem"
 	"fmt"
 	"io"
-	"jconfig"
 	"jlog"
 	"jpb"
 	"os"
@@ -47,18 +46,17 @@ func GetGroup(cmd jpb.CMD) int {
 }
 
 // 序列化服务器基本信息
-func SerializeServerInfo() string {
-	info := map[string]any{"addr": jconfig.GetString("rpc.addr")}
-	data, err := json.Marshal(info)
+func SerializeJson(data any) []byte {
+	jData, err := json.Marshal(data)
 	if err != nil {
 		jlog.Panic(err)
 	}
-	return string(data)
+	return jData
 }
 
-// 反序列化服务器基本信息
-func UnserializeServerInfo(data []byte) (info map[string]any) {
-	if err := json.Unmarshal(data, &info); err != nil {
+// 反序列化服务器基本信息，data需要为指针类型
+func UnserializeJson(jData []byte, data any) {
+	if err := json.Unmarshal(jData, data); err != nil {
 		jlog.Panic(err)
 	}
 	return

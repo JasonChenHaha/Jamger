@@ -65,7 +65,7 @@ func (user *User) Destory() {
 
 // ------------------------- inside -------------------------
 
-func (user *User) tick() {
+func (user *User) tick(args ...any) {
 	if user.Base.Tick() {
 		user.Destory()
 	}

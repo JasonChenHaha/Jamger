@@ -84,7 +84,7 @@ func (o *Tcp) Send(pack *jglobal.Pack) {
 			}
 			pack.Data = tmp
 		}
-		jlog.Debugf("tcp send to %d, cmd(%d), data(%v)", pack.Ctx.(*juser.User).Uid, pack.Cmd, pack.Data)
+		jlog.Debugf("tcp send to C %d, cmd(%d), data(%v)", pack.Ctx.(*juser.User).Uid, pack.Cmd, pack.Data)
 		v.(*Ses).send(pack)
 	}
 }
@@ -146,6 +146,6 @@ func (o *Tcp) delete(id uint64) {
 
 // ------------------------- debug -------------------------
 
-func (o *Tcp) watch() {
+func (o *Tcp) watch(args ...any) {
 	jlog.Debug("connecting ", o.counter)
 }

@@ -25,12 +25,14 @@ func Init() {}
 func GetUser(uid uint32) *User {
 	if v, ok := users.Load(uid); ok {
 		user := v.(*User)
-		if juBase.Protect.IsProtectMode(uid) {
+		if juBase.Protect.Touch(uid) {
 			user.destory()
 		} else {
 			user.Touch()
 			return user
 		}
+	} else {
+		juBase.Protect.Touch(uid)
 	}
 	user := &User{
 		Uid:  uid,
@@ -61,7 +63,7 @@ func (user *User) destory() {
 	users.Delete(user.Uid)
 }
 
-func (user *User) tick() {
+func (user *User) tick(args ...any) {
 	if user.Base.Tick() {
 		user.destory()
 	}

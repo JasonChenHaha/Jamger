@@ -11,9 +11,7 @@ import (
 	"jglobal"
 	"jnrpc"
 	"jpb"
-	"jschedule"
 	"sync"
-	"time"
 )
 
 type Rpc interface {
@@ -40,23 +38,30 @@ func Init(rpc Rpc) {
 	}
 }
 
-func (o *protect) Activate() {
+func (o *protect) Enable(new bool) {
 	o.mutex.Lock()
 	defer o.mutex.Unlock()
-	if o.enable {
-		jschedule.Stop(o.ticker)
+	o.enable = true
+	// 四种情况导致enable
+	// 1.起服时, new enable
+	// 2.断网恢复时, new enable
+	// 3.断网恢复-再断网恢复（租约过期）new enable
+	// 4.断网恢复-再断网恢复（租约未过期）continue enable，此时要保留rec记录，防止重复notify
+	if new {
+		o.rec = map[uint32]struct{}{}
+	} else {
 		o.rec = map[uint32]struct{}{}
 	}
-	o.enable = true
-	o.ticker = jschedule.DoAt(EXPIRE*time.Second, func() {
-		o.mutex.Lock()
-		defer o.mutex.Unlock()
-		o.enable = false
-		o.rec = map[uint32]struct{}{}
-	})
 }
 
-func (o *protect) IsProtectMode(uid uint32) bool {
+func (o *protect) Disable() {
+	o.mutex.Lock()
+	defer o.mutex.Unlock()
+	o.enable = false
+	o.rec = map[uint32]struct{}{}
+}
+
+func (o *protect) Touch(uid uint32) bool {
 	o.mutex.RLock()
 	defer o.mutex.RUnlock()
 	if o.enable {

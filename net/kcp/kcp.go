@@ -104,6 +104,6 @@ func (o *Kcp) receive(id uint64, pack *Pack) {
 
 // ------------------------- debug -------------------------
 
-func (o *Kcp) watch() {
+func (o *Kcp) watch(args ...any) {
 	jlog.Debug("connecting ", o.counter)
 }

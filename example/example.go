@@ -193,7 +193,7 @@ func redis() {
 }
 
 func schedule() {
-	id := jschedule.DoEvery(1*time.Second, func() {
+	id := jschedule.DoEvery(1*time.Second, func(args ...any) {
 		jlog.Debug("doevery")
 	})
 	jschedule.Stop(id)
@@ -205,7 +205,7 @@ func schedule() {
 		}
 	})
 	jschedule.Stop(id)
-	id = jschedule.DoAt(20*time.Second, func() {
+	id = jschedule.DoAt(20*time.Second, func(args ...any) {
 		jlog.Debug("doat")
 	})
 	jschedule.Stop(id)

@@ -59,6 +59,10 @@ const (
 	MONGO_USER = "user"
 )
 
+const (
+	USER_LIVE = 60 * 10
+)
+
 var ID int
 var NAME string
 var ZONE int

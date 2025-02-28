@@ -52,7 +52,7 @@ func (user *User) destory() {
 	users.Delete(user.Uid)
 }
 
-func (user *User) tick() {
+func (user *User) tick(args ...any) {
 	if user.Base.Tick() {
 		user.destory()
 	}

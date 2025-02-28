@@ -6,7 +6,6 @@ import (
 	"jglobal"
 	"jlog"
 	"jnrpc"
-	"juBase"
 	"sync"
 	"time"
 
@@ -107,19 +106,11 @@ func (o *rpc) join(group int, index int, info map[string]any) {
 	if _, ok := o.server[group]; !ok {
 		o.server[group] = jglobal.NewHashSlice[int, *jnrpc.Rpc]()
 	}
-	activate := false
-	if index == jglobal.INDEX && o.server[group].Get(index) == nil {
-		activate = true
-	}
 	o.server[group].Insert(index, jnrpc.NewRpc().AsClient(info["addr"].(string)))
 	if group == jglobal.GROUP && o.maglev[group] != nil {
 		o.backupMaglev = o.maglev[group]
 	}
 	o.maglev[group] = jglobal.NewMaglev(o.server[group].KeyValues())
-	if activate {
-		// 如果本节点是新加入进来的，进入protect模式
-		juBase.Protect.Activate()
-	}
 }
 
 func (o *rpc) leave(group int, index int, info map[string]any) {
@@ -141,7 +132,7 @@ func (o *rpc) leave(group int, index int, info map[string]any) {
 
 // ------------------------- debug -------------------------
 
-func (o *rpc) watch() {
+func (o *rpc) watch(args ...any) {
 	for k, v := range o.server {
 		jlog.Debugf("server %d -> %d", k, v.Len())
 	}

@@ -2,6 +2,7 @@ package jwork
 
 import (
 	"jglobal"
+	"jlog"
 	"jnet"
 	"jpb"
 	"jrpc"
@@ -30,6 +31,7 @@ func deleteUser(pack *jglobal.Pack) {
 
 // 登录
 func login(pack *jglobal.Pack) {
+	jlog.Debug("login!!!")
 	user := pack.Ctx.(*juser.User)
 	rsp := &jpb.LoginRsp{}
 	pack.Cmd = jpb.CMD_LOGIN_RSP
@@ -45,9 +47,9 @@ func login(pack *jglobal.Pack) {
 	// 		Data: &jpb.Notify{Msg: "hello world"},
 	// 	}, 2)
 	// } else {
-	// 	jnet.SendToC(&jglobal.Pack{
-	// 		Cmd:  jpb.CMD_NOTIFY,
-	// 		Data: &jpb.Notify{Msg: "hello world"},
-	// 	}, 2)
+	// jnet.SendToC(&jglobal.Pack{
+	// 	Cmd:  jpb.CMD_NOTIFY,
+	// 	Data: &jpb.Notify{Msg: "hello world"},
+	// }, 2)
 	// }
 }

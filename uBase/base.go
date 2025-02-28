@@ -12,16 +12,12 @@ import (
 
 type Base struct {
 	key         uint32
-	expire      int
+	live        int
 	mutex       sync.Mutex
 	DirtyRedis  map[string]any
 	dirtyRedis2 []any
 	DirtyMongo  map[string]any
 }
-
-const (
-	EXPIRE = 60 * 10
-)
 
 // ------------------------- outside -------------------------
 
@@ -31,7 +27,7 @@ func NewBase(uid uint32) *Base {
 		DirtyRedis:  map[string]any{},
 		dirtyRedis2: []any{},
 		DirtyMongo:  map[string]any{},
-		expire:      EXPIRE,
+		live:        jglobal.USER_LIVE,
 	}
 	return base
 }
@@ -45,7 +41,7 @@ func (base *Base) UnLock() {
 }
 
 func (base *Base) Touch() {
-	base.expire = EXPIRE
+	base.live = jglobal.USER_LIVE
 }
 
 func (base *Base) Flush() {
@@ -54,7 +50,7 @@ func (base *Base) Flush() {
 
 func (base *Base) Tick() bool {
 	base.flush(true)
-	if base.expire -= 1; base.expire <= 0 {
+	if base.live -= 1; base.live <= 0 {
 		return true
 	}
 	return false

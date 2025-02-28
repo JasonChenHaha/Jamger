@@ -109,6 +109,6 @@ func (o *Web) receive(id uint64, pack *Pack) {
 
 // ------------------------- debug -------------------------
 
-func (o *Web) watch() {
+func (o *Web) watch(args ...any) {
 	jlog.Debug("connecting ", o.counter)
 }
