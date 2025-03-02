@@ -72,20 +72,28 @@ func (o *Tcp) Register(cmd jpb.CMD, fun func(*jglobal.Pack), template proto.Mess
 
 func (o *Tcp) Send(pack *jglobal.Pack) {
 	id := pack.Ctx.(jglobal.SesIder).GetSesId()
-	if v, ok := o.ses.Load(id); !ok {
+	ses, ok := o.ses.Load(id)
+	if !ok {
 		jlog.Errorf("no session(%d)", id)
 		return
-	} else {
-		if v, ok := pack.Data.(proto.Message); ok {
-			tmp, err := proto.Marshal(v)
-			if err != nil {
-				jlog.Errorf("%s, cmd(%d)", err, pack.Cmd)
-				return
-			}
-			pack.Data = tmp
+	}
+	if v, ok := pack.Data.(proto.Message); ok {
+		tmp, err := proto.Marshal(v)
+		if err != nil {
+			jlog.Errorf("%s, cmd(%d)", err, pack.Cmd)
+			return
 		}
-		jlog.Debugf("tcp send to C %d, cmd(%d), data(%v)", pack.Ctx.(*juser.User).Uid, pack.Cmd, pack.Data)
-		v.(*Ses).send(pack)
+		pack.Data = tmp
+	}
+	jlog.Debugf("tcp send to C(%d), cmd(%d), data(%v)", pack.Ctx.(*juser.User).Uid, pack.Cmd, pack.Data)
+	ses.(*Ses).send(pack)
+}
+
+func (o *Tcp) Close(id uint64) {
+	if obj, ok := o.ses.Load(id); ok {
+		o.ses.Delete(id)
+		o.counter--
+		obj.(*Ses).close()
 	}
 }
 
@@ -97,7 +105,7 @@ func (o *Tcp) receive(ses *Ses, pack *jglobal.Pack) {
 		msg := proto.Clone(han.template)
 		if err := proto.Unmarshal(pack.Data.([]byte), msg); err != nil {
 			jlog.Warnf("%s, cmd(%d)", err, pack.Cmd)
-			o.delete(ses.id)
+			o.Close(ses.id)
 			return
 		}
 		pack.Data = msg
@@ -107,7 +115,7 @@ func (o *Tcp) receive(ses *Ses, pack *jglobal.Pack) {
 	} else {
 		if o.handler[jpb.CMD_PROXY] == nil {
 			jlog.Error("no proxy cmd.")
-			o.delete(ses.id)
+			o.Close(ses.id)
 			return
 		}
 		o.handler[jpb.CMD_PROXY].fun(pack)
@@ -134,14 +142,6 @@ func (o *Tcp) add(con net.Conn) {
 	o.ses.Store(id, ses)
 	o.counter++
 	ses.run()
-}
-
-func (o *Tcp) delete(id uint64) {
-	if obj, ok := o.ses.Load(id); ok {
-		o.ses.Delete(id)
-		o.counter--
-		obj.(*Ses).close()
-	}
 }
 
 // ------------------------- debug -------------------------

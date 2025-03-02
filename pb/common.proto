@@ -11,11 +11,16 @@ enum CMD {
     MAX = 1000;
 
     // group = CMD / MAX
+
     GATE_INFO = 1001;
+    KICK_USER_REQ = 1002;
+    KICK_USER_RSP = 1003;
+
     SIGN_UP_REQ = 2000;
     SIGN_UP_RSP = 2001;
     SIGN_IN_REQ = 2002;
     SIGN_IN_RSP = 2003;
+
     NOTIFY = 3000;
     LOGIN_REQ = 3001;
     LOGIN_RSP = 3002;

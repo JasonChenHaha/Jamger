@@ -60,7 +60,7 @@ const (
 )
 
 const (
-	USER_LIVE = 60 * 10
+	USER_LIVE = 60 * 5
 )
 
 var ID int

@@ -73,6 +73,8 @@ mongo:
 redis:
     addr: "127.0.0.1:6379"
     password: ""
+    rTimeout: 5s
+    sTimeout: 5s
 
 nsq:
     addr: "192.168.4.60:4150"

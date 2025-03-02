@@ -1,2 +1,16 @@
 syntax = "proto3";
 option go_package = "./;jpb";
+
+import "common.proto";
+
+message HeartbeatReq {}
+
+message HeartbeatRsp {}
+
+message KickUserReq {
+    uint32 uid = 1;
+}
+
+message KickUserRsp {
+    CODE code = 1;
+}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"jconfig"
 	"jlog"
+	"time"
 
 	"github.com/redis/go-redis/v9"
 )
@@ -17,12 +18,22 @@ type Redis struct {
 func NewRedis() *Redis {
 	re := &Redis{}
 	client := redis.NewClient(&redis.Options{
-		Addr:     jconfig.GetString("redis.addr"),
-		Password: jconfig.GetString("redis.password"),
+		Addr:         jconfig.GetString("redis.addr"),
+		Password:     jconfig.GetString("redis.password"),
+		ReadTimeout:  time.Duration(jconfig.GetInt("redis.rTimeout")) * time.Millisecond,
+		WriteTimeout: time.Duration(jconfig.GetInt("redis.wTimeout")) * time.Millisecond,
 	})
 	jlog.Info("connect to redis")
 	re.client = client
 	return re
+}
+
+func (re *Redis) Exist(key string) (bool, error) {
+	rsp, err := re.client.Exists(context.Background(), key).Result()
+	if err != nil {
+		return false, err
+	}
+	return rsp > 0, err
 }
 
 func (re *Redis) HSet(key string, values ...any) (int64, error) {

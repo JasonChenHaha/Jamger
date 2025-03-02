@@ -27,6 +27,7 @@ func testTcp() {
 	jlog.Info("connect to server ", tcpAddr)
 	tcp.con = con
 
+	tcp.msg[jpb.CMD_GATE_INFO] = &jpb.Error{}
 	tcp.msg[jpb.CMD_NOTIFY] = &jpb.Notify{}
 	tcp.msg[jpb.CMD_LOGIN_RSP] = &jpb.LoginRsp{}
 
@@ -43,7 +44,7 @@ func testTcp() {
 func (tcp *Tcp) heartbeat() {
 	ticker := time.NewTicker(1 * time.Second)
 	for range ticker.C {
-		tcp.sendWithAes(jpb.CMD_HEARTBEAT, nil)
+		tcp.sendWithAes(jpb.CMD_HEARTBEAT, &jpb.HeartbeatReq{})
 	}
 }
 
@@ -86,6 +87,6 @@ func (tcp *Tcp) recv() {
 		jglobal.AesDecrypt(aesKey, &raw)
 		cmd := jpb.CMD(binary.LittleEndian.Uint16(raw))
 		proto.Unmarshal(raw[cmdSize:], tcp.msg[cmd])
-		jlog.Infof("cmd(%d), %v", cmd, tcp.msg[cmd])
+		jlog.Infof("cmd(%v), %v", cmd, tcp.msg[cmd])
 	}
 }

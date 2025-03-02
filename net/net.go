@@ -73,13 +73,12 @@ func SendToC(pack *jglobal.Pack, ids ...uint32) bool {
 		// to do: 这里只需要用到user.Gate，不需要加载完整的user
 		user := juser.GetUser(id)
 		if user.Gate != 0 {
-			group, index := jglobal.ParseServerID(user.Gate)
-			target := jrpc.Rpc.GetDirectTarget(group, index)
+			target := jrpc.Rpc.GetDirectTarget(jglobal.GRP_GATE, user.Gate)
 			if target != nil {
 				pack.Ctx = user
 				target.SendToC(pack)
 			} else {
-				jlog.Warnf("can't find target, group(%d), index(%d)", group, index)
+				jlog.Warnf("can't find target, group(%d), index(%d)", jglobal.GRP_GATE, user.Gate)
 			}
 		} else {
 			jlog.Warnf("can't find user's(%d) gate", id)

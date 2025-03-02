@@ -13,8 +13,9 @@ type User struct {
 	*Redis
 	*Basic
 	Uid    uint32
-	sesId  uint64
+	SesId  uint64
 	ticker any
+	destro bool
 }
 
 var users sync.Map
@@ -51,22 +52,25 @@ func (user *User) Load() {
 }
 
 func (user *User) GetSesId() uint64 {
-	return user.sesId
+	return user.SesId
 }
 
 func (user *User) SetSesId(id uint64) {
-	user.sesId = id
+	user.SesId = id
 }
 
 func (user *User) Destory() {
-	jschedule.Stop(user.ticker)
-	users.Delete(user.Uid)
+	user.destro = true
 }
 
 // ------------------------- inside -------------------------
 
 func (user *User) tick(args ...any) {
 	if user.Base.Tick() {
-		user.Destory()
+		user.destro = true
+	}
+	if user.destro {
+		jschedule.Stop(user.ticker)
+		users.Delete(user.Uid)
 	}
 }

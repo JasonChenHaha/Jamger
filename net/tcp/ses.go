@@ -74,14 +74,14 @@ func (o *Ses) recvGoro() {
 			data, err := o.recvBytes()
 			if err != nil {
 				jlog.Error(err)
-				o.tcp.delete(o.id)
+				o.tcp.Close(o.id)
 				return
 			}
 			pack := &jglobal.Pack{Data: data}
 			err = decoder(o.id, pack)
 			if err != nil {
 				jlog.Error(err)
-				o.tcp.delete(o.id)
+				o.tcp.Close(o.id)
 				return
 			}
 			o.user = pack.Ctx.(jglobal.User)
@@ -107,12 +107,12 @@ func (o *Ses) sendGoro() {
 			}
 			if err := encoder(pack); err != nil {
 				jlog.Error(err)
-				o.tcp.delete(o.id)
+				o.tcp.Close(o.id)
 				return
 			}
 			if err := o.sendBytes(pack); err != nil {
 				jlog.Error(err)
-				o.tcp.delete(o.id)
+				o.tcp.Close(o.id)
 			}
 		}
 	}
