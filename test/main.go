@@ -7,7 +7,6 @@ import (
 	"jglobal"
 	"jlog"
 	"jschedule"
-	"math/rand"
 	"os"
 )
 
@@ -41,14 +40,13 @@ func main() {
 	jschedule.Init()
 
 	id, pwd = os.Args[2], os.Args[3]
-	httpAddr = makeAddr(jconfig.GetString("http.addr"), jglobal.Itoa(rand.Int()))
-	tcpAddr = makeAddr(jconfig.GetString("tcp.addr"), jglobal.Itoa(rand.Int()))
+	httpAddr = makeAddr(jconfig.GetString("http.addr"), id)
+	tcpAddr = makeAddr(jconfig.GetString("tcp.addr"), id)
 	var err error
 	aesKey, err = jglobal.AesGenerate(16)
 	if err != nil {
 		jlog.Fatal(err)
 	}
-
 	testHttp()
 	testTcp()
 	// testKcp()

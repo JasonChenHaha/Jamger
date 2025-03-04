@@ -16,16 +16,20 @@ type Redis struct {
 // ------------------------- package -------------------------
 
 func newRedis(user *User) *Redis {
-	re := &Redis{user: user}
-	re.load()
-	return re
+	return &Redis{user: user}
 }
 
-func (redis *Redis) load() {
+func (redis *Redis) clear() {
+	redis.user.DirtyRedis = nil
+}
+
+// ------------------------- outSide -------------------------
+
+func (redis *Redis) Load() *User {
 	rData, err := jdb.Redis.HGetAll(jglobal.Itoa(redis.user.Uid))
 	if err != nil {
 		jlog.Error(err)
-		return
+		return nil
 	}
 	if v, ok := rData["gate"]; ok {
 		redis.Gate = jglobal.Atoi[int](v)
@@ -33,20 +37,23 @@ func (redis *Redis) load() {
 	if v, ok := rData["aesKey"]; ok {
 		redis.AesKey = []byte(v)
 	}
+	return redis.user
 }
-
-// ------------------------- inside -------------------------
 
 func (redis *Redis) SetGate(gate int) {
 	if redis.Gate != gate {
 		redis.Gate = gate
+		redis.user.Lock()
 		redis.user.DirtyRedis["gate"] = gate
+		redis.user.UnLock()
 	}
 }
 
 func (redis *Redis) SetAesKey(aesKey []byte) {
 	if !bytes.Equal(redis.AesKey, aesKey) {
 		redis.AesKey = aesKey
+		redis.user.Lock()
 		redis.user.DirtyRedis["aesKey"] = aesKey
+		redis.user.UnLock()
 	}
 }

@@ -54,45 +54,40 @@ func (o *Ses) send(pack *jglobal.Pack) {
 
 func (o *Ses) close() {
 	o.qChan <- 0
-	o.qChan <- 0
-	if o.user != nil {
-		o.user.Destory()
-	}
 }
 
 // ------------------------- inside -------------------------
 
 func (o *Ses) recvGoro() {
 	for {
-		select {
-		case <-o.qChan:
-			return
-		default:
-			if o.rTimeout > 0 {
-				o.con.SetReadDeadline(time.Now().Add(o.rTimeout))
-			}
-			data, err := o.recvBytes()
-			if err != nil {
-				jlog.Error(err)
-				o.tcp.Close(o.id)
-				return
-			}
-			pack := &jglobal.Pack{Data: data}
-			err = decoder(o.id, pack)
-			if err != nil {
-				jlog.Error(err)
-				o.tcp.Close(o.id)
-				return
-			}
-			o.user = pack.Ctx.(jglobal.User)
-			o.tcp.receive(o, pack)
+		if o.rTimeout > 0 {
+			o.con.SetReadDeadline(time.Now().Add(o.rTimeout))
 		}
+		data, err := o.recvBytes()
+		if err != nil {
+			jlog.Error(err)
+			o.tcp.Close(o.id)
+			return
+		}
+		pack := &jglobal.Pack{Data: data}
+		err = decoder(pack)
+		if err != nil {
+			jlog.Error(err)
+			o.tcp.Close(o.id)
+			return
+		}
+		o.user = pack.Ctx.(jglobal.User)
+		o.user.SetSesId(o.id)
+		o.tcp.receive(o.id, pack)
 	}
 }
 
 func (o *Ses) sendGoro() {
 	defer func() {
 		err := o.con.Close()
+		if o.user != nil {
+			o.user.Destory()
+		}
 		if err != nil {
 			jlog.Error(err)
 		}

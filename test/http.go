@@ -95,16 +95,19 @@ func (htp *Http) encodeRsa(cmd jpb.CMD, msg proto.Message) []byte {
 		jlog.Fatal(err)
 	}
 	dataSize := len(data)
-	raw := make([]byte, cmdSize+dataSize+aesKeySize+checksumSize)
-	binary.LittleEndian.PutUint16(raw, uint16(cmd))
-	copy(raw[cmdSize:], data)
-	copy(raw[cmdSize+dataSize:], aesKey)
-	binary.LittleEndian.PutUint32(raw[cmdSize+dataSize+aesKeySize:], crc32.ChecksumIEEE(raw[:cmdSize+dataSize+aesKeySize]))
+	raw := make([]byte, dataSize+aesKeySize+checksumSize)
+	copy(raw, data)
+	copy(raw[dataSize:], aesKey)
+	binary.LittleEndian.PutUint32(raw[dataSize+aesKeySize:], crc32.ChecksumIEEE(raw[:dataSize+aesKeySize]))
 	err = jglobal.RsaEncrypt(htp.pubKey, &raw)
 	if err != nil {
 		jlog.Fatal(err)
 	}
-	return raw
+	dataSize = len(raw)
+	raw2 := make([]byte, cmdSize+dataSize)
+	binary.LittleEndian.PutUint16(raw2, uint16(cmd))
+	copy(raw2[cmdSize:], raw)
+	return raw2
 }
 
 func (htp *Http) encodeAes(cmd jpb.CMD, msg proto.Message) []byte {
@@ -113,16 +116,16 @@ func (htp *Http) encodeAes(cmd jpb.CMD, msg proto.Message) []byte {
 		jlog.Fatal(err)
 	}
 	dataSize := len(data)
-	raw := make([]byte, cmdSize+dataSize+checksumSize)
-	binary.LittleEndian.PutUint16(raw, uint16(cmd))
-	copy(raw[cmdSize:], data)
-	binary.LittleEndian.PutUint32(raw[cmdSize+dataSize:], crc32.ChecksumIEEE(raw[:cmdSize+dataSize]))
+	raw := make([]byte, dataSize+checksumSize)
+	copy(raw, data)
+	binary.LittleEndian.PutUint32(raw[dataSize:], crc32.ChecksumIEEE(raw[:dataSize]))
 	if err = jglobal.AesEncrypt(aesKey, &raw); err != nil {
 		jlog.Fatal(err)
 	}
-	raw2 := make([]byte, uidSize+len(raw))
-	binary.LittleEndian.PutUint32(raw2, uint32(htp.uid))
-	copy(raw2[uidSize:], raw)
+	raw2 := make([]byte, uidSize+cmdSize+len(raw))
+	binary.LittleEndian.PutUint16(raw2, uint16(cmd))
+	binary.LittleEndian.PutUint32(raw2[uidSize:], uint32(htp.uid))
+	copy(raw2[uidSize+cmdSize:], raw)
 	return raw2
 }
 

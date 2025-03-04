@@ -1,9 +1,10 @@
 package juser
 
 import (
+	"fmt"
+	"jglobal"
 	"jschedule"
 	"juBase"
-	"sync"
 	"time"
 )
 
@@ -12,65 +13,62 @@ type User struct {
 	*juBase.Base
 	*Redis
 	*Basic
-	Uid    uint32
-	SesId  uint64
 	ticker any
-	destro bool
 }
 
-var users sync.Map
+var users = jglobal.NewMaps(uint32(1))
 
 // ------------------------- outside -------------------------
 
 func Init() {}
+
+func NewUser(uid uint32) *User {
+	user := &User{Base: juBase.NewBase(uid)}
+	user.Redis = newRedis(user)
+	user.Basic = newBasic(user)
+	user.ticker = jschedule.DoEvery(time.Second, user.tick)
+	users.Store(uid, user)
+	return user
+}
 
 func GetUser(uid uint32) *User {
 	if v, ok := users.Load(uid); ok {
 		user := v.(*User)
 		user.Touch()
 		return user
-	} else {
-		user := &User{
-			Uid:  uid,
-			Base: juBase.NewBase(uid),
-		}
-		user.Basic = newBasic(user)
-		user.Redis = newRedis(user)
-		user.ticker = jschedule.DoEvery(time.Second, user.tick)
-		users.Store(uid, user)
-		return user
 	}
+	return nil
 }
 
 func Range(fun func(k, v any) bool) {
 	users.Range(fun)
 }
 
-func (user *User) Load() {
-	user.Basic.load()
-	user.Redis.load()
+func (user *User) String() string {
+	if user.Basic.Id != "" {
+		return fmt.Sprintf("user(%s)", user.Id)
+	} else {
+		return fmt.Sprintf("user(%d)", user.Uid)
+	}
 }
 
-func (user *User) GetSesId() uint64 {
-	return user.SesId
-}
-
-func (user *User) SetSesId(id uint64) {
-	user.SesId = id
+func (user *User) Load() *User {
+	user.Redis.Load()
+	user.Basic.Load()
+	return user
 }
 
 func (user *User) Destory() {
-	user.destro = true
+	jschedule.Stop(user.ticker)
+	users.Delete(user.Uid)
+	user.Redis.clear()
+	user.Base.Flush()
 }
 
 // ------------------------- inside -------------------------
 
 func (user *User) tick(args ...any) {
 	if user.Base.Tick() {
-		user.destro = true
-	}
-	if user.destro {
-		jschedule.Stop(user.ticker)
-		users.Delete(user.Uid)
+		user.Destory()
 	}
 }

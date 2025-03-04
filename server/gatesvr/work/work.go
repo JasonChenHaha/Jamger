@@ -18,12 +18,12 @@ func Init() {
 	jrpc.Rpc.Connect(jglobal.GRP_CENTER)
 	jnet.Http.Encoder(httpEncode)
 	jnet.Http.Decoder(httpDecode)
-	jnet.Http.Register(jpb.CMD_PROXY, httpProxy, nil)
+	jnet.Http.Register(jpb.CMD_TRANSFER, httpTransfer, nil)
 	jnet.Http.Register(jpb.CMD_SIGN_IN_REQ, signIn, &jpb.SignInReq{})
 	jnet.Tcp.Encoder(tcpEncode)
 	jnet.Tcp.Decoder(tcpDecode)
 	jnet.Tcp.Register(jpb.CMD_HEARTBEAT, heartbeat, &jpb.HeartbeatReq{})
-	jnet.Tcp.Register(jpb.CMD_PROXY, tcpProxy, nil)
+	jnet.Tcp.Register(jpb.CMD_TRANSFER, tcpTransfer, nil)
 	jnet.Tcp.Register(jpb.CMD_LOGIN_REQ, login, &jpb.LoginReq{})
 	jnet.Rpc.Encoder(rpcEncode)
 	jnet.Rpc.Decoder(rpcDecode)
@@ -34,15 +34,15 @@ func Init() {
 
 // ------------------------- inside.http -------------------------
 
-// 透传
-func httpProxy(pack *jglobal.Pack) {
+// 转发
+func httpTransfer(pack *jglobal.Pack) {
 	target := jrpc.Rpc.GetRoundRobinTarget(jglobal.GetGroup(pack.Cmd))
 	if target == nil {
 		pack.Cmd = jpb.CMD_GATE_INFO
 		pack.Data = &jpb.Error{Code: jpb.CODE_SVR_ERR}
 		return
 	}
-	if !target.Proxy(pack) {
+	if !target.Transfer(pack) {
 		pack.Cmd = jpb.CMD_GATE_INFO
 		pack.Data = &jpb.Error{Code: jpb.CODE_SVR_ERR}
 	}
@@ -105,7 +105,7 @@ func signIn(pack *jglobal.Pack) {
 // ------------------------- inside.tcp -------------------------
 
 // 透传
-func tcpProxy(pack *jglobal.Pack) {
+func tcpTransfer(pack *jglobal.Pack) {
 	user := pack.Ctx.(*juser.User)
 	defer jnet.Tcp.Send(pack)
 	target := jrpc.Rpc.GetConsistentHashTarget(jglobal.GetGroup(pack.Cmd), user.Uid)
@@ -114,7 +114,7 @@ func tcpProxy(pack *jglobal.Pack) {
 		pack.Data = &jpb.Error{Code: jpb.CODE_SVR_ERR}
 		return
 	}
-	if !target.Proxy(pack) {
+	if !target.Transfer(pack) {
 		pack.Cmd = jpb.CMD_GATE_INFO
 		pack.Data = &jpb.Error{Code: jpb.CODE_SVR_ERR}
 	}
@@ -129,6 +129,7 @@ func heartbeat(pack *jglobal.Pack) {
 func login(pack *jglobal.Pack) {
 	user := pack.Ctx.(*juser.User)
 	defer jnet.Tcp.Send(pack)
+	user.SetGate(jglobal.INDEX)
 	target := jrpc.Rpc.GetConsistentHashTarget(jglobal.GRP_CENTER, user.Uid)
 	if target == nil {
 		pack.Cmd = jpb.CMD_GATE_INFO
@@ -140,10 +141,6 @@ func login(pack *jglobal.Pack) {
 		pack.Data = &jpb.Error{Code: jpb.CODE_SVR_ERR}
 		return
 	}
-	rsp := pack.Data.(*jpb.LoginRsp)
-	if rsp.Code == jpb.CODE_OK {
-		user.SetGate(jglobal.INDEX)
-	}
 }
 
 // ------------------------- inside.rpc -------------------------
@@ -153,13 +150,34 @@ func kickUser(pack *jglobal.Pack) {
 	req := pack.Data.(*jpb.KickUserReq)
 	pack.Cmd = jpb.CMD_KICK_USER_RSP
 	pack.Data = &jpb.KickUserRsp{}
-	user := juser.GetUser(req.Uid)
-	jnet.Tcp.Close(user.SesId)
+	if user := juser.GetUser(req.Uid); user != nil {
+		jnet.Tcp.Close(user.SesId)
+		user.Destory()
+	}
 }
 
 // 发送
 func sendToC(pack *jglobal.Pack) {
-	jnet.Tcp.Send(pack)
+	switch v := pack.Ctx.(type) {
+	case *juser.User:
+		jnet.Tcp.Send(pack)
+	case uint32:
+		// 转发
+		var user *juser.User
+		if user = juser.GetUser(v); user == nil {
+			user = juser.NewUser(v).Redis.Load()
+		}
+		if user.Gate == 0 {
+			jlog.Warnf("%s is offline", user)
+			return
+		}
+		target := jrpc.Rpc.GetDirectTarget(jglobal.GRP_GATE, user.Gate)
+		if target == nil {
+			return
+		}
+		pack.Ctx = user
+		target.Proxy(jpb.CMD_TOC, pack)
+	}
 }
 
 // 广播

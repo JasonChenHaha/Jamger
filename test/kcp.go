@@ -32,7 +32,6 @@ func (kc *Kcp) heartbeat() {
 }
 
 func (kc *Kcp) close() {
-	kc.send(jpb.CMD_CLOSE, []byte{})
 	kc.con.Close()
 }
 

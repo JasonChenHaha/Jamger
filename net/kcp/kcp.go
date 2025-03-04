@@ -2,10 +2,10 @@ package jkcp
 
 import (
 	"jconfig"
+	"jglobal"
 	"jlog"
 	"jpb"
 	"log"
-	"sync"
 	"sync/atomic"
 	"time"
 
@@ -19,7 +19,7 @@ type Handler func(id uint64, pack *Pack)
 
 type Kcp struct {
 	idc     uint64
-	ses     sync.Map
+	ses     *jglobal.Maps[uint64]
 	counter uint64
 	handler map[jpb.CMD]Handler
 }
@@ -31,6 +31,7 @@ func NewKcp() *Kcp {
 }
 
 func (o *Kcp) AsServer() *Kcp {
+	o.ses = jglobal.NewMaps(uint64(1))
 	o.handler = map[jpb.CMD]Handler{}
 	listener, err := xKcp.ListenWithOptions(jconfig.GetString("kcp.addr"), nil, jconfig.GetInt("kcp.dataShards"), jconfig.GetInt("kcp.parityShards"))
 	if err != nil {

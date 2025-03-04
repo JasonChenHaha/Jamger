@@ -5,9 +5,7 @@ import (
 	"jglobal"
 	"jlog"
 	"jpb"
-	"juser"
 	"net"
-	"sync"
 	"sync/atomic"
 	"time"
 
@@ -23,13 +21,13 @@ type Handler struct {
 
 type Tcp struct {
 	idc     uint64
-	ses     sync.Map
+	ses     *jglobal.Maps[uint64]
 	counter uint64
 	handler map[jpb.CMD]*Handler
 }
 
 var encoder func(*jglobal.Pack) error
-var decoder func(uint64, *jglobal.Pack) error
+var decoder func(*jglobal.Pack) error
 
 // ------------------------- outside -------------------------
 
@@ -38,6 +36,7 @@ func NewTcp() *Tcp {
 }
 
 func (o *Tcp) AsServer() *Tcp {
+	o.ses = jglobal.NewMaps(uint64(1))
 	o.handler = map[jpb.CMD]*Handler{}
 	listener, err := net.Listen("tcp", jconfig.GetString("tcp.addr"))
 	if err != nil {
@@ -59,7 +58,7 @@ func (o *Tcp) Encoder(fun func(*jglobal.Pack) error) {
 	encoder = fun
 }
 
-func (o *Tcp) Decoder(fun func(uint64, *jglobal.Pack) error) {
+func (o *Tcp) Decoder(fun func(*jglobal.Pack) error) {
 	decoder = fun
 }
 
@@ -71,7 +70,7 @@ func (o *Tcp) Register(cmd jpb.CMD, fun func(*jglobal.Pack), template proto.Mess
 }
 
 func (o *Tcp) Send(pack *jglobal.Pack) {
-	id := pack.Ctx.(jglobal.SesIder).GetSesId()
+	id := pack.Ctx.(jglobal.User).GetSesId()
 	ses, ok := o.ses.Load(id)
 	if !ok {
 		jlog.Errorf("no session(%d)", id)
@@ -80,12 +79,11 @@ func (o *Tcp) Send(pack *jglobal.Pack) {
 	if v, ok := pack.Data.(proto.Message); ok {
 		tmp, err := proto.Marshal(v)
 		if err != nil {
-			jlog.Errorf("%s, cmd(%d)", err, pack.Cmd)
+			jlog.Errorf("%s, cmd(%s)", err, pack.Cmd)
 			return
 		}
 		pack.Data = tmp
 	}
-	jlog.Debugf("tcp send to C(%d), cmd(%d), data(%v)", pack.Ctx.(*juser.User).Uid, pack.Cmd, pack.Data)
 	ses.(*Ses).send(pack)
 }
 
@@ -99,26 +97,24 @@ func (o *Tcp) Close(id uint64) {
 
 // ------------------------- package -------------------------
 
-func (o *Tcp) receive(ses *Ses, pack *jglobal.Pack) {
+func (o *Tcp) receive(id uint64, pack *jglobal.Pack) {
 	han := o.handler[pack.Cmd]
 	if han != nil {
 		msg := proto.Clone(han.template)
 		if err := proto.Unmarshal(pack.Data.([]byte), msg); err != nil {
-			jlog.Warnf("%s, cmd(%d)", err, pack.Cmd)
-			o.Close(ses.id)
+			jlog.Warnf("%s, cmd(%s)", err, pack.Cmd)
+			o.Close(id)
 			return
 		}
 		pack.Data = msg
-		pack.Ctx.(jglobal.Locker).Lock()
 		han.fun(pack)
-		pack.Ctx.(jglobal.Locker).UnLock()
 	} else {
-		if o.handler[jpb.CMD_PROXY] == nil {
-			jlog.Error("no proxy cmd.")
-			o.Close(ses.id)
+		if o.handler[jpb.CMD_TRANSFER] == nil {
+			jlog.Error("no transfer cmd.")
+			o.Close(id)
 			return
 		}
-		o.handler[jpb.CMD_PROXY].fun(pack)
+		o.handler[jpb.CMD_TRANSFER].fun(pack)
 	}
 }
 

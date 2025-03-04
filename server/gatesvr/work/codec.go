@@ -44,31 +44,37 @@ func tcpEncode(pack *jglobal.Pack) error {
 // client tcp pack structure:
 // +--------------------------------------------------------------------+
 // |                               pack                                 |
-// +----------+---------+-------+---------+----------+--------------+---+
-// |   size   |   uid   |       |   cmd   |   data   |   checksum   |   |
-// +----------+---------+ aes ( +---------+----------+--------------+ ) |
-// |    2     |    4    |       |    2    |   ...    |      4       |   |
-// +----------+---------+-------+---------+----------+--------------+---+
+// +----------+---------+---------+-------+----------+--------------+---+
+// |   size   |   uid   |   cmd   |       |   data   |   checksum   |   |
+// +----------+---------+---------+ aes ( +----------+--------------+ ) |
+// |    2     |    4    |    2    |       |   ...    |      4       |   |
+// +----------+---------+---------+-------+----------+--------------+---+
 
-func tcpDecode(id uint64, pack *jglobal.Pack) error {
+func tcpDecode(pack *jglobal.Pack) error {
 	raw := pack.Data.([]byte)
 	uid := binary.LittleEndian.Uint32(raw)
-	user := juser.GetUser(uid)
-	if user == nil {
-		return fmt.Errorf("no such user, uid(%d)", uid)
+	pack.Cmd = jpb.CMD(binary.LittleEndian.Uint16(raw[uidSize:]))
+	var user *juser.User
+	if pack.Cmd == jpb.CMD_LOGIN_REQ {
+		if user = juser.GetUser(uid); user == nil {
+			user = juser.NewUser(uid)
+		}
+		user.Load()
+	} else {
+		if user = juser.GetUser(uid); user == nil {
+			return fmt.Errorf("no such user, uid(%d)", uid)
+		}
 	}
-	user.SetSesId(id)
 	pack.Ctx = user
-	raw = raw[uidSize:]
+	raw = raw[uidSize+cmdSize:]
 	if err := jglobal.AesDecrypt(user.AesKey, &raw); err != nil {
 		return err
 	}
-	posChecksum := len(raw) - checksumSize
-	if binary.LittleEndian.Uint32(raw[posChecksum:]) != crc32.ChecksumIEEE(raw[:posChecksum]) {
+	pos := len(raw) - checksumSize
+	if binary.LittleEndian.Uint32(raw[pos:]) != crc32.ChecksumIEEE(raw[:pos]) {
 		return fmt.Errorf("checksum failed")
 	}
-	pack.Cmd = jpb.CMD(binary.LittleEndian.Uint16(raw[:cmdSize]))
-	pack.Data = raw[cmdSize:posChecksum]
+	pack.Data = raw[:pos]
 	return nil
 }
 
@@ -112,19 +118,19 @@ func httpEncode(url string, pack *jglobal.Pack) error {
 // auth client http pack structure:
 // +------------------------------------------------------------+
 // |                            pack                            |
-// +-------+---------+----------+------------+--------------+---+
-// |       |   cmd   |   data   |   aeskey   |   checksum   |   |
-// | rsa ( +---------+----------+------------+--------------+ ) |
-// |       |    2    |   ...    |     16     |      4       |   |
-// +-------+---------+----------+------------+--------------+---+
+// +---------+-------+----------+------------+--------------+---+
+// |   cmd   |       |   data   |   aeskey   |   checksum   |   |
+// |---------+ rsa ( +----------+------------+--------------+ ) |
+// |    2    |       |   ...    |     16     |      4       |   |
+// +---------+-------+----------+------------+--------------+---+
 // client http pack structure:
 // +---------------------------------------------------------+
 // |                          pack                           |
-// +---------+-------+---------+----------+--------------+---+
-// |   uid   |       |   cmd   |   data   |   checksum   |   |
-// +---------+ aes ( +---------+----------+--------------+ ) |
-// |    4    |       |    2    |   ...    |      4       |   |
-// +---------+-------+---------+----------+--------------+---+
+// +---------+---------+-------+----------+--------------+---+
+// |   uid   |   cmd   |       |   data   |   checksum   |   |
+// +---------+---------+ aes ( +----------+--------------+ ) |
+// |    4    |    2    |       |   ...    |      4       |   |
+// +---------+---------+-------+----------+--------------+---+
 
 func httpDecode(url string, pack *jglobal.Pack) error {
 	raw := pack.Data.([]byte)
@@ -135,7 +141,8 @@ func httpDecode(url string, pack *jglobal.Pack) error {
 			return fmt.Errorf("no such user, uid(%d)", uid)
 		}
 		pack.Ctx = user
-		raw = raw[uidSize:]
+		pack.Cmd = jpb.CMD(binary.LittleEndian.Uint16(raw[uidSize:]))
+		raw = raw[uidSize+cmdSize:]
 		if err := jglobal.AesDecrypt(user.AesKey, &raw); err != nil {
 			return err
 		}
@@ -143,9 +150,10 @@ func httpDecode(url string, pack *jglobal.Pack) error {
 		if binary.LittleEndian.Uint32(raw[pos:]) != crc32.ChecksumIEEE(raw[:pos]) {
 			return fmt.Errorf("checksum failed")
 		}
-		pack.Cmd = jpb.CMD(binary.LittleEndian.Uint16(raw))
-		pack.Data = raw[cmdSize:pos]
+		pack.Data = raw[:pos]
 	} else {
+		pack.Cmd = jpb.CMD(binary.LittleEndian.Uint16(raw))
+		raw = raw[cmdSize:]
 		if err := jglobal.RsaDecrypt(jglobal.RSA_PRIVATE_KEY, &raw); err != nil {
 			return err
 		}
@@ -153,8 +161,7 @@ func httpDecode(url string, pack *jglobal.Pack) error {
 		if binary.LittleEndian.Uint32(raw[pos:]) != crc32.ChecksumIEEE(raw[:pos]) {
 			return fmt.Errorf("checksum failed")
 		}
-		pack.Cmd = jpb.CMD(binary.LittleEndian.Uint16(raw))
-		pack.Data = raw[cmdSize : pos-aesKeySize]
+		pack.Data = raw[:pos-aesKeySize]
 		pack.Ctx = raw[pos-aesKeySize : pos]
 	}
 	return nil
@@ -195,10 +202,11 @@ func rpcDecode(pack *jglobal.Pack) error {
 	uid := binary.LittleEndian.Uint32(raw)
 	if pack.Ctx == nil && uid != 0 {
 		user := juser.GetUser(uid)
-		if user == nil {
-			return fmt.Errorf("no such user, uid(%d)", uid)
+		if user != nil {
+			pack.Ctx = user
+		} else {
+			pack.Ctx = uid
 		}
-		pack.Ctx = user
 	}
 	pack.Cmd = jpb.CMD(binary.LittleEndian.Uint16(raw[uidSize+gateSize:]))
 	pack.Data = raw[uidSize+gateSize+cmdSize:]

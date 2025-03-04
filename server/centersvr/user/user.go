@@ -1,9 +1,9 @@
 package juser
 
 import (
+	"jglobal"
 	"jschedule"
 	"juBase"
-	"sync"
 	"time"
 )
 
@@ -16,7 +16,8 @@ type User struct {
 	ticker any
 }
 
-var users sync.Map
+var users = jglobal.NewMaps(uint32(1))
+var tmpUsers = jglobal.NewMaps(uint32(1))
 
 // ------------------------- outside -------------------------
 
@@ -45,15 +46,25 @@ func GetUser(uid uint32) *User {
 	return user
 }
 
+func HasUser(uid uint32) *User {
+	if user, ok := users.Load(uid); ok {
+		return user.(*User)
+	}
+	return nil
+}
+
+// func GetTmpUser(uid uint32) *User {
+// 	if v, ok := users.Load(uid); ok {
+// 		if !juBase.Protect.Touch(uid) {
+// 			return v.(*User)
+// 		}
+// 	}
+// }
+
 func DelUser(uid uint32) {
 	if v, ok := users.Load(uid); ok {
 		v.(*User).destory()
 	}
-}
-
-func (user *User) Load() {
-	user.Basic.load()
-	user.Redis.load()
 }
 
 // ------------------------- inside -------------------------

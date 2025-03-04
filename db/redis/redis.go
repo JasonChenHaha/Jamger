@@ -25,6 +25,7 @@ func NewRedis() *Redis {
 	})
 	jlog.Info("connect to redis")
 	re.client = client
+	re.Flush()
 	return re
 }
 
@@ -56,10 +57,18 @@ func (re *Redis) HGetAll(key string) (map[string]string, error) {
 	return rsp, err
 }
 
+func (re *Redis) Del(key string) (int64, error) {
+	return re.client.Del(context.Background(), key).Result()
+}
+
 func (re *Redis) Do(args ...any) (any, error) {
 	return re.client.Do(context.Background(), args...).Result()
 }
 
 func (re *Redis) DoScript(script string, keys []string, args ...any) (any, error) {
 	return re.client.Eval(context.Background(), script, keys, args...).Result()
+}
+
+func (re *Redis) Flush() (any, error) {
+	return re.client.FlushAll(context.Background()).Result()
 }

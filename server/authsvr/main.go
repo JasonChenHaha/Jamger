@@ -12,7 +12,6 @@ import (
 	"jrpc"
 	"jschedule"
 	"juBase"
-	"juser"
 	"jwork"
 )
 
@@ -30,7 +29,6 @@ func main() {
 	jetcd.Init()
 	jrpc.Init()
 	juBase.Init(jrpc.Rpc)
-	juser.Init()
 	jwork.Init()
 	jglobal.Keep()
 	jlog.Infof(">%s stop<", jglobal.SERVER)

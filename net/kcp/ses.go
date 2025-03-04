@@ -69,9 +69,6 @@ func (o *Ses) recvGoro() {
 			} else {
 				switch pack.Cmd {
 				case jpb.CMD_HEARTBEAT:
-				case jpb.CMD_CLOSE:
-					o.kc.delete(o.id)
-					return
 				default:
 					o.kc.receive(o.id, pack)
 				}

@@ -30,15 +30,8 @@ type AllIntString interface {
 
 type User interface {
 	Destory()
-}
-
-type SesIder interface {
 	GetSesId() uint64
-}
-
-type Locker interface {
-	Lock()
-	UnLock()
+	SetSesId(uint64)
 }
 
 type Pack struct {

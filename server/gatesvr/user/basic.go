@@ -1,7 +1,6 @@
 package juser
 
 import (
-	"bytes"
 	"jdb"
 	"jglobal"
 	"jlog"
@@ -12,20 +11,21 @@ import (
 )
 
 type Basic struct {
-	user *User
-	Id   string
-	Pwd  []byte
+	user  *User
+	Id    string
+	Pwd   []byte
+	SesId uint64
 }
 
 // ------------------------- package -------------------------
 
 func newBasic(user *User) *Basic {
-	basic := &Basic{user: user}
-	basic.load()
-	return basic
+	return &Basic{user: user}
 }
 
-func (basic *Basic) load() {
+// ------------------------- outside -------------------------
+
+func (basic *Basic) Load() *User {
 	in := &jmongo.Input{
 		Col:     jglobal.MONGO_USER,
 		Filter:  bson.M{"_id": basic.user.Uid},
@@ -34,27 +34,20 @@ func (basic *Basic) load() {
 	mData := primitive.M{}
 	if err := jdb.Mongo.FindOne(in, &mData); err != nil {
 		jlog.Error(err)
-		return
+		return nil
 	}
 	if v, ok := mData["basic"]; ok {
 		mData = v.(primitive.M)
 		basic.Id = mData["id"].(string)
 		basic.Pwd = mData["pwd"].(primitive.Binary).Data
 	}
+	return basic.user
 }
 
-// ------------------------- outside -------------------------
-
-func (basic *Basic) SetId(id string) {
-	if basic.Id != id {
-		basic.Id = id
-		basic.user.DirtyMongo["basic.id"] = id
-	}
+func (basic *Basic) GetSesId() uint64 {
+	return basic.SesId
 }
 
-func (basic *Basic) SetPwd(pwd []byte) {
-	if !bytes.Equal(basic.Pwd, pwd) {
-		basic.Pwd = pwd
-		basic.user.DirtyMongo["basic.pwd"] = pwd
-	}
+func (basic *Basic) SetSesId(id uint64) {
+	basic.SesId = id
 }

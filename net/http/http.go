@@ -13,6 +13,8 @@ import (
 
 type Http struct {
 	mux     *http.ServeMux
+	encoder func(string, *jglobal.Pack) error
+	decoder func(string, *jglobal.Pack) error
 	handler map[jpb.CMD]*Handler
 }
 
@@ -20,9 +22,6 @@ type Handler struct {
 	fun      func(*jglobal.Pack)
 	template proto.Message
 }
-
-var encoder func(string, *jglobal.Pack) error
-var decoder func(string, *jglobal.Pack) error
 
 // ------------------------- outside -------------------------
 
@@ -52,11 +51,11 @@ func (o *Http) AsClient() *Http {
 }
 
 func (o *Http) Encoder(fun func(string, *jglobal.Pack) error) {
-	encoder = fun
+	o.encoder = fun
 }
 
 func (o *Http) Decoder(fun func(string, *jglobal.Pack) error) {
-	decoder = fun
+	o.decoder = fun
 }
 
 func (o *Http) Register(cmd jpb.CMD, fun func(*jglobal.Pack), template proto.Message) {
@@ -75,7 +74,7 @@ func (o *Http) receive(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	pack := &jglobal.Pack{Data: body}
-	if err = decoder(r.URL.Path, pack); err != nil {
+	if err = o.decoder(r.URL.Path, pack); err != nil {
 		jlog.Warn(err)
 		return
 	}
@@ -83,21 +82,15 @@ func (o *Http) receive(w http.ResponseWriter, r *http.Request) {
 	if han != nil {
 		msg := proto.Clone(han.template)
 		if err = proto.Unmarshal(pack.Data.([]byte), msg); err != nil {
-			jlog.Warnf("%s, cmd(%d)", err, pack.Cmd)
+			jlog.Warnf("%s, cmd(%s)", err, pack.Cmd)
 			return
 		}
 		pack.Data = msg
-		if r.URL.Path == "/" {
-			pack.Ctx.(jglobal.Locker).Lock()
-			han.fun(pack)
-			pack.Ctx.(jglobal.Locker).UnLock()
-		} else {
-			han.fun(pack)
-		}
+		han.fun(pack)
 	} else {
-		han = o.handler[jpb.CMD_PROXY]
+		han = o.handler[jpb.CMD_TRANSFER]
 		if han == nil {
-			jlog.Error("no proxy cmd.")
+			jlog.Error("no transfer cmd.")
 			return
 		}
 		han.fun(pack)
@@ -105,12 +98,12 @@ func (o *Http) receive(w http.ResponseWriter, r *http.Request) {
 	if v, ok := pack.Data.(proto.Message); ok {
 		tmp, err := proto.Marshal(v)
 		if err != nil {
-			jlog.Errorf("%s, cmd(%d)", err, pack.Cmd)
+			jlog.Errorf("%s, cmd(%s)", err, pack.Cmd)
 			return
 		}
 		pack.Data = tmp
 	}
-	if err = encoder(r.URL.Path, pack); err != nil {
+	if err = o.encoder(r.URL.Path, pack); err != nil {
 		jlog.Error(err)
 		return
 	}

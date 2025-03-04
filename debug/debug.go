@@ -2,12 +2,15 @@ package jdebug
 
 import (
 	"fmt"
+	"jlog"
 	"reflect"
+	"runtime/debug"
 	"strings"
 )
 
 // ------------------------- outside -------------------------
 
+// 结构体转字符串
 func StructToString(s any) string {
 	// 获取结构体类型和字段值
 	val := reflect.ValueOf(s)
@@ -30,4 +33,9 @@ func StructToString(s any) string {
 		}
 	}
 	return builder.String()
+}
+
+// 获取调用栈
+func ShowStack() {
+	jlog.Debug(string(debug.Stack()))
 }

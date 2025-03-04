@@ -48,5 +48,7 @@ func (basic *Basic) load() {
 
 func (basic *Basic) SetLoginTs() {
 	basic.LoginTs = time.Now().Unix()
+	basic.user.Lock()
 	basic.user.DirtyMongo["basic.loginTs"] = basic.LoginTs
+	basic.user.UnLock()
 }

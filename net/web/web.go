@@ -2,10 +2,10 @@ package jweb
 
 import (
 	"jconfig"
+	"jglobal"
 	"jlog"
 	"jpb"
 	"net/http"
-	"sync"
 	"sync/atomic"
 	"time"
 
@@ -18,7 +18,7 @@ type Handler func(id uint64, pack *Pack)
 
 type Web struct {
 	idc      uint64
-	ses      sync.Map
+	ses      *jglobal.Maps[uint64]
 	counter  uint64
 	handler  map[jpb.CMD]Handler
 	upgrader *websocket.Upgrader
@@ -31,6 +31,7 @@ func NewWeb() *Web {
 }
 
 func (o *Web) AsServer() *Web {
+	o.ses = jglobal.NewMaps(uint64(1))
 	o.handler = map[jpb.CMD]Handler{}
 	o.upgrader = &websocket.Upgrader{
 		CheckOrigin: func(r *http.Request) bool {

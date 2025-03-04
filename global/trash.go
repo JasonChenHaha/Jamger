@@ -272,3 +272,12 @@ func Itoa(data any) string {
 	}
 	return ""
 }
+
+func UrlToCmd(str string) jpb.CMD {
+	s := str[1:]
+	if s == "" {
+		return jpb.CMD_NIL
+	} else {
+		return Atoi[jpb.CMD](s)
+	}
+}

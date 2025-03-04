@@ -54,16 +54,16 @@ func (tcp *Tcp) sendWithAes(cmd jpb.CMD, msg proto.Message) {
 		data, _ = proto.Marshal(msg)
 	}
 	size := len(data)
-	raw := make([]byte, cmdSize+size+checksumSize)
-	binary.LittleEndian.PutUint16(raw, uint16(cmd))
-	copy(raw[cmdSize:], data)
-	binary.LittleEndian.PutUint32(raw[cmdSize+size:], crc32.ChecksumIEEE(raw[:cmdSize+size]))
+	raw := make([]byte, size+checksumSize)
+	copy(raw, data)
+	binary.LittleEndian.PutUint32(raw[size:], crc32.ChecksumIEEE(raw[:size]))
 	jglobal.AesEncrypt(aesKey, &raw)
 	size = len(raw)
-	raw2 := make([]byte, packSize+uidSize+size)
-	binary.LittleEndian.PutUint16(raw2, uint16(uidSize+size))
+	raw2 := make([]byte, packSize+uidSize+cmdSize+size)
+	binary.LittleEndian.PutUint16(raw2, uint16(uidSize+cmdSize+size))
 	binary.LittleEndian.PutUint32(raw2[packSize:], uid)
-	copy(raw2[packSize+uidSize:], raw)
+	binary.LittleEndian.PutUint16(raw2[packSize+uidSize:], uint16(cmd))
+	copy(raw2[packSize+uidSize+cmdSize:], raw)
 	for pos := 0; pos < size; {
 		n, err := tcp.con.Write(raw2)
 		if err != nil {

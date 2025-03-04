@@ -7,9 +7,9 @@ import (
 	"jkcp"
 	"jlog"
 	"jnrpc"
+	"jpb"
 	"jrpc"
 	"jtcp"
-	"juser"
 	"jweb"
 
 	"google.golang.org/protobuf/proto"
@@ -51,38 +51,12 @@ func BroadcastToC(pack *jglobal.Pack) bool {
 	var err error
 	pack.Data, err = proto.Marshal(pack.Data.(proto.Message))
 	if err != nil {
-		jlog.Errorf("%s, cmd(%d)", err, pack.Cmd)
+		jlog.Errorf("%s, cmd(%s)", err, pack.Cmd)
 		return false
 	}
 	targets := jrpc.Rpc.GetAllTarget(jglobal.GRP_GATE)
 	for _, v := range targets {
-		v.BroadcastToC(pack)
-	}
-	return true
-}
-
-// 发给指定客户端
-func SendToC(pack *jglobal.Pack, ids ...uint32) bool {
-	var err error
-	pack.Data, err = proto.Marshal(pack.Data.(proto.Message))
-	if err != nil {
-		jlog.Errorf("%s, cmd(%d)", err, pack.Cmd)
-		return false
-	}
-	for _, id := range ids {
-		// to do: 这里只需要用到user.Gate，不需要加载完整的user
-		user := juser.GetUser(id)
-		if user.Gate != 0 {
-			target := jrpc.Rpc.GetDirectTarget(jglobal.GRP_GATE, user.Gate)
-			if target != nil {
-				pack.Ctx = user
-				target.SendToC(pack)
-			} else {
-				jlog.Warnf("can't find target, group(%d), index(%d)", jglobal.GRP_GATE, user.Gate)
-			}
-		} else {
-			jlog.Warnf("can't find user's(%d) gate", id)
-		}
+		v.Proxy(jpb.CMD_BROADCAST, pack)
 	}
 	return true
 }

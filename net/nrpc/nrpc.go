@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
+	"fmt"
 	"io"
 	"jconfig"
 	"jglobal"
@@ -91,21 +92,22 @@ func (o *Rpc) Register(cmd jpb.CMD, fun func(pack *jglobal.Pack), msg proto.Mess
 	}
 }
 
-// 转发模式发送
-func (o *Rpc) Proxy(pack *jglobal.Pack) bool {
+// 转发模式
+// gate将客户端请求转发至其他group
+func (o *Rpc) Transfer(pack *jglobal.Pack) bool {
 	if err := encoder(pack); err != nil {
 		jlog.Error(err)
 		return false
 	}
 	rsp, err := o.client.Post(o.addr, "", bytes.NewBuffer(pack.Data.([]byte)))
 	if err != nil {
-		jlog.Errorf("%s, cmd(%d)", err, pack.Cmd)
+		jlog.Errorf("%s, cmd(%s)", err, pack.Cmd)
 		return false
 	}
 	defer rsp.Body.Close()
 	body, err := io.ReadAll(rsp.Body)
 	if err != nil {
-		jlog.Errorf("%s, cmd(%d)", err, pack.Cmd)
+		jlog.Errorf("%s, cmd(%s)", err, pack.Cmd)
 		return false
 	}
 	if len(body) == 0 {
@@ -120,12 +122,28 @@ func (o *Rpc) Proxy(pack *jglobal.Pack) bool {
 	return true
 }
 
-// 请求响应模式发送
+// 代理模式
+// gate将其他group请求发送至客户端
+func (o *Rpc) Proxy(cmd jpb.CMD, pack *jglobal.Pack) bool {
+	if err := encoder(pack); err != nil {
+		jlog.Error(err)
+		return false
+	}
+	rsp, err := o.client.Post(fmt.Sprintf("%s/%d", o.addr, cmd), "", bytes.NewBuffer(pack.Data.([]byte)))
+	if err != nil {
+		jlog.Errorf("%s, cmd(%s)", err, pack.Cmd)
+		return false
+	}
+	rsp.Body.Close()
+	return true
+}
+
+// 常规模式
 func (o *Rpc) Call(pack *jglobal.Pack, template proto.Message) bool {
 	var err error
 	pack.Data, err = proto.Marshal(pack.Data.(proto.Message))
 	if err != nil {
-		jlog.Errorf("%s, cmd(%d)", err, pack.Cmd)
+		jlog.Errorf("%s, cmd(%s)", err, pack.Cmd)
 		return false
 	}
 	if err = encoder(pack); err != nil {
@@ -134,13 +152,13 @@ func (o *Rpc) Call(pack *jglobal.Pack, template proto.Message) bool {
 	}
 	rsp, err := o.client.Post(o.addr, "", bytes.NewBuffer(pack.Data.([]byte)))
 	if err != nil {
-		jlog.Errorf("%s, cmd(%d)", err, pack.Cmd)
+		jlog.Errorf("%s, cmd(%s)", err, pack.Cmd)
 		return false
 	}
 	defer rsp.Body.Close()
 	body, err := io.ReadAll(rsp.Body)
 	if err != nil {
-		jlog.Errorf("%s, cmd(%d)", err, pack.Cmd)
+		jlog.Errorf("%s, cmd(%s)", err, pack.Cmd)
 		return false
 	}
 	if len(body) == 0 {
@@ -153,37 +171,11 @@ func (o *Rpc) Call(pack *jglobal.Pack, template proto.Message) bool {
 		return false
 	}
 	if err = proto.Unmarshal(pack.Data.([]byte), template); err != nil {
-		jlog.Errorf("%s, cmd(%d)", err, pack.Cmd)
+		jlog.Errorf("%s, cmd(%s)", err, pack.Cmd)
 		return false
 	}
 	pack.Data = template
 	return true
-}
-
-// 发给客户端
-func (o *Rpc) SendToC(pack *jglobal.Pack) {
-	if err := encoder(pack); err != nil {
-		jlog.Error(err)
-		return
-	}
-	rsp, err := o.client.Post(o.addr+"/c", "", bytes.NewBuffer(pack.Data.([]byte)))
-	if err != nil {
-		jlog.Errorf("%s, cmd(%d)", err, pack.Cmd)
-	}
-	rsp.Body.Close()
-}
-
-// 广播给客户端
-func (o *Rpc) BroadcastToC(pack *jglobal.Pack) {
-	if err := encoder(pack); err != nil {
-		jlog.Error(err)
-		return
-	}
-	rsp, err := o.client.Post(o.addr+"/b", "", bytes.NewBuffer(pack.Data.([]byte)))
-	if err != nil {
-		jlog.Errorf("%s, cmd(%d)", err, pack.Cmd)
-	}
-	rsp.Body.Close()
 }
 
 // ------------------------- inside -------------------------
@@ -199,26 +191,29 @@ func (o *Rpc) receive(w http.ResponseWriter, r *http.Request) {
 		jlog.Error(err)
 		return
 	}
-	switch r.URL.Path {
-	case "/":
+	cmd := jglobal.UrlToCmd(r.URL.Path)
+	switch cmd {
+	case jpb.CMD_TOC, jpb.CMD_BROADCAST:
+		w.WriteHeader(http.StatusOK)
+		han := o.handler[cmd]
+		if han == nil {
+			jlog.Warnf("cmd(%s) not exist", cmd)
+			return
+		}
+		han.fun(pack)
+	default:
 		han := o.handler[pack.Cmd]
 		if han == nil {
-			jlog.Warnf("cmd(%d) not exist", pack.Cmd)
+			jlog.Warnf("cmd(%s) not exist", pack.Cmd)
 			return
 		}
 		msg := proto.Clone(han.msg)
 		if err = proto.Unmarshal(pack.Data.([]byte), msg); err != nil {
-			jlog.Warnf("%s, cmd(%d)", err, pack.Cmd)
+			jlog.Warnf("%s, cmd(%s)", err, pack.Cmd)
 			return
 		}
 		pack.Data = msg
-		if pack.Ctx != nil {
-			pack.Ctx.(jglobal.Locker).Lock()
-			han.fun(pack)
-			pack.Ctx.(jglobal.Locker).UnLock()
-		} else {
-			han.fun(pack)
-		}
+		han.fun(pack)
 		if v, ok := pack.Data.(proto.Message); ok {
 			pack.Data, err = proto.Marshal(v)
 			if err != nil {
@@ -233,23 +228,5 @@ func (o *Rpc) receive(w http.ResponseWriter, r *http.Request) {
 		if _, err = w.Write(pack.Data.([]byte)); err != nil {
 			jlog.Error(err)
 		}
-	case "/c":
-		// 发给客户端
-		w.WriteHeader(http.StatusOK)
-		han := o.handler[jpb.CMD_TOC]
-		if han == nil {
-			jlog.Warn("proxy not exist")
-			return
-		}
-		han.fun(pack)
-	case "/b":
-		// 广播
-		w.WriteHeader(http.StatusOK)
-		han := o.handler[jpb.CMD_BROADCAST]
-		if han == nil {
-			jlog.Warn("broadcast not exist")
-			return
-		}
-		han.fun(pack)
 	}
 }
