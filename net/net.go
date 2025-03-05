@@ -20,6 +20,7 @@ var Kcp *jkcp.Kcp
 var Web *jweb.Web
 var Http *jhttp.Http
 var Rpc *jnrpc.Rpc
+var GetUser func(uint32) any
 
 // ------------------------- outside -------------------------
 
@@ -46,17 +47,62 @@ func Init() {
 	}
 }
 
+func SetGetUser(fun func(uint32) any) {
+	GetUser = fun
+}
+
 // 广播给所有客户端
-func BroadcastToC(pack *jglobal.Pack) bool {
+func BroadcastToC(pack *jglobal.Pack) {
 	var err error
 	pack.Data, err = proto.Marshal(pack.Data.(proto.Message))
 	if err != nil {
 		jlog.Errorf("%s, cmd(%s)", err, pack.Cmd)
-		return false
+		return
 	}
 	targets := jrpc.Rpc.GetAllTarget(jglobal.GRP_GATE)
+	data := pack.Data
 	for _, v := range targets {
+		pack.Data = data
 		v.Proxy(jpb.CMD_BROADCAST, pack)
 	}
-	return true
+}
+
+// 发给指定客户端，uids为额外发送列表
+func SendToC(pack *jglobal.Pack, uids ...uint32) {
+	var err error
+	pack.Data, err = proto.Marshal(pack.Data.(proto.Message))
+	if err != nil {
+		jlog.Errorf("%s, cmd(%s)", err, pack.Cmd)
+		return
+	}
+	data0 := pack.Data
+	gate0 := pack.Ctx.(jglobal.User2).GetGate()
+	target0 := jrpc.Rpc.GetDirectTarget(jglobal.GRP_GATE, gate0)
+	if target0 == nil {
+		jlog.Errorf("not find target, gate(%d)", gate0)
+		return
+	}
+	target0.Proxy(jpb.CMD_TOC, pack)
+	// 额外发送
+	for _, uid := range uids {
+		user := GetUser(uid)
+		var target *jnrpc.Rpc
+		if user == nil {
+			target = target0
+		} else {
+			gate := user.(jglobal.User2).GetGate()
+			if gate == gate0 {
+				target = target0
+			} else {
+				target = jrpc.Rpc.GetDirectTarget(jglobal.GRP_GATE, gate)
+				if target == nil {
+					jlog.Errorf("not find target, gate(%d)", gate)
+					continue
+				}
+			}
+		}
+		pack.Data = data0
+		pack.Ctx = uid
+		target.Proxy(jpb.CMD_TOC, pack)
+	}
 }

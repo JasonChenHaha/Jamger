@@ -14,18 +14,19 @@ import (
 type Basic struct {
 	user    *User
 	Id      string
+	Gate    int
 	LoginTs int64
 }
 
 // ------------------------- package -------------------------
 
 func newBasic(user *User) *Basic {
-	basic := &Basic{user: user}
-	basic.load()
-	return basic
+	return &Basic{user: user}
 }
 
-func (basic *Basic) load() {
+// ------------------------- outside -------------------------
+
+func (basic *Basic) Load() *User {
 	in := &jmongo.Input{
 		Col:     jglobal.MONGO_USER,
 		Filter:  bson.M{"_id": basic.user.Uid},
@@ -34,7 +35,7 @@ func (basic *Basic) load() {
 	mData := primitive.M{}
 	if err := jdb.Mongo.FindOne(in, &mData); err != nil {
 		jlog.Error(err)
-		return
+		return nil
 	}
 	if v, ok := mData["basic"]; ok {
 		mData = v.(primitive.M)
@@ -42,9 +43,16 @@ func (basic *Basic) load() {
 			basic.LoginTs = v2.(int64)
 		}
 	}
+	return basic.user
 }
 
-// ------------------------- outside -------------------------
+func (basic *Basic) SetGate(gate int) {
+	basic.Gate = gate
+}
+
+func (basic *Basic) GetGate() int {
+	return basic.Gate
+}
 
 func (basic *Basic) SetLoginTs() {
 	basic.LoginTs = time.Now().Unix()

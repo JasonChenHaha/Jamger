@@ -70,7 +70,7 @@ func (o *Tcp) Register(cmd jpb.CMD, fun func(*jglobal.Pack), template proto.Mess
 }
 
 func (o *Tcp) Send(pack *jglobal.Pack) {
-	id := pack.Ctx.(jglobal.User).GetSesId()
+	id := pack.Ctx.(jglobal.User1).GetSesId()
 	ses, ok := o.ses.Load(id)
 	if !ok {
 		jlog.Errorf("no session(%d)", id)

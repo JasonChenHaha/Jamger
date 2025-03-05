@@ -2,7 +2,6 @@ package jwork
 
 import (
 	"encoding/binary"
-	"fmt"
 	"jglobal"
 	"jpb"
 	"juser"
@@ -40,10 +39,12 @@ const (
 func rpcEncode(pack *jglobal.Pack) error {
 	data := pack.Data.([]byte)
 	raw := make([]byte, uidSize+gateSize+cmdSize+len(data))
-	if pack.Ctx != nil {
-		user := pack.Ctx.(*juser.User)
-		binary.LittleEndian.PutUint32(raw, uint32(user.Uid))
-		binary.LittleEndian.PutUint32(raw[uidSize:], uint32(user.Gate))
+	switch v := pack.Ctx.(type) {
+	case *juser.User:
+		binary.LittleEndian.PutUint32(raw, uint32(v.Uid))
+		binary.LittleEndian.PutUint32(raw[uidSize:], uint32(v.Gate))
+	case uint32:
+		binary.LittleEndian.PutUint32(raw, v)
 	}
 	binary.LittleEndian.PutUint16(raw[uidSize+gateSize:], uint16(pack.Cmd))
 	copy(raw[uidSize+gateSize+cmdSize:], data)
@@ -57,7 +58,7 @@ func rpcDecode(pack *jglobal.Pack) error {
 	if pack.Ctx == nil && uid != 0 {
 		user := juser.GetUser(uid)
 		if user == nil {
-			return fmt.Errorf("no such user, uid(%d)", uid)
+			user = juser.NewUser(uid).Load()
 		}
 		pack.Ctx = user
 	}

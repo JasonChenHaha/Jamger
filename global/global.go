@@ -28,10 +28,14 @@ type AllIntString interface {
 	AllInt | string
 }
 
-type User interface {
+type User1 interface {
 	Destory()
 	GetSesId() uint64
 	SetSesId(uint64)
+}
+
+type User2 interface {
+	GetGate() int
 }
 
 type Pack struct {
@@ -48,6 +52,7 @@ const (
 	SVR_CENTER = "centersvr"
 	GRP_CENTER = 3
 )
+
 const (
 	MONGO_USER = "user"
 )

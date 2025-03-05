@@ -45,11 +45,7 @@ func Range(fun func(k, v any) bool) {
 }
 
 func (user *User) String() string {
-	if user.Basic.Id != "" {
-		return fmt.Sprintf("user(%s)", user.Id)
-	} else {
-		return fmt.Sprintf("user(%d)", user.Uid)
-	}
+	return fmt.Sprintf("user(uid=%d,id=%s)", user.Uid, user.Id)
 }
 
 func (user *User) Load() *User {

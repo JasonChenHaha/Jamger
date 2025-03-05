@@ -12,7 +12,6 @@ import (
 
 type Base struct {
 	Uid        uint32
-	key        uint32
 	live       int
 	mutex      sync.Mutex
 	DirtyRedis map[string]any
@@ -23,12 +22,16 @@ type Base struct {
 
 func NewBase(uid uint32) *Base {
 	base := &Base{
-		key:        uid,
+		Uid:        uid,
 		DirtyRedis: map[string]any{},
 		DirtyMongo: map[string]any{},
 		live:       jglobal.USER_LIVE,
 	}
 	return base
+}
+
+func (base *Base) GetUid() uint32 {
+	return base.Uid
 }
 
 func (base *Base) Lock() {
@@ -63,7 +66,7 @@ func (base *Base) flush() {
 	if base.DirtyRedis == nil {
 		base.DirtyRedis = map[string]any{}
 		base.mutex.Unlock()
-		if _, err := jdb.Redis.Del(jglobal.Itoa(base.key)); err != nil {
+		if _, err := jdb.Redis.Del(jglobal.Itoa(base.Uid)); err != nil {
 			jlog.Error(err)
 		}
 	} else if len(base.DirtyRedis) > 0 {
@@ -73,7 +76,7 @@ func (base *Base) flush() {
 		}
 		base.DirtyRedis = map[string]any{}
 		base.mutex.Unlock()
-		if _, err := jdb.Redis.HSet(jglobal.Itoa(base.key), dirtyRedis...); err != nil {
+		if _, err := jdb.Redis.HSet(jglobal.Itoa(base.Uid), dirtyRedis...); err != nil {
 			jlog.Error(err)
 		}
 	} else {
@@ -86,7 +89,7 @@ func (base *Base) flush() {
 		base.mutex.Unlock()
 		in := &jmongo.Input{
 			Col:    jglobal.MONGO_USER,
-			Filter: bson.M{"_id": base.key},
+			Filter: bson.M{"_id": base.Uid},
 			Update: bson.M{"$set": dirtyMongo},
 			Upsert: true,
 		}

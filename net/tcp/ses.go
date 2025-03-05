@@ -14,7 +14,7 @@ type Ses struct {
 	id       uint64
 	tcp      *Tcp
 	con      *net.TCPConn
-	user     jglobal.User
+	user     jglobal.User1
 	rTimeout time.Duration
 	sTimeout time.Duration
 	sChan    chan *jglobal.Pack
@@ -76,7 +76,7 @@ func (o *Ses) recvGoro() {
 			o.tcp.Close(o.id)
 			return
 		}
-		o.user = pack.Ctx.(jglobal.User)
+		o.user = pack.Ctx.(jglobal.User1)
 		o.user.SetSesId(o.id)
 		o.tcp.receive(o.id, pack)
 	}
