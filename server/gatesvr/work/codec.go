@@ -79,13 +79,13 @@ func tcpDecode(pack *jglobal.Pack) error {
 }
 
 // server http pack structure:
-//       +--------------------+
-//       |        pack        |
-//       +---------+----------+
-// aes ( |   cmd   |   data   | )
-//       +---------+----------+
-//       |    2    |   ...    |
-//       +---------+----------+
+// +--------------------------------+
+// |              pack              |
+// +-------+---------+----------+---+
+// |       |   cmd   |   data   |   |
+// + aes ( +---------+----------+ ) +
+// |       |    2    |   ...    |   |
+// +-------+---------+----------+---+
 
 func httpEncode(url string, pack *jglobal.Pack) error {
 	if url == "/" {
@@ -136,10 +136,12 @@ func httpDecode(url string, pack *jglobal.Pack) error {
 	raw := pack.Data.([]byte)
 	if url == "/" {
 		uid := binary.LittleEndian.Uint32(raw)
+		// to do: 每次请求都会重新load
 		user := juser.GetUser(uid)
 		if user == nil {
-			return fmt.Errorf("no such user, uid(%d)", uid)
+			user = juser.NewUser(uid)
 		}
+		user.Load()
 		pack.Ctx = user
 		pack.Cmd = jpb.CMD(binary.LittleEndian.Uint16(raw[uidSize:]))
 		raw = raw[uidSize+cmdSize:]
@@ -167,6 +169,63 @@ func httpDecode(url string, pack *jglobal.Pack) error {
 	return nil
 }
 
+// client websocket pack structure:
+// +--------------------------------------+
+// |                 pack                 |
+// +---------+---------+-------+----------+
+// |   uid   |   cmd   |       |   data   |
+// +---------+---------+ aes ( +----------+
+// |    4    |   2     |       |    ..    |
+// +---------+---------+-------+----------+
+func webDecode(pack *jglobal.Pack) error {
+	raw := pack.Data.([]byte)
+	uid := binary.LittleEndian.Uint32(raw)
+	pack.Cmd = jpb.CMD(binary.LittleEndian.Uint16(raw[uidSize:]))
+	var user *juser.User
+	if pack.Cmd == jpb.CMD_LOGIN_REQ {
+		if user = juser.GetUser(uid); user == nil {
+			user = juser.NewUser(uid)
+		}
+		user.Load()
+	} else {
+		if user = juser.GetUser(uid); user == nil {
+			return fmt.Errorf("no such user, uid(%d)", uid)
+		}
+	}
+	pack.Ctx = user
+	raw = raw[uidSize+cmdSize:]
+	if err := jglobal.AesDecrypt(user.AesKey, &raw); err != nil {
+		return err
+	}
+	pos := len(raw) - checksumSize
+	if binary.LittleEndian.Uint32(raw[pos:]) != crc32.ChecksumIEEE(raw[:pos]) {
+		return fmt.Errorf("checksum failed")
+	}
+	pack.Data = raw[:pos]
+	return nil
+}
+
+// server websocket pack structure:
+// +--------------------------------+
+// |              pack              |
+// +-------+---------+----------+---+
+// |       |   cmd   |   data   |   |
+// + aes ( +---------+----------+ ) +
+// |       |    2    |   ...    |   |
+// +-------+---------+----------+---+
+func webEncode(pack *jglobal.Pack) error {
+	user := pack.Ctx.(*juser.User)
+	data := pack.Data.([]byte)
+	raw := make([]byte, cmdSize+len(data))
+	binary.LittleEndian.PutUint16(raw, uint16(pack.Cmd))
+	copy(raw[cmdSize:], data)
+	if err := jglobal.AesEncrypt(user.AesKey, &raw); err != nil {
+		return err
+	}
+	pack.Data = raw
+	return nil
+}
+
 // rpc pack head structure:
 // +------------------------------+
 // |             head             |
@@ -175,6 +234,10 @@ func httpDecode(url string, pack *jglobal.Pack) error {
 // +---------+----------+---------+
 // |    4    |    4     |    2    |
 // +------------------------------+
+//   \         /
+//    \      /
+//     |   /
+//     | /
 // rpc pack structure:
 // +---------------------+
 // |        pack         |

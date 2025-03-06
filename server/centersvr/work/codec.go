@@ -56,10 +56,7 @@ func rpcDecode(pack *jglobal.Pack) error {
 	raw := pack.Data.([]byte)
 	uid := binary.LittleEndian.Uint32(raw)
 	if pack.Ctx == nil && uid != 0 {
-		user := juser.GetUser(uid)
-		if user == nil {
-			user = juser.NewUser(uid).Load()
-		}
+		user := juser.GetUserAnyway(uid)
 		pack.Ctx = user
 	}
 	if pack.Ctx != nil {

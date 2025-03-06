@@ -77,12 +77,9 @@ func (o *Rpc) AsClient(addr string) *Rpc {
 	return o
 }
 
-func (o *Rpc) Encoder(fun func(*jglobal.Pack) error) {
-	encoder = fun
-}
-
-func (o *Rpc) Decoder(fun func(*jglobal.Pack) error) {
-	decoder = fun
+func (o *Rpc) SetCodec(en, de func(*jglobal.Pack) error) {
+	encoder = en
+	decoder = de
 }
 
 func (o *Rpc) Register(cmd jpb.CMD, fun func(pack *jglobal.Pack), msg proto.Message) {

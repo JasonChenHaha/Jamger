@@ -28,21 +28,20 @@ func testTcp() {
 	tcp.con = con
 
 	tcp.msg[jpb.CMD_GATE_INFO] = &jpb.Error{}
-	tcp.msg[jpb.CMD_NOTIFY] = &jpb.Notify{}
 	tcp.msg[jpb.CMD_LOGIN_RSP] = &jpb.LoginRsp{}
+	tcp.msg[jpb.CMD_GOOD_LIST_RSP] = &jpb.GoodListRsp{}
 
 	go tcp.recv()
+	go tcp.heartbeat()
 
 	tcp.sendWithAes(jpb.CMD_LOGIN_REQ, &jpb.LoginReq{})
+	tcp.sendWithAes(jpb.CMD_GOOD_LIST_REQ, &jpb.GoodListRsp{})
 
-	// tcp.sendWithAes(jpb.CMD_PING, nil)
-	// tcp.recv()
-	go tcp.heartbeat()
 	jglobal.Keep()
 }
 
 func (tcp *Tcp) heartbeat() {
-	ticker := time.NewTicker(1 * time.Second)
+	ticker := time.NewTicker(5 * time.Second)
 	for range ticker.C {
 		tcp.sendWithAes(jpb.CMD_HEARTBEAT, &jpb.HeartbeatReq{})
 	}

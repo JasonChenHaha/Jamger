@@ -9,6 +9,19 @@ message LoginRsp {
     CODE code = 1;
 }
 
-message Notify {
-    string msg = 1;
+message Good {
+    uint32 id = 1;          // id
+    string name = 2;        // 名称
+    string desc = 3;        // 描述
+    uint32 size = 4;        // 尺码
+    uint32 price = 5;       // 价格
+    uint32 imgType = 6;     // 图片类型
+    bytes image = 7;        // 图片数据
+}
+
+message GooDListReq {}
+
+message GoodListRsp {
+    CODE code = 1;
+    repeated Good goods = 2;
 }

@@ -2,6 +2,7 @@ package jtcp
 
 import (
 	"jconfig"
+	"jdebug"
 	"jglobal"
 	"jlog"
 	"jpb"
@@ -54,12 +55,9 @@ func (o *Tcp) AsClient() *Tcp {
 	return o
 }
 
-func (o *Tcp) Encoder(fun func(*jglobal.Pack) error) {
-	encoder = fun
-}
-
-func (o *Tcp) Decoder(fun func(*jglobal.Pack) error) {
-	decoder = fun
+func (o *Tcp) SetCodec(en, de func(*jglobal.Pack) error) {
+	encoder = en
+	decoder = de
 }
 
 func (o *Tcp) Register(cmd jpb.CMD, fun func(*jglobal.Pack), template proto.Message) {
@@ -69,10 +67,10 @@ func (o *Tcp) Register(cmd jpb.CMD, fun func(*jglobal.Pack), template proto.Mess
 	}
 }
 
-func (o *Tcp) Send(pack *jglobal.Pack) {
-	id := pack.Ctx.(jglobal.User1).GetSesId()
+func (o *Tcp) Send(id uint64, pack *jglobal.Pack) {
 	ses, ok := o.ses.Load(id)
 	if !ok {
+		jdebug.ShowStack()
 		jlog.Errorf("no session(%d)", id)
 		return
 	}
@@ -88,10 +86,10 @@ func (o *Tcp) Send(pack *jglobal.Pack) {
 }
 
 func (o *Tcp) Close(id uint64) {
-	if obj, ok := o.ses.Load(id); ok {
+	if ses, ok := o.ses.Load(id); ok {
 		o.ses.Delete(id)
 		o.counter--
-		obj.(*Ses).close()
+		ses.(*Ses).close()
 	}
 }
 

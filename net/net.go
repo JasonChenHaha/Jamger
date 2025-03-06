@@ -51,7 +51,7 @@ func SetGetUser(fun func(uint32) any) {
 	GetUser = fun
 }
 
-// 广播给所有客户端
+// 广播给所有客户端(->gate->client)
 func BroadcastToC(pack *jglobal.Pack) {
 	var err error
 	pack.Data, err = proto.Marshal(pack.Data.(proto.Message))
@@ -67,7 +67,7 @@ func BroadcastToC(pack *jglobal.Pack) {
 	}
 }
 
-// 发给指定客户端，uids为额外发送列表
+// 发给指定客户端(->gate->client)，uids为额外发送列表
 func SendToC(pack *jglobal.Pack, uids ...uint32) {
 	var err error
 	pack.Data, err = proto.Marshal(pack.Data.(proto.Message))
@@ -104,5 +104,32 @@ func SendToC(pack *jglobal.Pack, uids ...uint32) {
 		pack.Data = data0
 		pack.Ctx = uid
 		target.Proxy(jpb.CMD_TOC, pack)
+	}
+}
+
+// 发送客户端(gate->client)
+func Send(pack *jglobal.Pack) {
+	user := pack.Ctx.(jglobal.User1)
+	tp, id := user.GetSesId()
+	switch tp {
+	case jglobal.HTTP:
+	case jglobal.TCP:
+		Tcp.Send(id, pack)
+	case jglobal.WEB:
+		Web.Send(id, pack)
+	case jglobal.KCP:
+	}
+}
+
+// 关闭连接
+func Close(user jglobal.User1) {
+	tp, id := user.GetSesId()
+	switch tp {
+	case jglobal.HTTP:
+	case jglobal.TCP:
+		Tcp.Close(id)
+	case jglobal.WEB:
+		Web.Close(id)
+	case jglobal.KCP:
 	}
 }

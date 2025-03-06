@@ -21,8 +21,8 @@ log:
 
 tcp:
     addr: $TCP
-    # 延迟发送
-    noDelay: false
+    # 关闭延迟发送
+    noDelay: true
     # 读超时
     rTimeout: 10s
     # 写超时
@@ -46,6 +46,7 @@ kcp:
 
 web:
     addr: $WEB
+    noDelay: true
     rTimeout: 5s
     sTimeout: 5s
 

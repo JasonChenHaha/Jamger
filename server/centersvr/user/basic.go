@@ -1,13 +1,8 @@
 package juser
 
 import (
-	"jdb"
-	"jglobal"
-	"jlog"
-	"jmongo"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -24,27 +19,16 @@ func newBasic(user *User) *Basic {
 	return &Basic{user: user}
 }
 
-// ------------------------- outside -------------------------
-
-func (basic *Basic) Load() *User {
-	in := &jmongo.Input{
-		Col:     jglobal.MONGO_USER,
-		Filter:  bson.M{"_id": basic.user.Uid},
-		Project: bson.M{"basic": 1},
-	}
-	mData := primitive.M{}
-	if err := jdb.Mongo.FindOne(in, &mData); err != nil {
-		jlog.Error(err)
-		return nil
-	}
-	if v, ok := mData["basic"]; ok {
-		mData = v.(primitive.M)
-		if v2, ok2 := mData["loginTs"]; ok2 {
+func (basic *Basic) load(data primitive.M) {
+	if v, ok := data["basic"]; ok {
+		data = v.(primitive.M)
+		if v2, ok2 := data["loginTs"]; ok2 {
 			basic.LoginTs = v2.(int64)
 		}
 	}
-	return basic.user
 }
+
+// ------------------------- outside -------------------------
 
 func (basic *Basic) SetGate(gate int) {
 	basic.Gate = gate

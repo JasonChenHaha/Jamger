@@ -70,14 +70,13 @@ func (o *Ses) recvGoro() {
 			return
 		}
 		pack := &jglobal.Pack{Data: data}
-		err = decoder(pack)
-		if err != nil {
+		if err = decoder(pack); err != nil {
 			jlog.Error(err)
 			o.tcp.Close(o.id)
 			return
 		}
 		o.user = pack.Ctx.(jglobal.User1)
-		o.user.SetSesId(o.id)
+		o.user.SetSesId(jglobal.TCP, o.id)
 		o.tcp.receive(o.id, pack)
 	}
 }

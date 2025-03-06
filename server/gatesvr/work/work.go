@@ -16,20 +16,22 @@ func Init() {
 	jrpc.Rpc.Connect(jglobal.GRP_GATE)
 	jrpc.Rpc.Connect(jglobal.GRP_AUTH)
 	jrpc.Rpc.Connect(jglobal.GRP_CENTER)
-	jnet.Http.Encoder(httpEncode)
-	jnet.Http.Decoder(httpDecode)
+	jnet.Http.SetCodec(httpEncode, httpDecode)
 	jnet.Http.Register(jpb.CMD_TRANSFER, httpTransfer, nil)
-	jnet.Http.Register(jpb.CMD_SIGN_IN_REQ, signIn, &jpb.SignInReq{})
-	jnet.Tcp.Encoder(tcpEncode)
-	jnet.Tcp.Decoder(tcpDecode)
-	jnet.Tcp.Register(jpb.CMD_HEARTBEAT, heartbeat, &jpb.HeartbeatReq{})
-	jnet.Tcp.Register(jpb.CMD_TRANSFER, tcpTransfer, nil)
-	jnet.Tcp.Register(jpb.CMD_LOGIN_REQ, login, &jpb.LoginReq{})
-	jnet.Rpc.Encoder(rpcEncode)
-	jnet.Rpc.Decoder(rpcDecode)
-	jnet.Rpc.Register(jpb.CMD_KICK_USER_REQ, kickUser, &jpb.KickUserReq{})
-	jnet.Rpc.Register(jpb.CMD_TOC, sendToC, nil)
-	jnet.Rpc.Register(jpb.CMD_BROADCAST, broadcast, nil)
+	jnet.Http.Register(jpb.CMD_SIGN_IN_REQ, httpSignIn, &jpb.SignInReq{})
+	jnet.Http.Register(jpb.CMD_LOGIN_REQ, httpLogin, &jpb.LoginReq{})
+	jnet.Tcp.SetCodec(tcpEncode, tcpDecode)
+	jnet.Tcp.Register(jpb.CMD_HEARTBEAT, twHeartbeat, &jpb.HeartbeatReq{})
+	jnet.Tcp.Register(jpb.CMD_TRANSFER, twTransfer, nil)
+	jnet.Tcp.Register(jpb.CMD_LOGIN_REQ, twLogin, &jpb.LoginReq{})
+	jnet.Web.SetCodec(webEncode, webDecode)
+	jnet.Web.Register(jpb.CMD_HEARTBEAT, twHeartbeat, &jpb.HeartbeatReq{})
+	jnet.Web.Register(jpb.CMD_TRANSFER, twTransfer, nil)
+	jnet.Web.Register(jpb.CMD_LOGIN_REQ, twLogin, &jpb.LoginReq{})
+	jnet.Rpc.SetCodec(rpcEncode, rpcDecode)
+	jnet.Rpc.Register(jpb.CMD_KICK_USER_REQ, rpcKickUser, &jpb.KickUserReq{})
+	jnet.Rpc.Register(jpb.CMD_TOC, rpcSendToC, nil)
+	jnet.Rpc.Register(jpb.CMD_BROADCAST, rpcBroadcast, nil)
 }
 
 // ------------------------- inside.http -------------------------
@@ -39,26 +41,26 @@ func httpTransfer(pack *jglobal.Pack) {
 	target := jrpc.Rpc.GetRoundRobinTarget(jglobal.GetGroup(pack.Cmd))
 	if target == nil {
 		pack.Cmd = jpb.CMD_GATE_INFO
-		pack.Data = &jpb.Error{Code: jpb.CODE_SVR_ERR}
+		pack.Data = &jpb.Error{Code: jpb.CODE_SVR_ERR, Desc: "can't find target"}
 		return
 	}
 	if !target.Transfer(pack) {
 		pack.Cmd = jpb.CMD_GATE_INFO
-		pack.Data = &jpb.Error{Code: jpb.CODE_SVR_ERR}
+		pack.Data = &jpb.Error{Code: jpb.CODE_SVR_ERR, Desc: "transfer failed"}
 	}
 }
 
 // auth登录
-func signIn(pack *jglobal.Pack) {
+func httpSignIn(pack *jglobal.Pack) {
 	target := jrpc.Rpc.GetRoundRobinTarget(jglobal.GetGroup(pack.Cmd))
 	if target == nil {
 		pack.Cmd = jpb.CMD_GATE_INFO
-		pack.Data = &jpb.Error{Code: jpb.CODE_SVR_ERR}
+		pack.Data = &jpb.Error{Code: jpb.CODE_SVR_ERR, Desc: "can't find target"}
 		return
 	}
 	if !target.Call(pack, &jpb.SignInRsp{}) {
 		pack.Cmd = jpb.CMD_GATE_INFO
-		pack.Data = &jpb.Error{Code: jpb.CODE_SVR_ERR}
+		pack.Data = &jpb.Error{Code: jpb.CODE_SVR_ERR, Desc: "call failed"}
 		return
 	}
 	rsp := pack.Data.(*jpb.SignInRsp)
@@ -67,7 +69,7 @@ func signIn(pack *jglobal.Pack) {
 		gate, err := jdb.Redis.HGet(uid, "gate")
 		if err != nil {
 			pack.Cmd = jpb.CMD_GATE_INFO
-			pack.Data = &jpb.Error{Code: jpb.CODE_SVR_ERR}
+			pack.Data = &jpb.Error{Code: jpb.CODE_SVR_ERR, Desc: "get gate failed"}
 			return
 		}
 		if gate != "" {
@@ -75,7 +77,7 @@ func signIn(pack *jglobal.Pack) {
 			target = jrpc.Rpc.GetDirectTarget(jglobal.GROUP, jglobal.Atoi[int](gate))
 			if target == nil {
 				pack.Cmd = jpb.CMD_GATE_INFO
-				pack.Data = &jpb.Error{Code: jpb.CODE_SVR_ERR}
+				pack.Data = &jpb.Error{Code: jpb.CODE_SVR_ERR, Desc: "can't find target"}
 				return
 			}
 			pack2 := &jglobal.Pack{
@@ -84,12 +86,12 @@ func signIn(pack *jglobal.Pack) {
 			}
 			if !target.Call(pack2, &jpb.KickUserRsp{}) {
 				pack.Cmd = jpb.CMD_GATE_INFO
-				pack.Data = &jpb.Error{Code: jpb.CODE_SVR_ERR}
+				pack.Data = &jpb.Error{Code: jpb.CODE_SVR_ERR, Desc: "call failed"}
 				return
 			}
 			if pack2.Data.(*jpb.KickUserRsp).Code != jpb.CODE_OK {
 				pack.Cmd = jpb.CMD_GATE_INFO
-				pack.Data = &jpb.Error{Code: jpb.CODE_SVR_ERR}
+				pack.Data = &jpb.Error{Code: jpb.CODE_SVR_ERR, Desc: "kick user failed"}
 				return
 			}
 		}
@@ -97,48 +99,64 @@ func signIn(pack *jglobal.Pack) {
 		if _, err := jdb.Redis.HSet(uid, "aesKey", pack.Ctx); err != nil {
 			jlog.Error(err)
 			pack.Cmd = jpb.CMD_GATE_INFO
-			pack.Data = &jpb.Error{Code: jpb.CODE_SVR_ERR}
+			pack.Data = &jpb.Error{Code: jpb.CODE_SVR_ERR, Desc: "save aeskey failed"}
 		}
 	}
 }
 
-// ------------------------- inside.tcp -------------------------
-
-// 透传
-func tcpTransfer(pack *jglobal.Pack) {
-	user := pack.Ctx.(*juser.User)
-	defer jnet.Tcp.Send(pack)
-	target := jrpc.Rpc.GetConsistentHashTarget(jglobal.GetGroup(pack.Cmd), user.Uid)
-	if target == nil {
-		pack.Cmd = jpb.CMD_GATE_INFO
-		pack.Data = &jpb.Error{Code: jpb.CODE_SVR_ERR}
-		return
-	}
-	if !target.Transfer(pack) {
-		pack.Cmd = jpb.CMD_GATE_INFO
-		pack.Data = &jpb.Error{Code: jpb.CODE_SVR_ERR}
-	}
-}
-
-// 心跳
-func heartbeat(pack *jglobal.Pack) {
-	// do nothing
-}
-
 // 登录
-func login(pack *jglobal.Pack) {
+func httpLogin(pack *jglobal.Pack) {
 	user := pack.Ctx.(*juser.User)
-	defer jnet.Tcp.Send(pack)
-	user.SetGate(jglobal.INDEX)
 	target := jrpc.Rpc.GetConsistentHashTarget(jglobal.GRP_CENTER, user.Uid)
 	if target == nil {
 		pack.Cmd = jpb.CMD_GATE_INFO
-		pack.Data = &jpb.Error{Code: jpb.CODE_SVR_ERR}
+		pack.Data = &jpb.Error{Code: jpb.CODE_SVR_ERR, Desc: "can't find target"}
 		return
 	}
 	if !target.Call(pack, &jpb.LoginRsp{}) {
 		pack.Cmd = jpb.CMD_GATE_INFO
-		pack.Data = &jpb.Error{Code: jpb.CODE_SVR_ERR}
+		pack.Data = &jpb.Error{Code: jpb.CODE_SVR_ERR, Desc: "call failed"}
+		return
+	}
+}
+
+// ------------------------- inside.tcp/web -------------------------
+
+// 透传
+func twTransfer(pack *jglobal.Pack) {
+	user := pack.Ctx.(*juser.User)
+	defer jnet.Send(pack)
+	target := jrpc.Rpc.GetConsistentHashTarget(jglobal.GetGroup(pack.Cmd), user.Uid)
+	if target == nil {
+		pack.Cmd = jpb.CMD_GATE_INFO
+		pack.Data = &jpb.Error{Code: jpb.CODE_SVR_ERR, Desc: "can't find target"}
+		return
+	}
+	if !target.Transfer(pack) {
+		pack.Cmd = jpb.CMD_GATE_INFO
+		pack.Data = &jpb.Error{Code: jpb.CODE_SVR_ERR, Desc: "transfer failed"}
+	}
+}
+
+// 心跳
+func twHeartbeat(pack *jglobal.Pack) {
+	// do nothing
+}
+
+// 登录
+func twLogin(pack *jglobal.Pack) {
+	user := pack.Ctx.(*juser.User)
+	defer jnet.Send(pack)
+	user.SetGate(jglobal.INDEX)
+	target := jrpc.Rpc.GetConsistentHashTarget(jglobal.GRP_CENTER, user.Uid)
+	if target == nil {
+		pack.Cmd = jpb.CMD_GATE_INFO
+		pack.Data = &jpb.Error{Code: jpb.CODE_SVR_ERR, Desc: "can't find target"}
+		return
+	}
+	if !target.Call(pack, &jpb.LoginRsp{}) {
+		pack.Cmd = jpb.CMD_GATE_INFO
+		pack.Data = &jpb.Error{Code: jpb.CODE_SVR_ERR, Desc: "call failed"}
 		return
 	}
 }
@@ -146,21 +164,21 @@ func login(pack *jglobal.Pack) {
 // ------------------------- inside.rpc -------------------------
 
 // 踢下线
-func kickUser(pack *jglobal.Pack) {
+func rpcKickUser(pack *jglobal.Pack) {
 	req := pack.Data.(*jpb.KickUserReq)
 	pack.Cmd = jpb.CMD_KICK_USER_RSP
 	pack.Data = &jpb.KickUserRsp{}
 	if user := juser.GetUser(req.Uid); user != nil {
-		jnet.Tcp.Close(user.SesId)
+		jnet.Close(user)
 		user.Destory()
 	}
 }
 
 // 发送
-func sendToC(pack *jglobal.Pack) {
+func rpcSendToC(pack *jglobal.Pack) {
 	switch v := pack.Ctx.(type) {
 	case *juser.User:
-		jnet.Tcp.Send(pack)
+		jnet.Send(pack)
 	case uint32:
 		// 转发
 		var user *juser.User
@@ -181,14 +199,12 @@ func sendToC(pack *jglobal.Pack) {
 }
 
 // 广播
-func broadcast(pack *jglobal.Pack) {
-	juser.Range(func(k, v any) bool {
-		p := &jglobal.Pack{
-			Cmd:  pack.Cmd,
-			Data: pack.Data,
-			Ctx:  v,
-		}
-		jnet.Tcp.Send(p)
+func rpcBroadcast(pack *jglobal.Pack) {
+	data := pack.Data
+	juser.Range(func(uid, user any) bool {
+		pack.Data = data
+		pack.Ctx = user
+		jnet.Send(pack)
 		return true
 	})
 }

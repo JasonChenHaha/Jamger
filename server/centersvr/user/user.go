@@ -12,7 +12,7 @@ import (
 // 所有属性的写需要使用对应的set方法，以驱动数据定时落地
 type User struct {
 	*juBase.Base
-	*Basic
+	*Mongo
 	ticker any
 }
 
@@ -26,7 +26,7 @@ func Init() {
 
 func NewUser(uid uint32) *User {
 	user := &User{Base: juBase.NewBase(uid)}
-	user.Basic = newBasic(user)
+	user.Mongo = newMongo(user)
 	user.ticker = jschedule.DoEvery(time.Second, user.tick)
 	users.Store(uid, user)
 	return user
@@ -49,6 +49,14 @@ func GetUser(uid uint32) *User {
 	return nil
 }
 
+func GetUserAnyway(uid uint32) *User {
+	user := GetUser(uid)
+	if user == nil {
+		user = NewUser(uid).Load()
+	}
+	return user
+}
+
 func GetUserAny(uid uint32) any {
 	if user := GetUser(uid); user != nil {
 		return user
@@ -61,11 +69,11 @@ func Range(fun func(k, v any) bool) {
 }
 
 func (user *User) String() string {
-	return fmt.Sprintf("user(uid=%d,id=%s)", user.Uid, user.Id)
+	return fmt.Sprintf("user(uid=%d,id=%s)", user.Uid, user.Basic.Id)
 }
 
 func (user *User) Load() *User {
-	user.Basic.Load()
+	user.Mongo.Load()
 	return user
 }
 

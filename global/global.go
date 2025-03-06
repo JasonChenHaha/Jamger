@@ -30,8 +30,8 @@ type AllIntString interface {
 
 type User1 interface {
 	Destory()
-	GetSesId() uint64
-	SetSesId(uint64)
+	GetSesId() (int, uint64)
+	SetSesId(int, uint64)
 }
 
 type User2 interface {
@@ -59,6 +59,13 @@ const (
 
 const (
 	USER_LIVE = 60 * 5
+)
+
+const (
+	HTTP = iota
+	TCP
+	WEB
+	KCP
 )
 
 var ID int

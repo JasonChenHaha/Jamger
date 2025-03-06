@@ -12,7 +12,7 @@ import (
 type User struct {
 	*juBase.Base
 	*Redis
-	*Basic
+	*Mongo
 	ticker any
 }
 
@@ -25,7 +25,7 @@ func Init() {}
 func NewUser(uid uint32) *User {
 	user := &User{Base: juBase.NewBase(uid)}
 	user.Redis = newRedis(user)
-	user.Basic = newBasic(user)
+	user.Mongo = newMongo(user)
 	user.ticker = jschedule.DoEvery(time.Second, user.tick)
 	users.Store(uid, user)
 	return user
@@ -50,7 +50,7 @@ func (user *User) String() string {
 
 func (user *User) Load() *User {
 	user.Redis.Load()
-	user.Basic.Load()
+	user.Mongo.Load()
 	return user
 }
 

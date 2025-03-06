@@ -13,8 +13,6 @@ import (
 
 type Http struct {
 	mux     *http.ServeMux
-	encoder func(string, *jglobal.Pack) error
-	decoder func(string, *jglobal.Pack) error
 	handler map[jpb.CMD]*Handler
 }
 
@@ -22,6 +20,9 @@ type Handler struct {
 	fun      func(*jglobal.Pack)
 	template proto.Message
 }
+
+var encoder func(string, *jglobal.Pack) error
+var decoder func(string, *jglobal.Pack) error
 
 // ------------------------- outside -------------------------
 
@@ -50,12 +51,9 @@ func (o *Http) AsClient() *Http {
 	return o
 }
 
-func (o *Http) Encoder(fun func(string, *jglobal.Pack) error) {
-	o.encoder = fun
-}
-
-func (o *Http) Decoder(fun func(string, *jglobal.Pack) error) {
-	o.decoder = fun
+func (o *Http) SetCodec(en, de func(string, *jglobal.Pack) error) {
+	encoder = en
+	decoder = de
 }
 
 func (o *Http) Register(cmd jpb.CMD, fun func(*jglobal.Pack), template proto.Message) {
@@ -74,7 +72,7 @@ func (o *Http) receive(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	pack := &jglobal.Pack{Data: body}
-	if err = o.decoder(r.URL.Path, pack); err != nil {
+	if err = decoder(r.URL.Path, pack); err != nil {
 		jlog.Warn(err)
 		return
 	}
@@ -103,7 +101,7 @@ func (o *Http) receive(w http.ResponseWriter, r *http.Request) {
 		}
 		pack.Data = tmp
 	}
-	if err = o.encoder(r.URL.Path, pack); err != nil {
+	if err = encoder(r.URL.Path, pack); err != nil {
 		jlog.Error(err)
 		return
 	}

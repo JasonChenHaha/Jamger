@@ -24,6 +24,8 @@ enum CMD {
     NOTIFY = 3000;
     LOGIN_REQ = 3001;
     LOGIN_RSP = 3002;
+    GOOD_LIST_REQ = 3003;
+    GOOD_LIST_RSP = 3004;
 }
 
 enum CODE {
@@ -40,6 +42,7 @@ enum CODE {
 
 message Error {
     CODE code = 1;
+    string desc = 2;
 }
 
 message DelUserReq {

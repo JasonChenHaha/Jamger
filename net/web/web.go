@@ -12,17 +12,24 @@ import (
 	"jschedule"
 
 	"github.com/gorilla/websocket"
+	"google.golang.org/protobuf/proto"
 )
 
-type Handler func(id uint64, pack *Pack)
+type Handler struct {
+	fun      func(*jglobal.Pack)
+	template proto.Message
+}
 
 type Web struct {
 	idc      uint64
 	ses      *jglobal.Maps[uint64]
 	counter  uint64
-	handler  map[jpb.CMD]Handler
+	handler  map[jpb.CMD]*Handler
 	upgrader *websocket.Upgrader
 }
+
+var encoder func(*jglobal.Pack) error
+var decoder func(*jglobal.Pack) error
 
 // ------------------------- outside -------------------------
 
@@ -32,7 +39,7 @@ func NewWeb() *Web {
 
 func (o *Web) AsServer() *Web {
 	o.ses = jglobal.NewMaps(uint64(1))
-	o.handler = map[jpb.CMD]Handler{}
+	o.handler = map[jpb.CMD]*Handler{}
 	o.upgrader = &websocket.Upgrader{
 		CheckOrigin: func(r *http.Request) bool {
 			return true
@@ -60,17 +67,64 @@ func (o *Web) AsClient() *Web {
 	return o
 }
 
-func (o *Web) Register(cmd jpb.CMD, handler Handler) {
-	o.handler[cmd] = handler
+func (o *Web) SetCodec(en, de func(*jglobal.Pack) error) {
+	encoder = en
+	decoder = de
 }
 
-func (o *Web) Send(id uint64, cmd jpb.CMD, data []byte) {
-	obj, ok := o.ses.Load(id)
+func (o *Web) Register(cmd jpb.CMD, fun func(*jglobal.Pack), template proto.Message) {
+	o.handler[cmd] = &Handler{
+		fun:      fun,
+		template: template,
+	}
+}
+
+func (o *Web) Send(id uint64, pack *jglobal.Pack) {
+	ses, ok := o.ses.Load(id)
 	if !ok {
-		jlog.Errorf("session(%d) not found", id)
+		jlog.Errorf("no session(%d)", id)
 		return
 	}
-	obj.(*Ses).send(makePack(cmd, data))
+	if v, ok := pack.Data.(proto.Message); ok {
+		tmp, err := proto.Marshal(v)
+		if err != nil {
+			jlog.Errorf("%s, cmd(%s)", err, pack.Cmd)
+			return
+		}
+		pack.Data = tmp
+	}
+	ses.(*Ses).send(pack)
+}
+
+func (o *Web) Close(id uint64) {
+	if ses, ok := o.ses.Load(id); ok {
+		o.ses.Delete(id)
+		o.counter--
+		ses.(*Ses).close()
+	}
+}
+
+// ------------------------- package -------------------------
+
+func (o *Web) receive(id uint64, pack *jglobal.Pack) {
+	han := o.handler[pack.Cmd]
+	if han != nil {
+		msg := proto.Clone(han.template)
+		if err := proto.Unmarshal(pack.Data.([]byte), msg); err != nil {
+			jlog.Warnf("%s, cmd(%s)", err, pack.Cmd)
+			o.Close(id)
+			return
+		}
+		pack.Data = msg
+		han.fun(pack)
+	} else {
+		if o.handler[jpb.CMD_TRANSFER] == nil {
+			jlog.Error("no transfer cmd.")
+			o.Close(id)
+			return
+		}
+		o.handler[jpb.CMD_TRANSFER].fun(pack)
+	}
 }
 
 // ------------------------- inside -------------------------
@@ -89,23 +143,6 @@ func (o *Web) add(con *websocket.Conn) {
 	o.ses.Store(id, ses)
 	o.counter++
 	ses.run()
-}
-
-func (o *Web) delete(id uint64) {
-	if obj, ok := o.ses.Load(id); ok {
-		o.ses.Delete(id)
-		o.counter--
-		obj.(*Ses).close()
-	}
-}
-
-func (o *Web) receive(id uint64, pack *Pack) {
-	fu, ok := o.handler[pack.Cmd]
-	if !ok {
-		jlog.Warn("cmd not exist, ", pack.Cmd)
-		return
-	}
-	fu(id, pack)
 }
 
 // ------------------------- debug -------------------------

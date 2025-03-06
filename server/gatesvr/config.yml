@@ -5,7 +5,7 @@ zone: 1
 # 服务组
 group: 1
 # 服务索引
-index: 1
+index: 2
 
 log:
     # 日志级别, 0:panic, 1:fatal, 2:error, 3:warn, 4:info, 5:debug, 6:trace
@@ -20,16 +20,16 @@ log:
     compress: false
 
 tcp:
-    addr: 0.0.0.0:10000
-    # 延迟发送
-    noDelay: false
+    addr: 0.0.0.0:10001
+    # 关闭延迟发送
+    noDelay: true
     # 读超时
     rTimeout: 10s
     # 写超时
     sTimeout: 5s
 
 kcp:
-    addr: 0.0.0.0:20000
+    addr: 0.0.0.0:20001
     # 发包分片数
     dataShards: 1
     # 冗余分片数
@@ -45,16 +45,17 @@ kcp:
     sTimeout: 5s
 
 web:
-    addr: 0.0.0.0:30000
+    addr: 0.0.0.0:30001
+    noDelay: true
     rTimeout: 5s
     sTimeout: 5s
 
 http:
-    addr: 0.0.0.0:40000
+    addr: 0.0.0.0:40001
     timeout: 5s
 
 rpc:
-    addr: 0.0.0.0:50000
+    addr: 0.0.0.0:50001
     timeout: 5s
 
 mysql:

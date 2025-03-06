@@ -13,10 +13,10 @@ import (
 func Init() {
 	jrpc.Rpc.Connect(jglobal.GRP_CENTER)
 	jrpc.Rpc.Connect(jglobal.GRP_GATE)
-	jnet.Rpc.Encoder(rpcEncode)
-	jnet.Rpc.Decoder(rpcDecode)
+	jnet.Rpc.SetCodec(rpcEncode, rpcDecode)
 	jnet.Rpc.Register(jpb.CMD_DEL_USER, deleteUser, &jpb.DelUserReq{})
 	jnet.Rpc.Register(jpb.CMD_LOGIN_REQ, login, &jpb.LoginReq{})
+	jnet.Rpc.Register(jpb.CMD_GOOD_LIST_REQ, goodList, &jpb.GooDListReq{})
 }
 
 // ------------------------- inside -------------------------
@@ -37,8 +37,24 @@ func login(pack *jglobal.Pack) {
 	pack.Cmd = jpb.CMD_LOGIN_RSP
 	pack.Data = rsp
 	user.SetLoginTs()
-	jnet.BroadcastToC(&jglobal.Pack{
-		Cmd:  jpb.CMD_NOTIFY,
-		Data: &jpb.Notify{Msg: "hello world"},
-	})
+}
+
+// 获取商品列表
+func goodList(pack *jglobal.Pack) {
+	rsp := &jpb.GoodListRsp{Goods: []*jpb.Good{}}
+	pack.Cmd = jpb.CMD_GOOD_LIST_RSP
+	pack.Data = rsp
+	user := juser.GetUserAnyway(0)
+	for _, v := range user.Goods.Data {
+		good := &jpb.Good{
+			Id:      v.Id,
+			Name:    v.Name,
+			Desc:    v.Desc,
+			Size:    v.Size,
+			Price:   v.Price,
+			ImgType: v.ImgType,
+			Image:   v.Image,
+		}
+		rsp.Goods = append(rsp.Goods, good)
+	}
 }

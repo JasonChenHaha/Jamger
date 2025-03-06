@@ -26,15 +26,15 @@ func (redis *Redis) clear() {
 // ------------------------- outSide -------------------------
 
 func (redis *Redis) Load() *User {
-	rData, err := jdb.Redis.HGetAll(jglobal.Itoa(redis.user.Uid))
+	data, err := jdb.Redis.HGetAll(jglobal.Itoa(redis.user.Uid))
 	if err != nil {
 		jlog.Error(err)
 		return nil
 	}
-	if v, ok := rData["gate"]; ok {
+	if v, ok := data["gate"]; ok {
 		redis.Gate = jglobal.Atoi[int](v)
 	}
-	if v, ok := rData["aesKey"]; ok {
+	if v, ok := data["aesKey"]; ok {
 		redis.AesKey = []byte(v)
 	}
 	return redis.user
