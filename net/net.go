@@ -51,6 +51,18 @@ func SetGetUser(fun func(uint32) any) {
 	GetUser = fun
 }
 
+// 广播到group集群(除本节点外)
+func BroadcastToGroup(group int, pack *jglobal.Pack) {
+	data := pack.Data
+	targets := jrpc.Rpc.GetAllTarget(group)
+	for k, v := range targets {
+		if k != jglobal.INDEX {
+			pack.Data = data
+			v.Call(pack, &jpb.DelUserRsp{})
+		}
+	}
+}
+
 // 广播给所有客户端(->gate->client)
 func BroadcastToC(pack *jglobal.Pack) {
 	var err error

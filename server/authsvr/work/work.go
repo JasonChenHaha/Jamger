@@ -26,7 +26,7 @@ func Init() {
 	jnet.Rpc.Register(jpb.CMD_SIGN_IN_REQ, signIn, &jpb.SignInReq{})
 }
 
-// ------------------------- inside -------------------------
+// ------------------------- inside.method -------------------------
 
 // 注册
 func signUp(pack *jglobal.Pack) {
@@ -63,14 +63,13 @@ func signUp(pack *jglobal.Pack) {
 		in := &jmongo.Input{
 			Col:     jglobal.MONGO_USER,
 			Filter:  bson.M{"_id": int64(0)},
-			Update:  bson.M{"$inc": bson.M{"counter": int64(1)}},
+			Update:  bson.M{"$inc": bson.M{"uidc": int64(1)}},
 			Upsert:  true,
 			RetDoc:  options.After,
-			Project: bson.M{"counter": 1},
+			Project: bson.M{"uidc": 1},
 		}
 		out := bson.M{}
-		err = jdb.Mongo.FindOneAndUpdate(in, &out)
-		if err != nil {
+		if err = jdb.Mongo.FindOneAndUpdate(in, &out); err != nil {
 			jlog.Error(err)
 			rsp.Code = jpb.CODE_SVR_ERR
 			return
@@ -78,10 +77,9 @@ func signUp(pack *jglobal.Pack) {
 		// 创建
 		in = &jmongo.Input{
 			Col:    jglobal.MONGO_USER,
-			Insert: bson.M{"_id": out["counter"], "basic": bson.M{"id": req.Id, "pwd": secret}},
+			Insert: bson.M{"_id": out["uidc"], "basic": bson.M{"id": req.Id, "pwd": secret}},
 		}
-		err = jdb.Mongo.InsertOne(in)
-		if err != nil {
+		if err = jdb.Mongo.InsertOne(in); err != nil {
 			jlog.Error(err)
 			rsp.Code = jpb.CODE_SVR_ERR
 			return
@@ -116,9 +114,8 @@ func signIn(pack *jglobal.Pack) {
 		rsp.Code = jpb.CODE_SVR_ERR
 		return
 	} else {
-		secret := out["basic"].(primitive.M)["pwd"].(primitive.Binary)
-		err := bcrypt.CompareHashAndPassword(secret.Data, []byte(req.Pwd))
-		if err != nil {
+		secret := out["basic"].(bson.M)["pwd"].(primitive.Binary)
+		if err = bcrypt.CompareHashAndPassword(secret.Data, []byte(req.Pwd)); err != nil {
 			// 密码错误
 			rsp.Code = jpb.CODE_ACCOUNT_FAIL
 			return

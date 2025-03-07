@@ -3,12 +3,13 @@ package juser
 import (
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 type Basic struct {
 	user    *User
 	Id      string
+	Admin   bool
 	Gate    int
 	LoginTs int64
 }
@@ -19,11 +20,14 @@ func newBasic(user *User) *Basic {
 	return &Basic{user: user}
 }
 
-func (basic *Basic) load(data primitive.M) {
+func (basic *Basic) load(data bson.M) {
 	if v, ok := data["basic"]; ok {
-		data = v.(primitive.M)
-		if v2, ok2 := data["loginTs"]; ok2 {
+		data = v.(bson.M)
+		if v2, ok := data["loginTs"]; ok {
 			basic.LoginTs = v2.(int64)
+		}
+		if _, ok := data["admin"]; ok {
+			basic.Admin = true
 		}
 	}
 }

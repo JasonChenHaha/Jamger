@@ -41,8 +41,8 @@ func (o *rpc) Connect(group int) {
 }
 
 // 全部
-func (o *rpc) GetAllTarget(group int) []*jnrpc.Rpc {
-	return o.server[group].Values()
+func (o *rpc) GetAllTarget(group int) map[int]*jnrpc.Rpc {
+	return o.server[group].KeyValues()
 }
 
 // 指定

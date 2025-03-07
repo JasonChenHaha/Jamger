@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	packSize     = 2
+	packSize     = 4
 	uidSize      = 4
 	cmdSize      = 2
 	checksumSize = 4

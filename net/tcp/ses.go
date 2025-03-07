@@ -22,7 +22,7 @@ type Ses struct {
 }
 
 const (
-	packSize = 2
+	packSize = 4
 )
 
 // ------------------------- package -------------------------
@@ -117,7 +117,7 @@ func (o *Ses) recvBytes() ([]byte, error) {
 	if _, err := io.ReadFull(o.con, raw); err != nil {
 		return nil, err
 	}
-	size := binary.LittleEndian.Uint16(raw)
+	size := binary.LittleEndian.Uint32(raw)
 	raw = make([]byte, size)
 	if _, err := io.ReadFull(o.con, raw); err != nil {
 		return nil, err
@@ -129,7 +129,7 @@ func (o *Ses) sendBytes(pack *jglobal.Pack) error {
 	data := pack.Data.([]byte)
 	size := len(data)
 	raw := make([]byte, packSize+size)
-	binary.LittleEndian.PutUint16(raw, uint16(size))
+	binary.LittleEndian.PutUint32(raw, uint32(size))
 	copy(raw[packSize:], data)
 	for pos := 0; pos < size; {
 		n, err := o.con.Write(raw)

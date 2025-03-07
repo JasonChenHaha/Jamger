@@ -7,7 +7,6 @@ import (
 	"jmongo"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type Mongo struct {
@@ -32,7 +31,7 @@ func (mongo *Mongo) Load() *User {
 		Filter:  bson.M{"_id": mongo.user.Uid},
 		Project: bson.M{"basic": 1},
 	}
-	data := primitive.M{}
+	data := bson.M{}
 	if err := jdb.Mongo.FindOne(in, &data); err != nil {
 		jlog.Error(err)
 		return nil

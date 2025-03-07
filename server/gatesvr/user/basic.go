@@ -1,6 +1,7 @@
 package juser
 
 import (
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -8,6 +9,7 @@ type Basic struct {
 	user    *User
 	Id      string
 	Pwd     []byte
+	Admin   bool
 	SesType int
 	SesId   uint64
 }
@@ -18,11 +20,14 @@ func newBasic(user *User) *Basic {
 	return &Basic{user: user}
 }
 
-func (basic *Basic) load(data primitive.M) {
+func (basic *Basic) load(data bson.M) {
 	if v, ok := data["basic"]; ok {
-		data = v.(primitive.M)
+		data = v.(bson.M)
 		basic.Id = data["id"].(string)
 		basic.Pwd = data["pwd"].(primitive.Binary).Data
+		if _, ok := data["admin"]; ok {
+			basic.Admin = true
+		}
 	}
 }
 

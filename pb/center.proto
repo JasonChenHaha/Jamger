@@ -25,3 +25,27 @@ message GoodListRsp {
     CODE code = 1;
     repeated Good goods = 2;
 }
+
+message UploadGoodReq {
+    Good good = 1;
+}
+
+message UploadGoodRsp {
+    CODE code = 1;
+}
+
+message ModifyGoodReq {
+    Good good = 1;
+}
+
+message ModifyGoodRsp {
+    CODE code = 1;
+}
+
+message DeleteGoodReq {
+    uint32 id = 1;
+}
+
+message DeleteGoodRsp {
+    CODE code = 1;
+}

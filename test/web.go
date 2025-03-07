@@ -31,6 +31,7 @@ func testWeb() {
 	web.msg[jpb.CMD_GATE_INFO] = &jpb.Error{}
 	web.msg[jpb.CMD_LOGIN_RSP] = &jpb.LoginRsp{}
 	web.msg[jpb.CMD_GOOD_LIST_RSP] = &jpb.GoodListRsp{}
+	web.msg[jpb.CMD_UPLOAD_GOOD_RSP] = &jpb.UploadGoodRsp{}
 
 	go web.recv()
 	go web.heartbeat()

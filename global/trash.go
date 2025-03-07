@@ -41,6 +41,7 @@ func Keep() {
 	<-mainC
 }
 
+// 从cmd获取group
 func GetGroup(cmd jpb.CMD) int {
 	return int(cmd / jpb.CMD_MAX)
 }
@@ -273,6 +274,7 @@ func Itoa(data any) string {
 	return ""
 }
 
+// url转成cmd
 func UrlToCmd(str string) jpb.CMD {
 	s := str[1:]
 	if s == "" {

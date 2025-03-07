@@ -5,7 +5,7 @@ zone: 1
 # 服务组
 group: 3
 # 服务索引
-index: 2
+index: 1
 
 log:
     # 日志级别, 0:panic, 1:fatal, 2:error, 3:warn, 4:info, 5:debug, 6:trace
@@ -20,7 +20,7 @@ log:
     compress: false
 
 rpc:
-    addr: 0.0.0.0:52001
+    addr: 0.0.0.0:52000
     timeout: 5s
 
 mysql:

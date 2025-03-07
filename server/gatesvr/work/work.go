@@ -34,7 +34,7 @@ func Init() {
 	jnet.Rpc.Register(jpb.CMD_BROADCAST, rpcBroadcast, nil)
 }
 
-// ------------------------- inside.http -------------------------
+// ------------------------- inside.method.http -------------------------
 
 // 转发
 func httpTransfer(pack *jglobal.Pack) {
@@ -120,7 +120,7 @@ func httpLogin(pack *jglobal.Pack) {
 	}
 }
 
-// ------------------------- inside.tcp/web -------------------------
+// ------------------------- inside.method.tcp/web -------------------------
 
 // 透传
 func twTransfer(pack *jglobal.Pack) {
@@ -161,7 +161,7 @@ func twLogin(pack *jglobal.Pack) {
 	}
 }
 
-// ------------------------- inside.rpc -------------------------
+// ------------------------- inside.method.rpc -------------------------
 
 // 踢下线
 func rpcKickUser(pack *jglobal.Pack) {

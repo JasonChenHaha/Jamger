@@ -1,11 +1,19 @@
 package jwork
 
 import (
+	"jdb"
 	"jglobal"
+	"jlog"
+	"jmongo"
 	"jnet"
 	"jpb"
 	"jrpc"
+	"jschedule"
 	"juser"
+	"time"
+
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 // ------------------------- outside -------------------------
@@ -17,9 +25,12 @@ func Init() {
 	jnet.Rpc.Register(jpb.CMD_DEL_USER, deleteUser, &jpb.DelUserReq{})
 	jnet.Rpc.Register(jpb.CMD_LOGIN_REQ, login, &jpb.LoginReq{})
 	jnet.Rpc.Register(jpb.CMD_GOOD_LIST_REQ, goodList, &jpb.GooDListReq{})
+	jnet.Rpc.Register(jpb.CMD_UPLOAD_GOOD_REQ, uploadGood, &jpb.UploadGoodReq{})
+	jnet.Rpc.Register(jpb.CMD_MODIFY_GOOD_REQ, modifyGood, &jpb.ModifyGoodReq{})
+	jnet.Rpc.Register(jpb.CMD_DELETE_GOOD_REQ, deleteGood, &jpb.DeleteGoodReq{})
 }
 
-// ------------------------- inside -------------------------
+// ------------------------- inside.method -------------------------
 
 // 缓存清理
 func deleteUser(pack *jglobal.Pack) {
@@ -57,4 +68,82 @@ func goodList(pack *jglobal.Pack) {
 		}
 		rsp.Goods = append(rsp.Goods, good)
 	}
+}
+
+// 上传商品
+func uploadGood(pack *jglobal.Pack) {
+	user := pack.Ctx.(*juser.User)
+	req := pack.Data.(*jpb.UploadGoodReq)
+	rsp := &jpb.UploadGoodRsp{}
+	pack.Cmd = jpb.CMD_UPLOAD_GOOD_RSP
+	pack.Data = rsp
+	if !user.Admin {
+		rsp.Code = jpb.CODE_DENY
+		return
+	}
+	user0 := juser.GetUserAnyway(0)
+	// 获取自增id
+	in := &jmongo.Input{
+		Col:     jglobal.MONGO_USER,
+		Filter:  bson.M{"_id": int64(0)},
+		Update:  bson.M{"$inc": bson.M{"gidc": int64(1)}},
+		Upsert:  true,
+		RetDoc:  options.After,
+		Project: bson.M{"gidc": 1},
+	}
+	out := bson.M{}
+	if err := jdb.Mongo.FindOneAndUpdate(in, &out); err != nil {
+		jlog.Error(err)
+		rsp.Code = jpb.CODE_SVR_ERR
+		return
+	}
+	user0.AddGood(uint32(out["gidc"].(int64)), req.Good)
+	jschedule.DoAt(5*time.Second, func(args ...any) {
+		jnet.BroadcastToGroup(jglobal.GRP_CENTER, &jglobal.Pack{
+			Cmd:  jpb.CMD_DEL_USER,
+			Data: &jpb.DelUserReq{Uid: 0},
+		})
+	})
+}
+
+// 修改商品
+func modifyGood(pack *jglobal.Pack) {
+	user := pack.Ctx.(*juser.User)
+	req := pack.Data.(*jpb.ModifyGoodReq)
+	rsp := &jpb.ModifyGoodRsp{}
+	pack.Cmd = jpb.CMD_MODIFY_GOOD_RSP
+	pack.Data = rsp
+	if !user.Admin {
+		rsp.Code = jpb.CODE_DENY
+		return
+	}
+	user0 := juser.GetUserAnyway(0)
+	user0.ModifyGood(req.Good)
+	jschedule.DoAt(5*time.Second, func(args ...any) {
+		jnet.BroadcastToGroup(jglobal.GRP_CENTER, &jglobal.Pack{
+			Cmd:  jpb.CMD_DEL_USER,
+			Data: &jpb.DelUserReq{Uid: 0},
+		})
+	})
+}
+
+// 下架商品
+func deleteGood(pack *jglobal.Pack) {
+	user := pack.Ctx.(*juser.User)
+	req := pack.Data.(*jpb.DeleteGoodReq)
+	rsp := &jpb.DeleteGoodRsp{}
+	pack.Cmd = jpb.CMD_DELETE_GOOD_RSP
+	pack.Data = rsp
+	if !user.Admin {
+		rsp.Code = jpb.CODE_DENY
+		return
+	}
+	user0 := juser.GetUserAnyway(0)
+	user0.DelGood(req.Id)
+	jschedule.DoAt(5*time.Second, func(args ...any) {
+		jnet.BroadcastToGroup(jglobal.GRP_CENTER, &jglobal.Pack{
+			Cmd:  jpb.CMD_DEL_USER,
+			Data: &jpb.DelUserReq{Uid: 0},
+		})
+	})
 }

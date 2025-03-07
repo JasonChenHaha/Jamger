@@ -30,12 +30,44 @@ func testTcp() {
 	tcp.msg[jpb.CMD_GATE_INFO] = &jpb.Error{}
 	tcp.msg[jpb.CMD_LOGIN_RSP] = &jpb.LoginRsp{}
 	tcp.msg[jpb.CMD_GOOD_LIST_RSP] = &jpb.GoodListRsp{}
+	tcp.msg[jpb.CMD_UPLOAD_GOOD_RSP] = &jpb.UploadGoodRsp{}
+	tcp.msg[jpb.CMD_MODIFY_GOOD_RSP] = &jpb.ModifyGoodRsp{}
+	tcp.msg[jpb.CMD_DELETE_GOOD_RSP] = &jpb.DeleteGoodRsp{}
 
 	go tcp.recv()
 	go tcp.heartbeat()
 
 	tcp.sendWithAes(jpb.CMD_LOGIN_REQ, &jpb.LoginReq{})
 	tcp.sendWithAes(jpb.CMD_GOOD_LIST_REQ, &jpb.GoodListRsp{})
+	// image, err := os.ReadFile("../template/house.jpg")
+	// if err != nil {
+	// 	jlog.Error(err)
+	// 	return
+	// }
+	// tcp.sendWithAes(jpb.CMD_UPLOAD_GOOD_REQ, &jpb.UploadGoodReq{
+	// 	Good: &jpb.Good{
+	// 		Name:    "name",
+	// 		Desc:    "desc",
+	// 		Size:    1,
+	// 		Price:   1,
+	// 		ImgType: 1,
+	// 		Image:   image,
+	// 	},
+	// })
+	// tcp.sendWithAes(jpb.CMD_MODIFY_GOOD_REQ, &jpb.ModifyGoodReq{
+	// 	Good: &jpb.Good{
+	// 		Id:      123,
+	// 		Name:    "name",
+	// 		Desc:    "desc",
+	// 		Size:    1,
+	// 		Price:   1,
+	// 		ImgType: 1,
+	// 		Image:   []byte{1, 2, 3},
+	// 	},
+	// })
+	// tcp.sendWithAes(jpb.CMD_DELETE_GOOD_REQ, &jpb.DeleteGoodReq{
+	// 	Id: 24,
+	// })
 
 	jglobal.Keep()
 }
@@ -59,7 +91,8 @@ func (tcp *Tcp) sendWithAes(cmd jpb.CMD, msg proto.Message) {
 	jglobal.AesEncrypt(aesKey, &raw)
 	size = len(raw)
 	raw2 := make([]byte, packSize+uidSize+cmdSize+size)
-	binary.LittleEndian.PutUint16(raw2, uint16(uidSize+cmdSize+size))
+	jlog.Debug(uint32(uidSize + cmdSize + size))
+	binary.LittleEndian.PutUint32(raw2, uint32(uidSize+cmdSize+size))
 	binary.LittleEndian.PutUint32(raw2[packSize:], uid)
 	binary.LittleEndian.PutUint16(raw2[packSize+uidSize:], uint16(cmd))
 	copy(raw2[packSize+uidSize+cmdSize:], raw)
@@ -80,7 +113,7 @@ func (tcp *Tcp) recv() {
 			jlog.Debug("close by server")
 			return
 		}
-		size := binary.LittleEndian.Uint16(raw)
+		size := binary.LittleEndian.Uint32(raw)
 		raw = make([]byte, size)
 		io.ReadFull(tcp.con, raw)
 		jglobal.AesDecrypt(aesKey, &raw)

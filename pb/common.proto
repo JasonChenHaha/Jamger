@@ -26,6 +26,12 @@ enum CMD {
     LOGIN_RSP = 3002;
     GOOD_LIST_REQ = 3003;
     GOOD_LIST_RSP = 3004;
+    UPLOAD_GOOD_REQ = 3005;
+    UPLOAD_GOOD_RSP = 3006;
+    MODIFY_GOOD_REQ = 3007;
+    MODIFY_GOOD_RSP = 3008;
+    DELETE_GOOD_REQ = 3009;
+    DELETE_GOOD_RSP = 3010;
 }
 
 enum CODE {
@@ -33,6 +39,7 @@ enum CODE {
     ERR = 1;
     SVR_ERR = 2;
     CLOSED = 3;
+    DENY = 4;
 
     AESKEY_ERR = 10;         // 重复的AESKey
     ACCOUNT_SYNTX = 11;      // 账号密码格式错误
