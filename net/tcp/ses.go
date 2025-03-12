@@ -65,13 +65,11 @@ func (o *Ses) recvGoro() {
 		}
 		data, err := o.recvBytes()
 		if err != nil {
-			jlog.Error(err)
 			o.tcp.Close(o.id)
 			return
 		}
 		pack := &jglobal.Pack{Data: data}
 		if err = decoder(pack); err != nil {
-			jlog.Error(err)
 			o.tcp.Close(o.id)
 			return
 		}
@@ -100,12 +98,10 @@ func (o *Ses) sendGoro() {
 				o.con.SetWriteDeadline(time.Now().Add(o.sTimeout))
 			}
 			if err := encoder(pack); err != nil {
-				jlog.Error(err)
 				o.tcp.Close(o.id)
 				return
 			}
 			if err := o.sendBytes(pack); err != nil {
-				jlog.Error(err)
 				o.tcp.Close(o.id)
 			}
 		}
@@ -115,11 +111,13 @@ func (o *Ses) sendGoro() {
 func (o *Ses) recvBytes() ([]byte, error) {
 	raw := make([]byte, packSize)
 	if _, err := io.ReadFull(o.con, raw); err != nil {
+		jlog.Error(err)
 		return nil, err
 	}
 	size := binary.LittleEndian.Uint32(raw)
 	raw = make([]byte, size)
 	if _, err := io.ReadFull(o.con, raw); err != nil {
+		jlog.Error(err)
 		return nil, err
 	}
 	return raw, nil
@@ -134,6 +132,7 @@ func (o *Ses) sendBytes(pack *jglobal.Pack) error {
 	for pos := 0; pos < size; {
 		n, err := o.con.Write(raw)
 		if err != nil {
+			jlog.Error(err)
 			return err
 		}
 		pos += n

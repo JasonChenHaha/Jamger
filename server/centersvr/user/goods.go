@@ -2,10 +2,13 @@ package juser
 
 import (
 	"fmt"
+	"jdb"
+	"jglobal"
+	"jmongo"
 	"jpb"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type Goods struct {
@@ -28,15 +31,13 @@ func (goods *Goods) load(data bson.M) {
 		for _, v2 := range v.(bson.M) {
 			v3 := v2.(bson.M)
 			good := &jpb.Good{
-				Id:      uint32(v3["id"].(int64)),
-				Name:    v3["name"].(string),
-				Desc:    v3["desc"].(string),
-				Size:    uint32(v3["size"].(int64)),
-				Price:   uint32(v3["price"].(int64)),
-				ImgType: uint32(v3["imgtype"].(int64)),
-				Image:   v3["image"].(primitive.Binary).Data,
+				Uid:   uint32(v3["uid"].(int64)),
+				Name:  v3["name"].(string),
+				Desc:  v3["desc"].(string),
+				Size:  uint32(v3["size"].(int64)),
+				Price: uint32(v3["price"].(int64)),
 			}
-			tmp[good.Id] = good
+			tmp[good.Uid] = good
 		}
 		goods.Data = tmp
 	}
@@ -44,24 +45,44 @@ func (goods *Goods) load(data bson.M) {
 
 // ------------------------- outside -------------------------
 
-func (goods *Goods) AddGood(id uint32, good *jpb.Good) {
-	good.Id = id
-	goods.Data[id] = good
+// 生成商品id
+func (goods *Goods) GenGoodUid() (uint32, error) {
+	in := &jmongo.Input{
+		Col:     jglobal.MONGO_USER,
+		Filter:  bson.M{"_id": int64(0)},
+		Update:  bson.M{"$inc": bson.M{"guidc": int64(1)}},
+		Upsert:  true,
+		RetDoc:  options.After,
+		Project: bson.M{"guidc": 1},
+	}
+	out := bson.M{}
+	if err := jdb.Mongo.FindOneAndUpdate(in, &out); err != nil {
+		return 0, err
+	}
+	return uint32(out["guidc"].(int64)), nil
+}
+
+// 添加商品
+func (goods *Goods) AddGood(uid uint32, good *jpb.Good) {
+	good.Uid = uid
+	goods.Data[uid] = good
 	goods.user.Lock()
-	goods.user.DirtyMongo[fmt.Sprintf("goods.%d", id)] = good
+	goods.user.DirtyMongo[fmt.Sprintf("goods.%d", uid)] = good
 	goods.user.UnLock()
 }
 
+// 修改商品
 func (goods *Goods) ModifyGood(good *jpb.Good) {
-	goods.Data[good.Id] = good
+	goods.Data[good.Uid] = good
 	goods.user.Lock()
-	goods.user.DirtyMongo[fmt.Sprintf("goods.%d", good.Id)] = good
+	goods.user.DirtyMongo[fmt.Sprintf("goods.%d", good.Uid)] = good
 	goods.user.UnLock()
 }
 
-func (goods *Goods) DelGood(id uint32) {
-	delete(goods.Data, id)
+// 下架商品
+func (goods *Goods) DelGood(uid uint32) {
+	delete(goods.Data, uid)
 	goods.user.Lock()
-	goods.user.DirtyMongo2[fmt.Sprintf("goods.%d", id)] = 1
+	goods.user.DirtyMongo2[fmt.Sprintf("goods.%d", uid)] = 1
 	goods.user.UnLock()
 }

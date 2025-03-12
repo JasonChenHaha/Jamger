@@ -2,6 +2,7 @@ package jmongo
 
 import (
 	"context"
+	"fmt"
 	"jconfig"
 	"jlog"
 	"sync"
@@ -23,6 +24,10 @@ type Input struct {
 	Project    any
 	Upsert     bool
 	RetDoc     options.ReturnDocument
+}
+
+func (in *Input) String() string {
+	return fmt.Sprintf("col:%s, filter:%s, insert:%s, insertmany:%s, update:%s", in.Col, in.Filter, in.Insert, in.InsertMany, in.Update)
 }
 
 type Mongo struct {
@@ -49,7 +54,11 @@ func NewMongo(base string) *Mongo {
 
 func (mog *Mongo) EstimatedDocumentCount(in *Input) (int64, error) {
 	co := mog.getCollection(in.Col)
-	return co.EstimatedDocumentCount(context.Background())
+	rsp, err := co.EstimatedDocumentCount(context.Background())
+	if err != nil {
+		jlog.Errorf("%s, %s", err, in)
+	}
+	return rsp, err
 }
 
 func (mog *Mongo) CountDocuments(in *Input) (int64, error) {
@@ -59,7 +68,11 @@ func (mog *Mongo) CountDocuments(in *Input) (int64, error) {
 		in.Filter = bson.M{}
 		opts.SetHint("_id_")
 	}
-	return co.CountDocuments(context.Background(), in.Filter, opts)
+	rsp, err := co.CountDocuments(context.Background(), in.Filter, opts)
+	if err != nil {
+		jlog.Errorf("%s, %s", err, in)
+	}
+	return rsp, err
 }
 
 // out需要为结构体指针 *(bson.M or struct)
@@ -67,7 +80,11 @@ func (mog *Mongo) FindOne(in *Input, out any) error {
 	co := mog.getCollection(in.Col)
 	opts := options.FindOne()
 	opts.SetProjection(in.Project)
-	return co.FindOne(context.Background(), in.Filter, opts).Decode(out)
+	err := co.FindOne(context.Background(), in.Filter, opts).Decode(out)
+	if err != nil {
+		jlog.Errorf("%s, %s", err, in)
+	}
+	return err
 }
 
 // out需要为结构体指针 *(bson.M or struct)
@@ -77,7 +94,11 @@ func (mog *Mongo) FindOneAndUpdate(in *Input, out any) error {
 	opts.SetProjection(in.Project)
 	opts.SetUpsert(in.Upsert)
 	opts.SetReturnDocument(in.RetDoc)
-	return co.FindOneAndUpdate(context.Background(), in.Filter, in.Update, opts).Decode(out)
+	err := co.FindOneAndUpdate(context.Background(), in.Filter, in.Update, opts).Decode(out)
+	if err != nil {
+		jlog.Errorf("%s, %s", err, in)
+	}
+	return err
 }
 
 // out需要为结构体指针切片的指针 *[]*(bson.M or struct)
@@ -89,20 +110,31 @@ func (mog *Mongo) FindMany(in *Input, out any) error {
 	opts.SetLimit(in.Limit)
 	cursor, err := co.Find(context.Background(), in.Filter, opts)
 	if err != nil {
+		jlog.Errorf("%s, %s", err, in)
 		return err
 	}
-	return cursor.All(context.Background(), out)
+	err = cursor.All(context.Background(), out)
+	if err != nil {
+		jlog.Errorf("%s, %s", err, in)
+	}
+	return err
 }
 
 func (mog *Mongo) InsertOne(in *Input) error {
 	co := mog.getCollection(in.Col)
 	_, err := co.InsertOne(context.Background(), in.Insert)
+	if err != nil {
+		jlog.Errorf("%s, %s", err, in)
+	}
 	return err
 }
 
 func (mog *Mongo) InsertMany(in *Input) error {
 	co := mog.getCollection(in.Col)
 	_, err := co.InsertMany(context.Background(), in.InsertMany)
+	if err != nil {
+		jlog.Errorf("%s, %s", err, in)
+	}
 	return err
 }
 
@@ -111,6 +143,9 @@ func (mog *Mongo) UpdateOne(in *Input) error {
 	opts := options.Update()
 	opts.SetUpsert(in.Upsert)
 	_, err := co.UpdateOne(context.Background(), in.Filter, in.Update, opts)
+	if err != nil {
+		jlog.Errorf("%s, %s", err, in)
+	}
 	return err
 }
 
@@ -119,18 +154,27 @@ func (mog *Mongo) UpdateMany(in *Input) error {
 	opts := options.Update()
 	opts.SetUpsert(in.Upsert)
 	_, err := co.UpdateMany(context.Background(), in.Filter, in.Update, opts)
+	if err != nil {
+		jlog.Errorf("%s, %s", err, in)
+	}
 	return err
 }
 
 func (mog *Mongo) DeleteOne(in *Input) error {
 	co := mog.getCollection(in.Col)
 	_, err := co.DeleteOne(context.Background(), in.Filter)
+	if err != nil {
+		jlog.Errorf("%s, %s", err, in)
+	}
 	return err
 }
 
 func (mog *Mongo) DeleteMany(in *Input) error {
 	co := mog.getCollection(in.Col)
 	_, err := co.DeleteMany(context.Background(), in.Filter)
+	if err != nil {
+		jlog.Errorf("%s, %s", err, in)
+	}
 	return err
 }
 

@@ -3,6 +3,7 @@ package jkcp
 import (
 	"encoding/binary"
 	"io"
+	"jlog"
 	"jpb"
 
 	"github.com/xtaci/kcp-go"
@@ -32,21 +33,22 @@ const (
 
 // ------------------------- package -------------------------
 
-func recvPack(con *kcp.UDPSession) (pack *Pack, err error) {
+func recvPack(con *kcp.UDPSession) (*Pack, error) {
 	buffer := make([]byte, HeadSize)
-	if _, err = io.ReadFull(con, buffer); err != nil {
-		return
+	if _, err := io.ReadFull(con, buffer); err != nil {
+		jlog.Error(err)
+		return nil, err
 	}
 	bodySize := binary.LittleEndian.Uint16(buffer)
 	buffer = make([]byte, bodySize)
-	if _, err = io.ReadFull(con, buffer); err != nil {
-		return
+	if _, err := io.ReadFull(con, buffer); err != nil {
+		jlog.Error(err)
+		return nil, err
 	}
-	pack = &Pack{
+	return &Pack{
 		Cmd:  jpb.CMD(binary.LittleEndian.Uint16(buffer)),
 		Data: buffer[CmdSize:],
-	}
-	return
+	}, nil
 }
 
 func sendPack(con *kcp.UDPSession, pack *Pack) error {
@@ -59,6 +61,7 @@ func sendPack(con *kcp.UDPSession, pack *Pack) error {
 	for pos := 0; pos < size; {
 		n, err := con.Write(buffer)
 		if err != nil {
+			jlog.Error(err)
 			return err
 		}
 		pos += n

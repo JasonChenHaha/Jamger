@@ -64,6 +64,7 @@ func (o *Ses) recvGoro() {
 			}
 			pack, err := recvPack(o.con)
 			if err != nil {
+				jlog.Error(err)
 				o.kc.delete(o.id)
 				return
 			} else {

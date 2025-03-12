@@ -3,11 +3,18 @@ package main
 import (
 	"fmt"
 	"hash/fnv"
+	"image"
+	"image/jpeg"
+	"image/png"
+	"io"
 	"jconfig"
 	"jglobal"
 	"jlog"
 	"jschedule"
 	"os"
+	"path/filepath"
+
+	"github.com/disintegration/imaging"
 )
 
 const (
@@ -18,7 +25,7 @@ const (
 	aesKeySize   = 16
 )
 
-var gateNum = 2
+var gateNum = 1
 var aesKey []byte
 var uid uint32
 var id string
@@ -52,4 +59,90 @@ func main() {
 	// testKcp()
 	// testWeb()
 	// testHttp()
+}
+
+func LoadImage(name string) (string, []byte) {
+	file, err := os.Open(name)
+	if err != nil {
+		jlog.Error(err)
+		return "", nil
+	}
+	defer file.Close()
+	_, format, err := image.Decode(file)
+	if err != nil {
+		jlog.Error(err)
+		return "", nil
+	}
+	_, err = file.Seek(0, io.SeekStart)
+	if err != nil {
+		jlog.Error(err)
+		return "", nil
+	}
+	img, err := io.ReadAll(file)
+	if err != nil {
+		jlog.Error(err)
+		return "", nil
+	}
+	return format, img
+}
+
+func CompressJPG(file *os.File, dir, name, ext string) {
+	img, err := jpeg.Decode(file)
+	if err != nil {
+		jlog.Error("无法解码图片:", err)
+		return
+	}
+	// 调整尺寸
+	img = imaging.Resize(img, 250, 0, imaging.Lanczos)
+	out, err := os.Create(fmt.Sprintf("%s/%s_s%s", dir, name, ext))
+	if err != nil {
+		jlog.Error("无法创建输出文件:", err)
+		return
+	}
+	defer out.Close()
+	if err = jpeg.Encode(out, img, &jpeg.Options{Quality: 50}); err != nil {
+		jlog.Error("无法写入输出文件:", err)
+		return
+	}
+}
+
+func CompressPNG(file *os.File, dir, name, ext string) {
+	img, err := png.Decode(file)
+	if err != nil {
+		jlog.Error("无法解码图片:", err)
+		return
+	}
+	// 调整尺寸
+	img = imaging.Resize(img, 250, 0, imaging.Lanczos)
+	out, err := os.Create(fmt.Sprintf("%s/%s_s%s", dir, name, ext))
+	if err != nil {
+		jlog.Error("无法创建输出文件:", err)
+		return
+	}
+	defer out.Close()
+	encoder := png.Encoder{CompressionLevel: png.BestCompression}
+	if err = encoder.Encode(out, img); err != nil {
+		jlog.Error("无法写入输出文件:", err)
+		return
+	}
+}
+
+func CompressImage(name string) {
+	dir := filepath.Dir(name)
+	fileName := filepath.Base(name)
+	ext := filepath.Ext(name)
+	fileName = fileName[:len(fileName)-len(ext)]
+	file, err := os.Open(name)
+	if err != nil {
+		jlog.Error(err)
+		return
+	}
+	defer file.Close()
+	// 图像大于阈值才压缩
+	switch ext {
+	case ".png":
+		CompressPNG(file, dir, fileName, ext)
+	case ".jpg", ".jpeg":
+		CompressJPG(file, dir, fileName, ext)
+	}
 }

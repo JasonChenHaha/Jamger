@@ -97,7 +97,6 @@ func httpSignIn(pack *jglobal.Pack) {
 		}
 		// 缓存aesKey
 		if _, err := jdb.Redis.HSet(uid, "aesKey", pack.Ctx); err != nil {
-			jlog.Error(err)
 			pack.Cmd = jpb.CMD_GATE_INFO
 			pack.Data = &jpb.Error{Code: jpb.CODE_SVR_ERR, Desc: "save aeskey failed"}
 		}

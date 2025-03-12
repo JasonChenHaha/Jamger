@@ -1,19 +1,14 @@
 package jwork
 
 import (
-	"jdb"
 	"jglobal"
-	"jlog"
-	"jmongo"
+	"jimage"
 	"jnet"
 	"jpb"
 	"jrpc"
 	"jschedule"
 	"juser"
 	"time"
-
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 // ------------------------- outside -------------------------
@@ -28,6 +23,7 @@ func Init() {
 	jnet.Rpc.Register(jpb.CMD_UPLOAD_GOOD_REQ, uploadGood, &jpb.UploadGoodReq{})
 	jnet.Rpc.Register(jpb.CMD_MODIFY_GOOD_REQ, modifyGood, &jpb.ModifyGoodReq{})
 	jnet.Rpc.Register(jpb.CMD_DELETE_GOOD_REQ, deleteGood, &jpb.DeleteGoodReq{})
+	jnet.Rpc.Register(jpb.CMD_IMAGE_REQ, image, &jpb.ImageReq{})
 }
 
 // ------------------------- inside.method -------------------------
@@ -57,16 +53,7 @@ func goodList(pack *jglobal.Pack) {
 	pack.Data = rsp
 	user := juser.GetUserAnyway(0)
 	for _, v := range user.Goods.Data {
-		good := &jpb.Good{
-			Id:      v.Id,
-			Name:    v.Name,
-			Desc:    v.Desc,
-			Size:    v.Size,
-			Price:   v.Price,
-			ImgType: v.ImgType,
-			Image:   v.Image,
-		}
-		rsp.Goods = append(rsp.Goods, good)
+		rsp.Goods = append(rsp.Goods, v)
 	}
 }
 
@@ -81,23 +68,27 @@ func uploadGood(pack *jglobal.Pack) {
 		rsp.Code = jpb.CODE_DENY
 		return
 	}
-	user0 := juser.GetUserAnyway(0)
-	// 获取自增id
-	in := &jmongo.Input{
-		Col:     jglobal.MONGO_USER,
-		Filter:  bson.M{"_id": int64(0)},
-		Update:  bson.M{"$inc": bson.M{"gidc": int64(1)}},
-		Upsert:  true,
-		RetDoc:  options.After,
-		Project: bson.M{"gidc": 1},
+	// 图片压缩
+	image, err := jimage.Image.Compress(req.Good.Image)
+	if err != nil {
+		rsp.Code = jpb.CODE_IMAGE_ERR
+		return
 	}
-	out := bson.M{}
-	if err := jdb.Mongo.FindOneAndUpdate(in, &out); err != nil {
-		jlog.Error(err)
+	req.Good.Image = image
+	// 生成商品uid
+	user0 := juser.GetUserAnyway(0)
+	uid, err := user0.GenGoodUid()
+	if err != nil {
 		rsp.Code = jpb.CODE_SVR_ERR
 		return
 	}
-	user0.AddGood(uint32(out["gidc"].(int64)), req.Good)
+	// 保存图片
+	if err = jimage.Image.Add(uid, req.Good.Image); err != nil {
+		rsp.Code = jpb.CODE_SVR_ERR
+		return
+	}
+	req.Good.Image = nil
+	user0.AddGood(uid, req.Good)
 	jschedule.DoAt(5*time.Second, func(args ...any) {
 		jnet.BroadcastToGroup(jglobal.GRP_CENTER, &jglobal.Pack{
 			Cmd:  jpb.CMD_DEL_USER,
@@ -115,6 +106,18 @@ func modifyGood(pack *jglobal.Pack) {
 	pack.Data = rsp
 	if !user.Admin {
 		rsp.Code = jpb.CODE_DENY
+		return
+	}
+	// 图片压缩
+	image, err := jimage.Image.Compress(req.Good.Image)
+	if err != nil {
+		rsp.Code = jpb.CODE_IMAGE_ERR
+		return
+	}
+	req.Good.Image = image
+	// 保存图片
+	if err = jimage.Image.Add(req.Good.Uid, req.Good.Image); err != nil {
+		rsp.Code = jpb.CODE_SVR_ERR
 		return
 	}
 	user0 := juser.GetUserAnyway(0)
@@ -139,11 +142,24 @@ func deleteGood(pack *jglobal.Pack) {
 		return
 	}
 	user0 := juser.GetUserAnyway(0)
-	user0.DelGood(req.Id)
+	user0.DelGood(req.Uid)
 	jschedule.DoAt(5*time.Second, func(args ...any) {
 		jnet.BroadcastToGroup(jglobal.GRP_CENTER, &jglobal.Pack{
 			Cmd:  jpb.CMD_DEL_USER,
 			Data: &jpb.DelUserReq{Uid: 0},
 		})
 	})
+}
+
+// 下载图片
+func image(pack *jglobal.Pack) {
+	req := pack.Data.(*jpb.ImageReq)
+	rsp := &jpb.ImageRsp{}
+	pack.Cmd = jpb.CMD_IMAGE_RSP
+	pack.Data = rsp
+	image, err := jimage.Image.Get(req.Uid)
+	if err != nil {
+		rsp.Code = jpb.CODE_SVR_ERR
+	}
+	rsp.Image = image
 }

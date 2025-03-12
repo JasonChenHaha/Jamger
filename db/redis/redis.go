@@ -32,19 +32,26 @@ func NewRedis() *Redis {
 func (re *Redis) Exist(key string) (bool, error) {
 	rsp, err := re.client.Exists(context.Background(), key).Result()
 	if err != nil {
+		jlog.Error(err)
 		return false, err
 	}
 	return rsp > 0, err
 }
 
 func (re *Redis) HSet(key string, values ...any) (int64, error) {
-	return re.client.HSet(context.Background(), key, values...).Result()
+	rsp, err := re.client.HSet(context.Background(), key, values...).Result()
+	if err != nil {
+		jlog.Error(err)
+	}
+	return rsp, err
 }
 
 func (re *Redis) HGet(key string, field string) (string, error) {
 	rsp, err := re.client.HGet(context.Background(), key, field).Result()
 	if err == redis.Nil {
 		err = nil
+	} else if err != nil {
+		jlog.Error(err)
 	}
 	return rsp, err
 }
@@ -53,22 +60,40 @@ func (re *Redis) HGetAll(key string) (map[string]string, error) {
 	rsp, err := re.client.HGetAll(context.Background(), key).Result()
 	if err == redis.Nil {
 		err = nil
+	} else if err != nil {
+		jlog.Error(err)
 	}
 	return rsp, err
 }
 
 func (re *Redis) Del(key string) (int64, error) {
-	return re.client.Del(context.Background(), key).Result()
+	rsp, err := re.client.Del(context.Background(), key).Result()
+	if err != nil {
+		jlog.Error(err)
+	}
+	return rsp, err
 }
 
 func (re *Redis) Do(args ...any) (any, error) {
-	return re.client.Do(context.Background(), args...).Result()
+	rsp, err := re.client.Do(context.Background(), args...).Result()
+	if err != nil {
+		jlog.Error(err)
+	}
+	return rsp, err
 }
 
 func (re *Redis) DoScript(script string, keys []string, args ...any) (any, error) {
-	return re.client.Eval(context.Background(), script, keys, args...).Result()
+	rsp, err := re.client.Eval(context.Background(), script, keys, args...).Result()
+	if err != nil {
+		jlog.Error(err)
+	}
+	return rsp, err
 }
 
 func (re *Redis) Flush() (any, error) {
-	return re.client.FlushAll(context.Background()).Result()
+	rsp, err := re.client.FlushAll(context.Background()).Result()
+	if err != nil {
+		jlog.Error(err)
+	}
+	return rsp, err
 }

@@ -3,7 +3,6 @@ package juBase
 import (
 	"jdb"
 	"jglobal"
-	"jlog"
 	"jmongo"
 	"sync"
 
@@ -68,9 +67,7 @@ func (base *Base) flush() {
 	if base.DirtyRedis == nil {
 		base.DirtyRedis = map[string]any{}
 		base.mutex.Unlock()
-		if _, err := jdb.Redis.Del(jglobal.Itoa(base.Uid)); err != nil {
-			jlog.Error(err)
-		}
+		jdb.Redis.Del(jglobal.Itoa(base.Uid))
 	} else if len(base.DirtyRedis) > 0 {
 		dirtyRedis := []any{}
 		for k, v := range base.DirtyRedis {
@@ -78,9 +75,7 @@ func (base *Base) flush() {
 		}
 		base.DirtyRedis = map[string]any{}
 		base.mutex.Unlock()
-		if _, err := jdb.Redis.HSet(jglobal.Itoa(base.Uid), dirtyRedis...); err != nil {
-			jlog.Error(err)
-		}
+		jdb.Redis.HSet(jglobal.Itoa(base.Uid), dirtyRedis...)
 	} else {
 		base.mutex.Unlock()
 	}
@@ -98,8 +93,6 @@ func (base *Base) flush() {
 			Update: bson.M{"$set": dirtyMongo, "$unset": dirtyMongo2},
 			Upsert: true,
 		}
-		if err := jdb.Mongo.UpdateOne(in); err != nil {
-			jlog.Error(err)
-		}
+		jdb.Mongo.UpdateOne(in)
 	}
 }

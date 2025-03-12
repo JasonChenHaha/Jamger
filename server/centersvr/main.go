@@ -6,6 +6,7 @@ import (
 	"jetcd"
 	"jevent"
 	"jglobal"
+	"jimage"
 	"jlog"
 	"jmeta"
 	"jnet"
@@ -31,6 +32,7 @@ func main() {
 	jrpc.Init()
 	juBase.Init(jrpc.Rpc)
 	juser.Init()
+	jimage.Init()
 	jwork.Init()
 	jglobal.Keep()
 	jlog.Infof(">%s stop<", jglobal.SERVER)

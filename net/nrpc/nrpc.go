@@ -113,7 +113,6 @@ func (o *Rpc) Transfer(pack *jglobal.Pack) bool {
 	}
 	pack.Data = body
 	if err = decoder(pack); err != nil {
-		jlog.Error(err)
 		return false
 	}
 	return true
@@ -123,7 +122,6 @@ func (o *Rpc) Transfer(pack *jglobal.Pack) bool {
 // gate将其他group请求发送至客户端
 func (o *Rpc) Proxy(cmd jpb.CMD, pack *jglobal.Pack) bool {
 	if err := encoder(pack); err != nil {
-		jlog.Error(err)
 		return false
 	}
 	rsp, err := o.client.Post(fmt.Sprintf("%s/%d", o.addr, cmd), "", bytes.NewBuffer(pack.Data.([]byte)))
@@ -144,7 +142,6 @@ func (o *Rpc) Call(pack *jglobal.Pack, template proto.Message) bool {
 		return false
 	}
 	if err = encoder(pack); err != nil {
-		jlog.Error(err)
 		return false
 	}
 	rsp, err := o.client.Post(o.addr, "", bytes.NewBuffer(pack.Data.([]byte)))
@@ -185,7 +182,6 @@ func (o *Rpc) receive(w http.ResponseWriter, r *http.Request) {
 	}
 	pack := &jglobal.Pack{Data: body}
 	if err = decoder(pack); err != nil {
-		jlog.Error(err)
 		return
 	}
 	cmd := jglobal.UrlToCmd(r.URL.Path)
@@ -219,7 +215,6 @@ func (o *Rpc) receive(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		if err = encoder(pack); err != nil {
-			jlog.Error(err)
 			return
 		}
 		if _, err = w.Write(pack.Data.([]byte)); err != nil {

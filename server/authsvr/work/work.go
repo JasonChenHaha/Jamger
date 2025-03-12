@@ -1,19 +1,13 @@
 package jwork
 
 import (
-	"jdb"
 	"jglobal"
-	"jlog"
-	"jmongo"
 	"jnet"
 	"jpb"
 	"jrpc"
+	"juser"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
-	"golang.org/x/crypto/bcrypt"
 )
 
 // ------------------------- outside -------------------------
@@ -40,47 +34,27 @@ func signUp(pack *jglobal.Pack) {
 		return
 	}
 	// 判断账号是否存在
-	in := &jmongo.Input{
-		Col:     jglobal.MONGO_USER,
-		Filter:  bson.M{"basic.id": req.Id},
-		Project: bson.M{"_id": 1},
-	}
-	if err := jdb.Mongo.FindOne(in, &bson.M{}); err == nil {
+	if err := juser.IsUserExist(req.Id); err == nil {
 		rsp.Code = jpb.CODE_USER_EXIST
 		return
 	} else if err != mongo.ErrNoDocuments {
 		rsp.Code = jpb.CODE_SVR_ERR
 		return
 	} else {
-		// 创建账号
-		secret, err := bcrypt.GenerateFromPassword([]byte(req.Pwd), bcrypt.DefaultCost)
+		// 密码加密
+		secret, err := juser.EncryptPwd(req.Pwd)
 		if err != nil {
-			jlog.Error(err)
 			rsp.Code = jpb.CODE_SVR_ERR
 			return
 		}
-		// 获取自增id
-		in := &jmongo.Input{
-			Col:     jglobal.MONGO_USER,
-			Filter:  bson.M{"_id": int64(0)},
-			Update:  bson.M{"$inc": bson.M{"uidc": int64(1)}},
-			Upsert:  true,
-			RetDoc:  options.After,
-			Project: bson.M{"uidc": 1},
-		}
-		out := bson.M{}
-		if err = jdb.Mongo.FindOneAndUpdate(in, &out); err != nil {
-			jlog.Error(err)
+		// 生成用户id
+		uid, err := juser.GenUserUid()
+		if err != nil {
 			rsp.Code = jpb.CODE_SVR_ERR
 			return
 		}
 		// 创建
-		in = &jmongo.Input{
-			Col:    jglobal.MONGO_USER,
-			Insert: bson.M{"_id": out["uidc"], "basic": bson.M{"id": req.Id, "pwd": secret}},
-		}
-		if err = jdb.Mongo.InsertOne(in); err != nil {
-			jlog.Error(err)
+		if err = juser.CreateUser(uid, req.Id, secret); err != nil {
 			rsp.Code = jpb.CODE_SVR_ERR
 			return
 		}
@@ -99,28 +73,9 @@ func signIn(pack *jglobal.Pack) {
 		return
 	}
 	// 账号校验
-	in := &jmongo.Input{
-		Col:     jglobal.MONGO_USER,
-		Filter:  bson.M{"basic.id": req.Id},
-		Project: bson.M{"basic.pwd": 1},
-	}
-	out := bson.M{}
-	if err := jdb.Mongo.FindOne(in, &out); err == mongo.ErrNoDocuments {
-		// 账号不存在
+	if uid, err := juser.AccountCheck(req.Id, req.Pwd); err != nil {
 		rsp.Code = jpb.CODE_ACCOUNT_FAIL
-		return
-	} else if err != nil {
-		jlog.Error(err)
-		rsp.Code = jpb.CODE_SVR_ERR
-		return
 	} else {
-		secret := out["basic"].(bson.M)["pwd"].(primitive.Binary)
-		if err = bcrypt.CompareHashAndPassword(secret.Data, []byte(req.Pwd)); err != nil {
-			// 密码错误
-			rsp.Code = jpb.CODE_ACCOUNT_FAIL
-			return
-		}
+		rsp.Uid = uid
 	}
-	// 校验通过
-	rsp.Uid = uint32(out["_id"].(int64))
 }

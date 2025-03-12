@@ -73,7 +73,6 @@ func (o *Http) receive(w http.ResponseWriter, r *http.Request) {
 	}
 	pack := &jglobal.Pack{Data: body}
 	if err = decoder(r.URL.Path, pack); err != nil {
-		jlog.Warn(err)
 		return
 	}
 	han := o.handler[pack.Cmd]
@@ -102,7 +101,6 @@ func (o *Http) receive(w http.ResponseWriter, r *http.Request) {
 		pack.Data = tmp
 	}
 	if err = encoder(r.URL.Path, pack); err != nil {
-		jlog.Error(err)
 		return
 	}
 	if _, err = w.Write(pack.Data.([]byte)); err != nil {

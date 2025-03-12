@@ -25,7 +25,7 @@ func StructToString(s any) string {
 	builder.WriteString("\n")
 	builder.WriteString(typ.Name() + ":")
 	// 遍历结构体的字段
-	for i := 0; i < val.NumField(); i++ {
+	for i := range val.NumField() {
 		fieldName := typ.Field(i).Name
 		if fieldName[0] >= 'A' && fieldName[0] <= 'Z' {
 			field := val.Field(i)

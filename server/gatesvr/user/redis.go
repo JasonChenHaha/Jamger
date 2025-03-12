@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"jdb"
 	"jglobal"
-	"jlog"
 )
 
 type Redis struct {
@@ -28,7 +27,6 @@ func (redis *Redis) clear() {
 func (redis *Redis) Load() *User {
 	data, err := jdb.Redis.HGetAll(jglobal.Itoa(redis.user.Uid))
 	if err != nil {
-		jlog.Error(err)
 		return nil
 	}
 	if v, ok := data["gate"]; ok {

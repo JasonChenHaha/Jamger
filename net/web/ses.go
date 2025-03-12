@@ -67,7 +67,6 @@ func (o *Ses) recvGoro() {
 		}
 		pack := &jglobal.Pack{Data: data}
 		if err = decoder(pack); err != nil {
-			jlog.Error(err)
 			o.web.Close(o.id)
 			return
 		}
@@ -96,7 +95,6 @@ func (o *Ses) sendGoro() {
 				o.con.SetWriteDeadline(time.Now().Add(o.sTimeout))
 			}
 			if err := encoder(pack); err != nil {
-				jlog.Error(err)
 				o.web.Close(o.id)
 				return
 			}

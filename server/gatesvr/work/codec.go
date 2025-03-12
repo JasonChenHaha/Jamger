@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"hash/crc32"
 	"jglobal"
+	"jlog"
 	"jpb"
 	"juser"
 )
@@ -62,17 +63,22 @@ func tcpDecode(pack *jglobal.Pack) error {
 		user.Load()
 	} else {
 		if user = juser.GetUser(uid); user == nil {
-			return fmt.Errorf("no such user, uid(%d)", uid)
+			err := fmt.Errorf("no such user, uid(%d)", uid)
+			jlog.Error(err)
+			return err
 		}
 	}
 	pack.Ctx = user
 	raw = raw[uidSize+cmdSize:]
 	if err := jglobal.AesDecrypt(user.AesKey, &raw); err != nil {
+		jlog.Error(err)
 		return err
 	}
 	pos := len(raw) - checksumSize
 	if binary.LittleEndian.Uint32(raw[pos:]) != crc32.ChecksumIEEE(raw[:pos]) {
-		return fmt.Errorf("checksum failed")
+		err := fmt.Errorf("checksum failed")
+		jlog.Error(err)
+		return err
 	}
 	pack.Data = raw[:pos]
 	return nil
@@ -150,7 +156,9 @@ func httpDecode(url string, pack *jglobal.Pack) error {
 		}
 		pos := len(raw) - checksumSize
 		if binary.LittleEndian.Uint32(raw[pos:]) != crc32.ChecksumIEEE(raw[:pos]) {
-			return fmt.Errorf("checksum failed")
+			err := fmt.Errorf("checksum failed")
+			jlog.Error(err)
+			return err
 		}
 		pack.Data = raw[:pos]
 	} else {
@@ -161,7 +169,9 @@ func httpDecode(url string, pack *jglobal.Pack) error {
 		}
 		pos := len(raw) - checksumSize
 		if binary.LittleEndian.Uint32(raw[pos:]) != crc32.ChecksumIEEE(raw[:pos]) {
-			return fmt.Errorf("checksum failed")
+			err := fmt.Errorf("checksum failed")
+			jlog.Error(err)
+			return err
 		}
 		pack.Data = raw[:pos-aesKeySize]
 		pack.Ctx = raw[pos-aesKeySize : pos]
@@ -189,7 +199,9 @@ func webDecode(pack *jglobal.Pack) error {
 		user.Load()
 	} else {
 		if user = juser.GetUser(uid); user == nil {
-			return fmt.Errorf("no such user, uid(%d)", uid)
+			err := fmt.Errorf("no such user, uid(%d)", uid)
+			jlog.Error(err)
+			return err
 		}
 	}
 	pack.Ctx = user
@@ -199,7 +211,9 @@ func webDecode(pack *jglobal.Pack) error {
 	}
 	pos := len(raw) - checksumSize
 	if binary.LittleEndian.Uint32(raw[pos:]) != crc32.ChecksumIEEE(raw[:pos]) {
-		return fmt.Errorf("checksum failed")
+		err := fmt.Errorf("checksum failed")
+		jlog.Error(err)
+		return err
 	}
 	pack.Data = raw[:pos]
 	return nil

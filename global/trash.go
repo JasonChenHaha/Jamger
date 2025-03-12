@@ -120,6 +120,7 @@ func TimeToTime(hour int) time.Duration {
 func RsaGenerate() (string, string, error) {
 	pri, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
+		jlog.Error(err)
 		return "", "", err
 	}
 	pub := &pri.PublicKey
@@ -134,10 +135,13 @@ func RsaGenerate() (string, string, error) {
 func RsaLoadPublicKey(publicKey string) (*rsa.PublicKey, error) {
 	block, _ := pem.Decode([]byte(publicKey))
 	if block == nil {
-		return nil, fmt.Errorf("decode publicKey failed.")
+		err := fmt.Errorf("decode publicKey failed.")
+		jlog.Error(err)
+		return nil, err
 	}
 	pub, err := x509.ParsePKCS1PublicKey(block.Bytes)
 	if err != nil {
+		jlog.Error(err)
 		return nil, err
 	}
 	return pub, nil
@@ -147,10 +151,13 @@ func RsaLoadPublicKey(publicKey string) (*rsa.PublicKey, error) {
 func RsaLoadPrivateKey(privateKey string) (*rsa.PrivateKey, error) {
 	block, _ := pem.Decode([]byte(privateKey))
 	if block == nil {
-		return nil, fmt.Errorf("decode privateKey failed.")
+		err := fmt.Errorf("decode privateKey failed.")
+		jlog.Error(err)
+		return nil, err
 	}
 	pri, err := x509.ParsePKCS1PrivateKey(block.Bytes)
 	if err != nil {
+		jlog.Error(err)
 		return nil, err
 	}
 	return pri, nil
@@ -159,28 +166,36 @@ func RsaLoadPrivateKey(privateKey string) (*rsa.PrivateKey, error) {
 // Rsa公钥加密
 func RsaEncrypt(pubKey *rsa.PublicKey, data *[]byte) (err error) {
 	*data, err = rsa.EncryptOAEP(sha256.New(), rand.Reader, pubKey, *data, nil)
+	if err != nil {
+		jlog.Error(err)
+	}
 	return
 }
 
 // Rsa私钥解密
 func RsaDecrypt(privKey *rsa.PrivateKey, data *[]byte) (err error) {
 	*data, err = rsa.DecryptOAEP(sha256.New(), rand.Reader, privKey, *data, nil)
+	if err != nil {
+		jlog.Error(err)
+	}
 	return
 }
 
 // Aes生成密钥
 func AesGenerate(size int) ([]byte, error) {
 	key := make([]byte, size)
-	if _, err := rand.Read(key); err != nil {
-		return nil, err
+	_, err := rand.Read(key)
+	if err != nil {
+		jlog.Error(err)
 	}
-	return key, nil
+	return key, err
 }
 
 // Aes加密
 func AesEncrypt(key []byte, data *[]byte) error {
 	block, err := aes.NewCipher(key)
 	if err != nil {
+		jlog.Error(err)
 		return err
 	}
 	blockSize := block.BlockSize()
@@ -188,24 +203,28 @@ func AesEncrypt(key []byte, data *[]byte) error {
 	*data = append(*data, bytes.Repeat([]byte{byte(padding)}, padding)...)
 	secret := make([]byte, blockSize+len(*data))
 	iv := secret[:blockSize]
-	if _, err := io.ReadFull(rand.Reader, iv); err != nil {
+	if _, err = io.ReadFull(rand.Reader, iv); err != nil {
+		jlog.Error(err)
 		return err
 	}
 	mode := cipher.NewCBCEncrypter(block, iv)
 	mode.CryptBlocks(secret[blockSize:], *data)
 	*data = secret
-	return nil
+	return err
 }
 
 // Aes解密
 func AesDecrypt(key []byte, data *[]byte) error {
 	block, err := aes.NewCipher(key)
 	if err != nil {
+		jlog.Error(err)
 		return err
 	}
 	blockSize := block.BlockSize()
 	if len(*data) < blockSize {
-		return fmt.Errorf("data too short.")
+		err = fmt.Errorf("data too short.")
+		jlog.Error(err)
+		return err
 	}
 	iv := (*data)[:blockSize]
 	*data = (*data)[blockSize:]
@@ -213,11 +232,15 @@ func AesDecrypt(key []byte, data *[]byte) error {
 	mode.CryptBlocks(*data, *data)
 	size := len(*data)
 	if size == 0 {
-		return fmt.Errorf("data too short.")
+		err = fmt.Errorf("data too short.")
+		jlog.Error(err)
+		return err
 	}
 	pos := size - int((*data)[size-1])
 	if pos < 0 {
-		return fmt.Errorf("aes decrypt failed.")
+		err = fmt.Errorf("aes decrypt failed.")
+		jlog.Error(err)
+		return err
 	}
 	*data = (*data)[:pos]
 	return nil
@@ -229,6 +252,7 @@ func TokenGenerate(base string) (string, error) {
 	size := len(a)
 	b := make([]byte, 64)
 	if _, err := rand.Read(b); err != nil {
+		jlog.Error(err)
 		return "", err
 	}
 	c := time.Now().Unix()
@@ -238,8 +262,7 @@ func TokenGenerate(base string) (string, error) {
 	binary.NativeEndian.PutUint64(raw[size+3:], uint64(c))
 	hash := md5.New()
 	hash.Write(raw)
-	hashStr := hex.EncodeToString(hash.Sum(nil))
-	return hashStr, nil
+	return hex.EncodeToString(hash.Sum(nil)), nil
 }
 
 // string -> number
