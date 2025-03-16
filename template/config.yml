@@ -54,6 +54,10 @@ http:
     addr: $HTTP
     timeout: 5s
 
+https:
+    addr: $HTTPS
+    timeout: 5s
+
 rpc:
     addr: $RPC
     timeout: 5s

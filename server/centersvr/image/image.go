@@ -59,23 +59,6 @@ func (img *Img) Compress(source []byte) ([]byte, error) {
 	return buffer.Bytes(), nil
 }
 
-// 生成图片id
-// func (img *Img) GenUid() (int64, error) {
-// 	in := &jmongo.Input{
-// 		Col:     jglobal.MONGO_IMAGE,
-// 		Filter:  bson.M{"_id": int64(0)},
-// 		Update:  bson.M{"$inc": bson.M{"idc": int64(1)}},
-// 		Upsert:  true,
-// 		RetDoc:  options.After,
-// 		Project: bson.M{"idc": 1},
-// 	}
-// 	out := bson.M{}
-// 	if err := jdb.Mongo.FindOneAndUpdate(in, &out); err != nil {
-// 		return 0, err
-// 	}
-// 	return out["idc"].(int64), nil
-// }
-
 // 添加图片
 func (img *Img) Add(uid uint32, data []byte) error {
 	img.cache.Set(uid, data)

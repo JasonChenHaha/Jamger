@@ -4,6 +4,7 @@ import (
 	"jconfig"
 	"jglobal"
 	"jhttp"
+	"jhttps"
 	"jkcp"
 	"jlog"
 	"jnrpc"
@@ -19,6 +20,7 @@ var Tcp *jtcp.Tcp
 var Kcp *jkcp.Kcp
 var Web *jweb.Web
 var Http *jhttp.Http
+var Https *jhttps.Https
 var Rpc *jnrpc.Rpc
 var GetUser func(uint32) any
 
@@ -40,6 +42,10 @@ func Init() {
 	Http = jhttp.NewHttp()
 	if jconfig.Get("http") != nil {
 		Http.AsServer()
+	}
+	Https = jhttps.NewHttps()
+	if jconfig.Get("https") != nil {
+		Https.AsServer()
 	}
 	Rpc = jnrpc.NewRpc()
 	if jconfig.Get("rpc") != nil {

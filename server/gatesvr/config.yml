@@ -54,6 +54,10 @@ http:
     addr: 0.0.0.0:40000
     timeout: 5s
 
+https:
+    addr: 0.0.0.0:45000
+    timeout: 5s
+
 rpc:
     addr: 0.0.0.0:50000
     timeout: 5s
