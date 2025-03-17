@@ -39,8 +39,8 @@ func (o *Https) AsServer() *Https {
 			Addr:    jconfig.GetString("https.addr"),
 			Handler: o.mux,
 		}
-		jlog.Info("listen on ", jconfig.GetString("http.addr"))
-		if err := server.ListenAndServeTLS("", ""); err != nil {
+		jlog.Info("listen on ", jconfig.GetString("https.addr"))
+		if err := server.ListenAndServeTLS("./ssl.crt", "./ssl.key"); err != nil {
 			jlog.Fatal(err)
 		}
 	}()
@@ -77,12 +77,6 @@ func (o *Https) receive(w http.ResponseWriter, r *http.Request) {
 	}
 	han := o.handler[pack.Cmd]
 	if han != nil {
-		msg := proto.Clone(han.template)
-		if err = proto.Unmarshal(pack.Data.([]byte), msg); err != nil {
-			jlog.Warnf("%s, cmd(%s)", err, pack.Cmd)
-			return
-		}
-		pack.Data = msg
 		han.fun(pack)
 	} else {
 		han = o.handler[jpb.CMD_TRANSFER]
@@ -91,14 +85,6 @@ func (o *Https) receive(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		han.fun(pack)
-	}
-	if v, ok := pack.Data.(proto.Message); ok {
-		tmp, err := proto.Marshal(v)
-		if err != nil {
-			jlog.Errorf("%s, cmd(%s)", err, pack.Cmd)
-			return
-		}
-		pack.Data = tmp
 	}
 	if err = encoder(r.URL.Path, pack); err != nil {
 		return

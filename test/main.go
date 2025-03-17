@@ -31,6 +31,7 @@ var uid uint32
 var id string
 var pwd string
 var httpAddr string
+var httpsAddr string
 var tcpAddr string
 
 func makeAddr(addr string, key string) string {
@@ -48,14 +49,16 @@ func main() {
 
 	id, pwd = os.Args[2], os.Args[3]
 	httpAddr = makeAddr(jconfig.GetString("http.addr"), id)
+	httpsAddr = makeAddr(jconfig.GetString("https.addr"), id)
 	tcpAddr = makeAddr(jconfig.GetString("tcp.addr"), id)
 	var err error
 	aesKey, err = jglobal.AesGenerate(16)
 	if err != nil {
 		jlog.Fatal(err)
 	}
-	testHttp()
-	testTcp()
+	// testHttp()
+	testHttps()
+	// testTcp()
 	// testKcp()
 	// testWeb()
 	// testHttp()

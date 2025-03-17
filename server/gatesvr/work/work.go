@@ -20,6 +20,8 @@ func Init() {
 	jnet.Http.Register(jpb.CMD_TRANSFER, httpTransfer, nil)
 	jnet.Http.Register(jpb.CMD_SIGN_IN_REQ, httpSignIn, &jpb.SignInReq{})
 	jnet.Http.Register(jpb.CMD_LOGIN_REQ, httpLogin, &jpb.LoginReq{})
+	jnet.Https.SetCodec(httpsEncode, httpsDecode)
+	jnet.Https.Register(jpb.CMD_SIGN_IN_REQ, httpsSignIn, nil)
 	jnet.Tcp.SetCodec(tcpEncode, tcpDecode)
 	jnet.Tcp.Register(jpb.CMD_HEARTBEAT, twHeartbeat, &jpb.HeartbeatReq{})
 	jnet.Tcp.Register(jpb.CMD_TRANSFER, twTransfer, nil)
@@ -101,6 +103,11 @@ func httpSignIn(pack *jglobal.Pack) {
 			pack.Data = &jpb.Error{Code: jpb.CODE_SVR_ERR, Desc: "save aeskey failed"}
 		}
 	}
+}
+
+// auth登录
+func httpsSignIn(pack *jglobal.Pack) {
+	jlog.Debug("hello world!")
 }
 
 // 登录

@@ -22,7 +22,7 @@ type Http struct {
 }
 
 func testHttp() {
-	jlog.Info("<test rpc>")
+	jlog.Info("<test http>")
 	htp := &Http{}
 	pubKey, err := jglobal.RsaLoadPublicKey(jconfig.GetString("rsa.publicKey"))
 	if err != nil {
