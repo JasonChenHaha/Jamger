@@ -86,11 +86,13 @@ func Init() {
 	INDEX = jconfig.GetInt("index")
 	SERVER = fmt.Sprintf("%s-%d", NAME, INDEX)
 	ID = ZONE*100000000 + GROUP*10000 + INDEX
-	key, err := RsaLoadPrivateKey(jconfig.GetString("rsa.privateKey"))
-	if err != nil {
-		jlog.Fatal(err)
+	if key := jconfig.GetString("rsa.privateKey"); key != "" {
+		key, err := RsaLoadPrivateKey(key)
+		if err != nil {
+			jlog.Fatal(err)
+		}
+		RSA_PRIVATE_KEY = key
 	}
-	RSA_PRIVATE_KEY = key
 }
 
 func ParseServerID(id int) (int, int) {
