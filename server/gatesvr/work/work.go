@@ -108,6 +108,8 @@ func httpSignIn(pack *jglobal.Pack) {
 // auth登录
 func httpsSignIn(pack *jglobal.Pack) {
 	jlog.Debug("hello world!")
+	data := pack.Data.(map[string]any)
+	jlog.Debug(data["code"].(string))
 }
 
 // 登录

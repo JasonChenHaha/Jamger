@@ -2,6 +2,7 @@ package jwork
 
 import (
 	"encoding/binary"
+	"encoding/json"
 	"fmt"
 	"hash/crc32"
 	"jglobal"
@@ -230,6 +231,11 @@ func httpsEncode(url string, pack *jglobal.Pack) error {
 
 func httpsDecode(url string, pack *jglobal.Pack) error {
 	raw := pack.Data.([]byte)
+	res := map[string]any{}
+	if err := json.Unmarshal(raw, &res); err != nil {
+		jlog.Error(err)
+		return err
+	}
 	if url == "/" {
 		// uid := binary.LittleEndian.Uint32(raw)
 		// // to do: 每次请求都会重新load
@@ -252,8 +258,8 @@ func httpsDecode(url string, pack *jglobal.Pack) error {
 		// }
 		// pack.Data = raw[:pos]
 	} else {
-		pack.Cmd = jpb.CMD(binary.LittleEndian.Uint16(raw))
-		pack.Data = raw[cmdSize:]
+		pack.Cmd = res["cmd"].(jpb.CMD)
+		pack.Data = res
 	}
 	return nil
 }
