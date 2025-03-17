@@ -1,5 +1,5 @@
 # 服务名
-name: "gatesvr"
+name: gatesvr
 # 服务地区
 zone: 1
 # 服务组

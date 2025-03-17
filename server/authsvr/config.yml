@@ -1,5 +1,5 @@
 # 服务名
-name: "authsvr"
+name: authsvr
 # 服务地区
 zone: 1
 # 服务组
