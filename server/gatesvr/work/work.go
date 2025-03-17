@@ -21,7 +21,7 @@ func Init() {
 	jnet.Http.Register(jpb.CMD_SIGN_IN_REQ, httpSignIn, &jpb.SignInReq{})
 	jnet.Http.Register(jpb.CMD_LOGIN_REQ, httpLogin, &jpb.LoginReq{})
 	jnet.Https.SetCodec(httpsEncode, httpsDecode)
-	jnet.Https.Register(jpb.CMD_SIGN_IN_REQ, httpsSignIn, nil)
+	jnet.Https.Register(jpb.CMD_WX_SIGN_IN_REQ, httpsSignIn, nil)
 	jnet.Tcp.SetCodec(tcpEncode, tcpDecode)
 	jnet.Tcp.Register(jpb.CMD_HEARTBEAT, twHeartbeat, &jpb.HeartbeatReq{})
 	jnet.Tcp.Register(jpb.CMD_TRANSFER, twTransfer, nil)
@@ -107,9 +107,22 @@ func httpSignIn(pack *jglobal.Pack) {
 
 // auth登录
 func httpsSignIn(pack *jglobal.Pack) {
-	jlog.Debug("hello world!")
 	data := pack.Data.(map[string]any)
-	jlog.Debug(data["code"].(string))
+	code := data["code"].(string)
+
+	target := jrpc.Rpc.GetRoundRobinTarget(jglobal.GetGroup(pack.Cmd))
+	if target == nil {
+		pack.Cmd = jpb.CMD_GATE_INFO
+		pack.Data = &jpb.Error{Code: jpb.CODE_SVR_ERR, Desc: "can't find target"}
+		return
+	}
+
+	pack.Data = &jpb.WxSignInReq{WxCode: code}
+	if !target.Transfer(pack) {
+		pack.Cmd = jpb.CMD_GATE_INFO
+		pack.Data = &jpb.Error{Code: jpb.CODE_SVR_ERR, Desc: "transfer failed"}
+		return
+	}
 }
 
 // 登录

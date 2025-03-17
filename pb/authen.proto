@@ -21,3 +21,11 @@ message SignInRsp {
     CODE code = 1;
     uint32 uid = 2;
 }
+
+message WxSignInReq {
+    string wxCode = 1;
+}
+
+message WxSignInRsp {
+    CODE code = 1;
+}

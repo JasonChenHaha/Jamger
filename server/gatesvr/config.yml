@@ -1,5 +1,5 @@
 # 服务名
-name: gatesvr
+name: "gatesvr"
 # 服务地区
 zone: 1
 # 服务组
@@ -20,7 +20,7 @@ log:
     compress: false
 
 tcp:
-    addr: 0.0.0.0:10000
+    addr: "0.0.0.0:10000"
     # 关闭延迟发送
     noDelay: true
     # 读超时
@@ -29,7 +29,7 @@ tcp:
     sTimeout: 5s
 
 kcp:
-    addr: 0.0.0.0:20000
+    addr: "0.0.0.0:20000"
     # 发包分片数
     dataShards: 1
     # 冗余分片数
@@ -45,21 +45,21 @@ kcp:
     sTimeout: 5s
 
 web:
-    addr: 0.0.0.0:30000
+    addr: "0.0.0.0:30000"
     noDelay: true
     rTimeout: 5s
     sTimeout: 5s
 
 http:
-    addr: 0.0.0.0:40000
+    addr: "0.0.0.0:40000"
     timeout: 5s
 
 https:
-    addr: 0.0.0.0:45000
+    addr: "0.0.0.0:45000"
     timeout: 5s
 
 rpc:
-    addr: 0.0.0.0:50000
+    addr: "0.0.0.0:50000"
     timeout: 5s
 
 mysql:

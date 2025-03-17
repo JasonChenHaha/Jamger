@@ -20,6 +20,8 @@ enum CMD {
     SIGN_UP_RSP = 2001;
     SIGN_IN_REQ = 2002;
     SIGN_IN_RSP = 2003;
+    WX_SIGN_IN_REQ = 2004;
+    WX_SIGN_IN_RSP = 2005;
 
     NOTIFY = 3000;
     LOGIN_REQ = 3001;

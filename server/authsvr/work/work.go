@@ -1,11 +1,16 @@
 package jwork
 
 import (
+	"fmt"
+	"io"
 	"jglobal"
+	"jglobal2"
+	"jlog"
 	"jnet"
 	"jpb"
 	"jrpc"
 	"juser"
+	"net/http"
 
 	"go.mongodb.org/mongo-driver/mongo"
 )
@@ -18,6 +23,7 @@ func Init() {
 	jnet.Rpc.SetCodec(rpcEncode, rpcDecode)
 	jnet.Rpc.Register(jpb.CMD_SIGN_UP_REQ, signUp, &jpb.SignUpReq{})
 	jnet.Rpc.Register(jpb.CMD_SIGN_IN_REQ, signIn, &jpb.SignInReq{})
+	jnet.Rpc.Register(jpb.CMD_WX_SIGN_IN_REQ, wxSignIn, &jpb.WxSignInReq{})
 }
 
 // ------------------------- inside.method -------------------------
@@ -78,4 +84,25 @@ func signIn(pack *jglobal.Pack) {
 	} else {
 		rsp.Uid = uid
 	}
+}
+
+// wx登录
+func wxSignIn(pack *jglobal.Pack) {
+	req := pack.Data.(*jpb.WxSignInReq)
+	rsp := &jpb.WxSignInRsp{}
+	pack.Cmd = jpb.CMD_WX_SIGN_IN_RSP
+	pack.Data = rsp
+	rsp2, err := http.Get(fmt.Sprintf("https://api.weixin.qq.com/sns/jscode2session?appid=%s&secret=%s&js_code=%s&grant_type=authorization_code", jglobal2.AppId, jglobal2.AppSecret, req.WxCode))
+	if err != nil {
+		jlog.Error(err)
+		rsp.Code = jpb.CODE_SVR_ERR
+		return
+	}
+	body, err := io.ReadAll(rsp2.Body)
+	if err != nil {
+		jlog.Error(err)
+		rsp.Code = jpb.CODE_SVR_ERR
+		return
+	}
+	jlog.Debug(body)
 }
