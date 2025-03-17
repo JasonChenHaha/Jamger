@@ -258,7 +258,7 @@ func httpsDecode(url string, pack *jglobal.Pack) error {
 		// }
 		// pack.Data = raw[:pos]
 	} else {
-		pack.Cmd = res["cmd"].(jpb.CMD)
+		pack.Cmd = jpb.CMD(res["cmd"].(float64))
 		pack.Data = res
 	}
 	return nil
