@@ -1,6 +1,7 @@
 package jwork
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"jglobal"
@@ -104,5 +105,8 @@ func wxSignIn(pack *jglobal.Pack) {
 		rsp.Code = jpb.CODE_SVR_ERR
 		return
 	}
-	jlog.Debug(body)
+	res := map[string]any{}
+	json.Unmarshal(body, &res)
+	jlog.Debug(res)
+	jlog.Debug(jglobal2.AppId)
 }

@@ -1,0 +1,7 @@
+server/gatesvr/config.yml
+server/authsvr/config.yml
+server/centersvr/config.yml
+**/go.mod
+**/go.sum
+**/go.work
+**/go.work.sum

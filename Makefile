@@ -49,8 +49,11 @@ pb:
 
 test:
 	@cd ./test && make -s id=$(id) pwd=$(pwd);
+
+log:
+	@tail -f out/gatesvr/log/* out/authsvr/log/* out/centersvr/log/*;
 	
 redis:
 	@~/redis/src/redis-cli
 
-.PHONY: all install clean create build buildraw run start stop pb test
+.PHONY: all install clean create build buildraw run start stop pb test log redis

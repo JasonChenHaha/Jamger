@@ -118,7 +118,7 @@ func httpsSignIn(pack *jglobal.Pack) {
 	}
 
 	pack.Data = &jpb.WxSignInReq{WxCode: code}
-	if !target.Transfer(pack) {
+	if !target.Call(pack, &jpb.WxSignInRsp{}) {
 		pack.Cmd = jpb.CMD_GATE_INFO
 		pack.Data = &jpb.Error{Code: jpb.CODE_SVR_ERR, Desc: "transfer failed"}
 		return

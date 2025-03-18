@@ -7,5 +7,5 @@ var AppSecret string
 
 func Init() {
 	AppId = jconfig.GetString("app.id")
-	AppId = jconfig.GetString("app.secret")
+	AppSecret = jconfig.GetString("app.secret")
 }
