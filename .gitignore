@@ -7,3 +7,5 @@ server/centersvr/config.yml
 **/go.work.sum
 **/*.pb.go
 out
+template/*.pem
+template/ssl.*
