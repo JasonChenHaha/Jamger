@@ -6,3 +6,4 @@ server/centersvr/config.yml
 **/go.work
 **/go.work.sum
 **/*.pb.go
+out
