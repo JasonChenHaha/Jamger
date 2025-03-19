@@ -48,11 +48,19 @@ func GenUserUid() (uint32, error) {
 	return uint32(out["uidc"].(int64)), nil
 }
 
-// 创建账号
+// 创建用户
 func CreateUser(uid uint32, id string, secret []byte) error {
 	in := &jmongo.Input{
 		Col:    jglobal.MONGO_USER,
 		Insert: bson.M{"_id": uid, "basic": bson.M{"id": id, "pwd": secret}},
+	}
+	return jdb.Mongo.InsertOne(in)
+}
+
+func WxCreateUser(uid uint32, id string) error {
+	in := &jmongo.Input{
+		Col:    jglobal.MONGO_USER,
+		Insert: bson.M{"_id": uid, "basic": bson.M{"id": id}},
 	}
 	return jdb.Mongo.InsertOne(in)
 }

@@ -56,9 +56,9 @@ func main() {
 	if err != nil {
 		jlog.Fatal(err)
 	}
-	// testHttp()
-	testHttps()
-	// testTcp()
+	testHttp()
+	// testHttps()
+	testTcp()
 	// testKcp()
 	// testWeb()
 	// testHttp()

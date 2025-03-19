@@ -81,7 +81,7 @@ func (mog *Mongo) FindOne(in *Input, out any) error {
 	opts := options.FindOne()
 	opts.SetProjection(in.Project)
 	err := co.FindOne(context.Background(), in.Filter, opts).Decode(out)
-	if err != nil {
+	if err != nil && err != mongo.ErrNoDocuments {
 		jlog.Errorf("%s, %s", err, in)
 	}
 	return err

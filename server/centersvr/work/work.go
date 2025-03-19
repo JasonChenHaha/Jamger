@@ -19,7 +19,7 @@ func Init() {
 	jnet.Rpc.SetCodec(rpcEncode, rpcDecode)
 	jnet.Rpc.Register(jpb.CMD_DEL_USER, deleteUser, &jpb.DelUserReq{})
 	jnet.Rpc.Register(jpb.CMD_LOGIN_REQ, login, &jpb.LoginReq{})
-	jnet.Rpc.Register(jpb.CMD_GOOD_LIST_REQ, goodList, &jpb.GooDListReq{})
+	jnet.Rpc.Register(jpb.CMD_GOOD_LIST_REQ, goodList, &jpb.GoodListReq{})
 	jnet.Rpc.Register(jpb.CMD_UPLOAD_GOOD_REQ, uploadGood, &jpb.UploadGoodReq{})
 	jnet.Rpc.Register(jpb.CMD_MODIFY_GOOD_REQ, modifyGood, &jpb.ModifyGoodReq{})
 	jnet.Rpc.Register(jpb.CMD_DELETE_GOOD_REQ, deleteGood, &jpb.DeleteGoodReq{})
@@ -160,6 +160,7 @@ func image(pack *jglobal.Pack) {
 	image, err := jimage.Image.Get(req.Uid)
 	if err != nil {
 		rsp.Code = jpb.CODE_SVR_ERR
+	} else {
+		rsp.Image = image
 	}
-	rsp.Image = image
 }

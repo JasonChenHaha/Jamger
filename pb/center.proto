@@ -18,7 +18,7 @@ message Good {
     bytes image = 7;        // 图片
 }
 
-message GooDListReq {}
+message GoodListReq {}
 
 message GoodListRsp {
     CODE code = 1;

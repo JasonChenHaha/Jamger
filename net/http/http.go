@@ -87,7 +87,7 @@ func (o *Http) receive(w http.ResponseWriter, r *http.Request) {
 	} else {
 		han = o.handler[jpb.CMD_TRANSFER]
 		if han == nil {
-			jlog.Error("no transfer cmd.")
+			jlog.Error("no cmd(TRANSFER).")
 			return
 		}
 		han.fun(pack)

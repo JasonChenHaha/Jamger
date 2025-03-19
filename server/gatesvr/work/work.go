@@ -21,7 +21,8 @@ func Init() {
 	jnet.Http.Register(jpb.CMD_SIGN_IN_REQ, httpSignIn, &jpb.SignInReq{})
 	jnet.Http.Register(jpb.CMD_LOGIN_REQ, httpLogin, &jpb.LoginReq{})
 	jnet.Https.SetCodec(httpsEncode, httpsDecode)
-	jnet.Https.Register(jpb.CMD_WX_SIGN_IN_REQ, httpsSignIn, nil)
+	jnet.Https.Register(jpb.CMD_TRANSFER, httpTransfer, nil)
+	jnet.Https.Register(jpb.CMD_IMAGE_REQ, httpImage, nil)
 	jnet.Tcp.SetCodec(tcpEncode, tcpDecode)
 	jnet.Tcp.Register(jpb.CMD_HEARTBEAT, twHeartbeat, &jpb.HeartbeatReq{})
 	jnet.Tcp.Register(jpb.CMD_TRANSFER, twTransfer, nil)
@@ -36,7 +37,7 @@ func Init() {
 	jnet.Rpc.Register(jpb.CMD_BROADCAST, rpcBroadcast, nil)
 }
 
-// ------------------------- inside.method.http -------------------------
+// ------------------------- inside.method.http/https -------------------------
 
 // 转发
 func httpTransfer(pack *jglobal.Pack) {
@@ -105,26 +106,6 @@ func httpSignIn(pack *jglobal.Pack) {
 	}
 }
 
-// auth登录
-func httpsSignIn(pack *jglobal.Pack) {
-	data := pack.Data.(map[string]any)
-	code := data["code"].(string)
-
-	target := jrpc.Rpc.GetRoundRobinTarget(jglobal.GetGroup(pack.Cmd))
-	if target == nil {
-		pack.Cmd = jpb.CMD_GATE_INFO
-		pack.Data = &jpb.Error{Code: jpb.CODE_SVR_ERR, Desc: "can't find target"}
-		return
-	}
-
-	pack.Data = &jpb.WxSignInReq{WxCode: code}
-	if !target.Call(pack, &jpb.WxSignInRsp{}) {
-		pack.Cmd = jpb.CMD_GATE_INFO
-		pack.Data = &jpb.Error{Code: jpb.CODE_SVR_ERR, Desc: "transfer failed"}
-		return
-	}
-}
-
 // 登录
 func httpLogin(pack *jglobal.Pack) {
 	user := pack.Ctx.(*juser.User)
@@ -139,6 +120,26 @@ func httpLogin(pack *jglobal.Pack) {
 		pack.Data = &jpb.Error{Code: jpb.CODE_SVR_ERR, Desc: "call failed"}
 		return
 	}
+}
+
+// 图片下载
+func httpImage(pack *jglobal.Pack) {
+	target := jrpc.Rpc.GetRoundRobinTarget(jglobal.GRP_CENTER)
+	if target == nil {
+		jlog.Error("can't find target")
+		return
+	}
+	if !target.Call(pack, &jpb.ImageRsp{}) {
+		jlog.Error("call failed")
+		return
+	}
+	rsp := pack.Data.(*jpb.ImageRsp)
+	if rsp.Code != jpb.CODE_OK {
+		pack.Data = nil
+		jlog.Errorf("error code(%s)", rsp.Code)
+		return
+	}
+	pack.Data = rsp.Image
 }
 
 // ------------------------- inside.method.tcp/web -------------------------

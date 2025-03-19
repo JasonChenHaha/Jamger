@@ -1,17 +1,13 @@
 package jwork
 
 import (
-	"encoding/json"
 	"fmt"
-	"io"
 	"jglobal"
 	"jglobal2"
-	"jlog"
 	"jnet"
 	"jpb"
 	"jrpc"
 	"juser"
-	"net/http"
 
 	"go.mongodb.org/mongo-driver/mongo"
 )
@@ -87,26 +83,42 @@ func signIn(pack *jglobal.Pack) {
 	}
 }
 
-// wx登录
+// wx登录(注册)
 func wxSignIn(pack *jglobal.Pack) {
 	req := pack.Data.(*jpb.WxSignInReq)
 	rsp := &jpb.WxSignInRsp{}
 	pack.Cmd = jpb.CMD_WX_SIGN_IN_RSP
 	pack.Data = rsp
-	rsp2, err := http.Get(fmt.Sprintf("https://api.weixin.qq.com/sns/jscode2session?appid=%s&secret=%s&js_code=%s&grant_type=authorization_code", jglobal2.AppId, jglobal2.AppSecret, req.WxCode))
+	res, err := jnet.Https.Get(fmt.Sprintf("https://api.weixin.qq.com/sns/jscode2session?appid=%s&secret=%s&js_code=%s&grant_type=authorization_code", jglobal2.AppId, jglobal2.AppSecret, req.WxCode))
 	if err != nil {
-		jlog.Error(err)
 		rsp.Code = jpb.CODE_SVR_ERR
 		return
 	}
-	body, err := io.ReadAll(rsp2.Body)
+	openId := res["openid"].(string)
+	// sesKey := res["session_key"].(string)
+	// 判断账号是否存在
+	if err := juser.IsUserExist(openId); err != nil {
+		if err == mongo.ErrNoDocuments {
+			// 生成用户id
+			uid, err := juser.GenUserUid()
+			if err != nil {
+				rsp.Code = jpb.CODE_SVR_ERR
+				return
+			}
+			// 创建
+			if err = juser.WxCreateUser(uid, openId); err != nil {
+				rsp.Code = jpb.CODE_SVR_ERR
+				return
+			}
+		} else {
+			rsp.Code = jpb.CODE_SVR_ERR
+			return
+		}
+	}
+	token, err := jglobal.TokenGenerate(openId)
 	if err != nil {
-		jlog.Error(err)
 		rsp.Code = jpb.CODE_SVR_ERR
 		return
 	}
-	res := map[string]any{}
-	json.Unmarshal(body, &res)
-	jlog.Debug(res)
-	jlog.Debug(jglobal2.AppId)
+	rsp.Token = token
 }

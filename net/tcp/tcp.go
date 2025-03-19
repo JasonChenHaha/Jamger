@@ -108,7 +108,7 @@ func (o *Tcp) receive(id uint64, pack *jglobal.Pack) {
 		han.fun(pack)
 	} else {
 		if o.handler[jpb.CMD_TRANSFER] == nil {
-			jlog.Error("no transfer cmd.")
+			jlog.Error("no cmd(TRANSFER).")
 			o.Close(id)
 			return
 		}

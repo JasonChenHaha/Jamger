@@ -2,7 +2,6 @@ package jwork
 
 import (
 	"encoding/binary"
-	"encoding/json"
 	"fmt"
 	"hash/crc32"
 	"jglobal"
@@ -189,26 +188,12 @@ func httpDecode(url string, pack *jglobal.Pack) error {
 // |    2    |   ...    |
 // +---------+----------+
 
-func httpsEncode(url string, pack *jglobal.Pack) error {
-	if url == "/" {
-		// user := pack.Ctx.(*juser.User)
-		// data := pack.Data.([]byte)
-		// raw := make([]byte, cmdSize+len(data))
-		// binary.LittleEndian.PutUint16(raw, uint16(pack.Cmd))
-		// copy(raw[cmdSize:], data)
-		// if user.AesKey != nil {
-		// 	if err := jglobal.AesEncrypt(user.AesKey, &raw); err != nil {
-		// 		return err
-		// 	}
-		// }
-		// pack.Data = raw
-	} else {
-		data := pack.Data.([]byte)
-		raw := make([]byte, cmdSize+len(data))
-		binary.LittleEndian.PutUint16(raw, uint16(pack.Cmd))
-		copy(raw[cmdSize:], data)
-		pack.Data = raw
-	}
+func httpsEncode(pack *jglobal.Pack) error {
+	data := pack.Data.([]byte)
+	raw := make([]byte, cmdSize+len(data))
+	binary.LittleEndian.PutUint16(raw, uint16(pack.Cmd))
+	copy(raw[cmdSize:], data)
+	pack.Data = raw
 	return nil
 }
 
@@ -229,38 +214,10 @@ func httpsEncode(url string, pack *jglobal.Pack) error {
 // |    4    |    2    |   ...    |
 // +---------+---------+----------+
 
-func httpsDecode(url string, pack *jglobal.Pack) error {
+func httpsDecode(pack *jglobal.Pack) error {
 	raw := pack.Data.([]byte)
-	res := map[string]any{}
-	if err := json.Unmarshal(raw, &res); err != nil {
-		jlog.Error(err)
-		return err
-	}
-	if url == "/" {
-		// uid := binary.LittleEndian.Uint32(raw)
-		// // to do: 每次请求都会重新load
-		// user := juser.GetUser(uid)
-		// if user == nil {
-		// 	user = juser.NewUser(uid)
-		// }
-		// user.Load()
-		// pack.Ctx = user
-		// pack.Cmd = jpb.CMD(binary.LittleEndian.Uint16(raw[uidSize:]))
-		// raw = raw[uidSize+cmdSize:]
-		// if err := jglobal.AesDecrypt(user.AesKey, &raw); err != nil {
-		// 	return err
-		// }
-		// pos := len(raw) - checksumSize
-		// if binary.LittleEndian.Uint32(raw[pos:]) != crc32.ChecksumIEEE(raw[:pos]) {
-		// 	err := fmt.Errorf("checksum failed")
-		// 	jlog.Error(err)
-		// 	return err
-		// }
-		// pack.Data = raw[:pos]
-	} else {
-		pack.Cmd = jpb.CMD(res["cmd"].(float64))
-		pack.Data = res
-	}
+	pack.Cmd = jpb.CMD(binary.LittleEndian.Uint16(raw))
+	pack.Data = raw[cmdSize:]
 	return nil
 }
 

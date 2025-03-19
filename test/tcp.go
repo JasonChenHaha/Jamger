@@ -47,30 +47,30 @@ func testTcp() {
 	// 	Name: "1.jpeg",
 	// })
 
-	image, err := os.ReadFile("../template/1.jpg")
+	image, err := os.ReadFile("../template/2.png")
 	if err != nil {
 		jlog.Error(err)
 		return
 	}
-	// tcp.send(jpb.CMD_UPLOAD_GOOD_REQ, &jpb.UploadGoodReq{
-	// 	Good: &jpb.Good{
-	// 		Name:  "name",
-	// 		Desc:  "desc",
-	// 		Size:  1,
-	// 		Price: 1,
-	// 		Image: image,
-	// 	},
-	// })
-	tcp.send(jpb.CMD_MODIFY_GOOD_REQ, &jpb.ModifyGoodReq{
+	tcp.send(jpb.CMD_UPLOAD_GOOD_REQ, &jpb.UploadGoodReq{
 		Good: &jpb.Good{
-			Uid:   3,
-			Name:  "name2",
-			Desc:  "desc2",
+			Name:  "name",
+			Desc:  "desc",
 			Size:  1,
 			Price: 1,
 			Image: image,
 		},
 	})
+	// tcp.send(jpb.CMD_MODIFY_GOOD_REQ, &jpb.ModifyGoodReq{
+	// 	Good: &jpb.Good{
+	// 		Uid:   3,
+	// 		Name:  "name2",
+	// 		Desc:  "desc2",
+	// 		Size:  1,
+	// 		Price: 1,
+	// 		Image: image,
+	// 	},
+	// })
 	// tcp.send(jpb.CMD_DELETE_GOOD_REQ, &jpb.DeleteGoodReq{
 	// 	Uid: 24,
 	// })
