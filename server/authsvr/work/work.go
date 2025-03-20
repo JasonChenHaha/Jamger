@@ -37,7 +37,8 @@ func signUp(pack *jglobal.Pack) {
 		return
 	}
 	// 判断账号是否存在
-	if err := juser.IsUserExist(req.Id); err == nil {
+	_, err := juser.IsUserExist(req.Id)
+	if err == nil {
 		rsp.Code = jpb.CODE_USER_EXIST
 		return
 	} else if err != mongo.ErrNoDocuments {
@@ -97,7 +98,8 @@ func wxSignIn(pack *jglobal.Pack) {
 	openId := res["openid"].(string)
 	// sesKey := res["session_key"].(string)
 	// 判断账号是否存在
-	if err := juser.IsUserExist(openId); err != nil {
+	admin, err := juser.IsUserExist(openId)
+	if err != nil {
 		if err == mongo.ErrNoDocuments {
 			// 生成用户id
 			uid, err := juser.GenUserUid()
@@ -121,4 +123,5 @@ func wxSignIn(pack *jglobal.Pack) {
 		return
 	}
 	rsp.Token = token
+	rsp.Admin = admin
 }

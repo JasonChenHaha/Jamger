@@ -16,6 +16,7 @@ message Good {
     uint32 size = 4;        // 尺码
     uint32 price = 5;       // 价格
     bytes image = 7;        // 图片
+    string kind = 8;        // 类别
 }
 
 message GoodListReq {}

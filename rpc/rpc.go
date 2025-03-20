@@ -57,8 +57,8 @@ func (o *rpc) GetDirectTarget(group int, index int) *jnrpc.Rpc {
 
 // 轮询
 func (o *rpc) GetRoundRobinTarget(group int) *jnrpc.Rpc {
-	o.mutex.RLock()
-	defer o.mutex.RUnlock()
+	o.mutex.Lock()
+	defer o.mutex.Unlock()
 	if hs, ok := o.server[group]; ok {
 		index := o.roundrobin[group]
 		o.roundrobin[group]++

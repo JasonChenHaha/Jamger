@@ -36,6 +36,7 @@ func (goods *Goods) load(data bson.M) {
 				Desc:  v3["desc"].(string),
 				Size:  uint32(v3["size"].(int64)),
 				Price: uint32(v3["price"].(int64)),
+				Kind:  v3["kind"].(string),
 			}
 			tmp[good.Uid] = good
 		}

@@ -17,13 +17,21 @@ import (
 func Init() {}
 
 // 判断账号是否存在
-func IsUserExist(id string) error {
+func IsUserExist(id string) (bool, error) {
 	in := &jmongo.Input{
 		Col:     jglobal.MONGO_USER,
 		Filter:  bson.M{"basic.id": id},
-		Project: bson.M{"_id": 1},
+		Project: bson.M{"_id": 1, "basic.admin": 1},
 	}
-	return jdb.Mongo.FindOne(in, &bson.M{})
+	out := bson.M{}
+	if err := jdb.Mongo.FindOne(in, &out); err != nil {
+		return false, err
+	}
+	basic := out["basic"].(bson.M)
+	if basic["admin"] != nil {
+		return basic["admin"].(bool), nil
+	}
+	return false, nil
 }
 
 // 密码加密

@@ -29,4 +29,5 @@ message WxSignInReq {
 message WxSignInRsp {
     CODE code = 1;
     string token = 2;
+    bool admin = 3;
 }

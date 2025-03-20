@@ -54,11 +54,12 @@ func testTcp() {
 	}
 	tcp.send(jpb.CMD_UPLOAD_GOOD_REQ, &jpb.UploadGoodReq{
 		Good: &jpb.Good{
-			Name:  "name",
-			Desc:  "desc",
-			Size:  1,
-			Price: 1,
+			Name:  "商品",
+			Desc:  "描述",
+			Size:  37,
+			Price: 100,
 			Image: image,
+			Kind:  "类别6",
 		},
 	})
 	// tcp.send(jpb.CMD_MODIFY_GOOD_REQ, &jpb.ModifyGoodReq{
