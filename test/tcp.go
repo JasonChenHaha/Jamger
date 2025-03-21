@@ -56,7 +56,7 @@ func testTcp() {
 		Good: &jpb.Good{
 			Name:  "商品",
 			Desc:  "描述",
-			Size:  37,
+			Size:  "37",
 			Price: 100,
 			Image: image,
 			Kind:  "类别6",

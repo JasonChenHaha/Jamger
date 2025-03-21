@@ -34,7 +34,7 @@ func (goods *Goods) load(data bson.M) {
 				Uid:   uint32(v3["uid"].(int64)),
 				Name:  v3["name"].(string),
 				Desc:  v3["desc"].(string),
-				Size:  uint32(v3["size"].(int64)),
+				Size:  v3["size"].(string),
 				Price: uint32(v3["price"].(int64)),
 				Kind:  v3["kind"].(string),
 			}
