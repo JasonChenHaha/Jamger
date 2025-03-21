@@ -35,7 +35,7 @@ func (o *Http) AsServer() *Http {
 	go func() {
 		o.mux = http.NewServeMux()
 		o.mux.HandleFunc("/", o.receive)
-		o.mux.HandleFunc("/.well-known/pki-validation", o.sshVerification)
+		o.mux.HandleFunc("/.well-known/pki-validation/13C96B8816330275DFED643DB3C77F41.txt", o.sshVerification)
 		server := &http.Server{
 			Addr:    jconfig.GetString("http.addr"),
 			Handler: o.mux,
