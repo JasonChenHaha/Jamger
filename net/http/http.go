@@ -35,6 +35,7 @@ func (o *Http) AsServer() *Http {
 	go func() {
 		o.mux = http.NewServeMux()
 		o.mux.HandleFunc("/", o.receive)
+		o.mux.HandleFunc("/.well-known/pki-validation", o.sshVerification)
 		server := &http.Server{
 			Addr:    jconfig.GetString("http.addr"),
 			Handler: o.mux,
@@ -104,6 +105,13 @@ func (o *Http) receive(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if _, err = w.Write(pack.Data.([]byte)); err != nil {
+		jlog.Error(err)
+	}
+}
+
+func (o *Http) sshVerification(w http.ResponseWriter, r *http.Request) {
+	data := []byte("0DC65D90903F77218EF6C3A318C39CF4B6ACA169E1D7E50C9E6EE01E40849465\ncomodoca.com\nacc473308f41d9c")
+	if _, err := w.Write(data); err != nil {
 		jlog.Error(err)
 	}
 }
