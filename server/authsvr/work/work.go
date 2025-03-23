@@ -9,6 +9,7 @@ import (
 	"jrpc"
 	"juser"
 
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
@@ -98,7 +99,7 @@ func wxSignIn(pack *jglobal.Pack) {
 	openId := res["openid"].(string)
 	// sesKey := res["session_key"].(string)
 	// 判断账号是否存在
-	admin, err := juser.IsUserExist(openId)
+	res, err = juser.IsUserExist(openId)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
 			// 生成用户id
@@ -112,10 +113,15 @@ func wxSignIn(pack *jglobal.Pack) {
 				rsp.Code = jpb.CODE_SVR_ERR
 				return
 			}
+			rsp.Uid = uid
 		} else {
 			rsp.Code = jpb.CODE_SVR_ERR
 			return
 		}
+	} else {
+		rsp.Uid = uint32(res["_id"].(int64))
+		basic := res["basic"].(bson.M)
+		rsp.Admin = basic["admin"] != nil || basic["admin"] == true
 	}
 	token, err := jglobal.TokenGenerate(openId)
 	if err != nil {
@@ -123,5 +129,4 @@ func wxSignIn(pack *jglobal.Pack) {
 		return
 	}
 	rsp.Token = token
-	rsp.Admin = admin
 }

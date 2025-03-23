@@ -1,6 +1,7 @@
 package jwork
 
 import (
+	"fmt"
 	"jdb"
 	"jglobal"
 	"jlog"
@@ -43,13 +44,13 @@ func Init() {
 func httpTransfer(pack *jglobal.Pack) {
 	target := jrpc.Rpc.GetRoundRobinTarget(jglobal.GetGroup(pack.Cmd))
 	if target == nil {
+		pack.Data = &jpb.Error{Code: jpb.CODE_SVR_ERR, Desc: fmt.Sprintf("cmd(%d) can't find target", pack.Cmd)}
 		pack.Cmd = jpb.CMD_GATE_INFO
-		pack.Data = &jpb.Error{Code: jpb.CODE_SVR_ERR, Desc: "can't find target"}
 		return
 	}
 	if !target.Transfer(pack) {
+		pack.Data = &jpb.Error{Code: jpb.CODE_SVR_ERR, Desc: fmt.Sprintf("cmd(%d) transfer failed", pack.Cmd)}
 		pack.Cmd = jpb.CMD_GATE_INFO
-		pack.Data = &jpb.Error{Code: jpb.CODE_SVR_ERR, Desc: "transfer failed"}
 	}
 }
 
@@ -57,13 +58,13 @@ func httpTransfer(pack *jglobal.Pack) {
 func httpSignIn(pack *jglobal.Pack) {
 	target := jrpc.Rpc.GetRoundRobinTarget(jglobal.GetGroup(pack.Cmd))
 	if target == nil {
+		pack.Data = &jpb.Error{Code: jpb.CODE_SVR_ERR, Desc: fmt.Sprintf("cmd(%d) can't find target", pack.Cmd)}
 		pack.Cmd = jpb.CMD_GATE_INFO
-		pack.Data = &jpb.Error{Code: jpb.CODE_SVR_ERR, Desc: "can't find target"}
 		return
 	}
 	if !target.Call(pack, &jpb.SignInRsp{}) {
+		pack.Data = &jpb.Error{Code: jpb.CODE_SVR_ERR, Desc: fmt.Sprintf("cmd(%d) call failed", pack.Cmd)}
 		pack.Cmd = jpb.CMD_GATE_INFO
-		pack.Data = &jpb.Error{Code: jpb.CODE_SVR_ERR, Desc: "call failed"}
 		return
 	}
 	rsp := pack.Data.(*jpb.SignInRsp)
@@ -71,16 +72,16 @@ func httpSignIn(pack *jglobal.Pack) {
 		uid := jglobal.Itoa(rsp.Uid)
 		gate, err := jdb.Redis.HGet(uid, "gate")
 		if err != nil {
+			pack.Data = &jpb.Error{Code: jpb.CODE_SVR_ERR, Desc: fmt.Sprintf("cmd(%d) get gate failed", pack.Cmd)}
 			pack.Cmd = jpb.CMD_GATE_INFO
-			pack.Data = &jpb.Error{Code: jpb.CODE_SVR_ERR, Desc: "get gate failed"}
 			return
 		}
 		if gate != "" {
 			// 旧连接踢下线
 			target = jrpc.Rpc.GetDirectTarget(jglobal.GROUP, jglobal.Atoi[int](gate))
 			if target == nil {
+				pack.Data = &jpb.Error{Code: jpb.CODE_SVR_ERR, Desc: fmt.Sprintf("cmd(%d) can't find target", pack.Cmd)}
 				pack.Cmd = jpb.CMD_GATE_INFO
-				pack.Data = &jpb.Error{Code: jpb.CODE_SVR_ERR, Desc: "can't find target"}
 				return
 			}
 			pack2 := &jglobal.Pack{
@@ -88,20 +89,20 @@ func httpSignIn(pack *jglobal.Pack) {
 				Data: &jpb.KickUserReq{Uid: rsp.Uid},
 			}
 			if !target.Call(pack2, &jpb.KickUserRsp{}) {
+				pack.Data = &jpb.Error{Code: jpb.CODE_SVR_ERR, Desc: fmt.Sprintf("cmd(%d) call failed", pack.Cmd)}
 				pack.Cmd = jpb.CMD_GATE_INFO
-				pack.Data = &jpb.Error{Code: jpb.CODE_SVR_ERR, Desc: "call failed"}
 				return
 			}
 			if pack2.Data.(*jpb.KickUserRsp).Code != jpb.CODE_OK {
-				pack.Cmd = jpb.CMD_GATE_INFO
 				pack.Data = &jpb.Error{Code: jpb.CODE_SVR_ERR, Desc: "kick user failed"}
+				pack.Cmd = jpb.CMD_GATE_INFO
 				return
 			}
 		}
 		// 缓存aesKey
 		if _, err := jdb.Redis.HSet(uid, "aesKey", pack.Ctx); err != nil {
-			pack.Cmd = jpb.CMD_GATE_INFO
 			pack.Data = &jpb.Error{Code: jpb.CODE_SVR_ERR, Desc: "save aeskey failed"}
+			pack.Cmd = jpb.CMD_GATE_INFO
 		}
 	}
 }
@@ -111,13 +112,13 @@ func httpLogin(pack *jglobal.Pack) {
 	user := pack.Ctx.(*juser.User)
 	target := jrpc.Rpc.GetConsistentHashTarget(jglobal.GRP_CENTER, user.Uid)
 	if target == nil {
+		pack.Data = &jpb.Error{Code: jpb.CODE_SVR_ERR, Desc: fmt.Sprintf("cmd(%d) can't find target", pack.Cmd)}
 		pack.Cmd = jpb.CMD_GATE_INFO
-		pack.Data = &jpb.Error{Code: jpb.CODE_SVR_ERR, Desc: "can't find target"}
 		return
 	}
 	if !target.Call(pack, &jpb.LoginRsp{}) {
+		pack.Data = &jpb.Error{Code: jpb.CODE_SVR_ERR, Desc: fmt.Sprintf("cmd(%d) call failed", pack.Cmd)}
 		pack.Cmd = jpb.CMD_GATE_INFO
-		pack.Data = &jpb.Error{Code: jpb.CODE_SVR_ERR, Desc: "call failed"}
 		return
 	}
 }
@@ -126,11 +127,11 @@ func httpLogin(pack *jglobal.Pack) {
 func httpImage(pack *jglobal.Pack) {
 	target := jrpc.Rpc.GetRoundRobinTarget(jglobal.GRP_CENTER)
 	if target == nil {
-		jlog.Error("can't find target")
+		jlog.Error(fmt.Sprintf("cmd(%d) can't find target", pack.Cmd))
 		return
 	}
 	if !target.Call(pack, &jpb.ImageRsp{}) {
-		jlog.Error("call failed")
+		jlog.Error(fmt.Sprintf("cmd(%d) call failed", pack.Cmd))
 		return
 	}
 	rsp := pack.Data.(*jpb.ImageRsp)
@@ -150,13 +151,13 @@ func twTransfer(pack *jglobal.Pack) {
 	defer jnet.Send(pack)
 	target := jrpc.Rpc.GetConsistentHashTarget(jglobal.GetGroup(pack.Cmd), user.Uid)
 	if target == nil {
+		pack.Data = &jpb.Error{Code: jpb.CODE_SVR_ERR, Desc: fmt.Sprintf("cmd(%d) can't find target", pack.Cmd)}
 		pack.Cmd = jpb.CMD_GATE_INFO
-		pack.Data = &jpb.Error{Code: jpb.CODE_SVR_ERR, Desc: "can't find target"}
 		return
 	}
 	if !target.Transfer(pack) {
+		pack.Data = &jpb.Error{Code: jpb.CODE_SVR_ERR, Desc: fmt.Sprintf("cmd(%d) transfer failed", pack.Cmd)}
 		pack.Cmd = jpb.CMD_GATE_INFO
-		pack.Data = &jpb.Error{Code: jpb.CODE_SVR_ERR, Desc: "transfer failed"}
 	}
 }
 
@@ -172,13 +173,13 @@ func twLogin(pack *jglobal.Pack) {
 	user.SetGate(jglobal.INDEX)
 	target := jrpc.Rpc.GetConsistentHashTarget(jglobal.GRP_CENTER, user.Uid)
 	if target == nil {
+		pack.Data = &jpb.Error{Code: jpb.CODE_SVR_ERR, Desc: fmt.Sprintf("cmd(%d) can't find target", pack.Cmd)}
 		pack.Cmd = jpb.CMD_GATE_INFO
-		pack.Data = &jpb.Error{Code: jpb.CODE_SVR_ERR, Desc: "can't find target"}
 		return
 	}
 	if !target.Call(pack, &jpb.LoginRsp{}) {
+		pack.Data = &jpb.Error{Code: jpb.CODE_SVR_ERR, Desc: fmt.Sprintf("cmd(%d) call failed", pack.Cmd)}
 		pack.Cmd = jpb.CMD_GATE_INFO
-		pack.Data = &jpb.Error{Code: jpb.CODE_SVR_ERR, Desc: "call failed"}
 		return
 	}
 }

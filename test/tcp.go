@@ -47,21 +47,21 @@ func testTcp() {
 	// 	Name: "1.jpeg",
 	// })
 
-	image, err := os.ReadFile("../template/2.png")
-	if err != nil {
-		jlog.Error(err)
-		return
-	}
-	tcp.send(jpb.CMD_UPLOAD_GOOD_REQ, &jpb.UploadGoodReq{
-		Good: &jpb.Good{
-			Name:  "商品",
-			Desc:  "描述",
-			Size:  "37",
-			Price: 100,
-			Image: image,
-			Kind:  "类别6",
-		},
-	})
+	// image, err := os.ReadFile("../template/4.jpg")
+	// if err != nil {
+	// 	jlog.Error(err)
+	// 	return
+	// }
+	// tcp.send(jpb.CMD_UPLOAD_GOOD_REQ, &jpb.UploadGoodReq{
+	// 	Good: &jpb.Good{
+	// 		Name:  "商品",
+	// 		Desc:  "描述",
+	// 		Size:  "37",
+	// 		Price: 100,
+	// 		Image: image,
+	// 		Kind:  "类别6",
+	// 	},
+	// })
 	// tcp.send(jpb.CMD_MODIFY_GOOD_REQ, &jpb.ModifyGoodReq{
 	// 	Good: &jpb.Good{
 	// 		Uid:   3,

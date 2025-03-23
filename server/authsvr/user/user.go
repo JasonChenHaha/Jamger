@@ -17,7 +17,7 @@ import (
 func Init() {}
 
 // 判断账号是否存在
-func IsUserExist(id string) (bool, error) {
+func IsUserExist(id string) (bson.M, error) {
 	in := &jmongo.Input{
 		Col:     jglobal.MONGO_USER,
 		Filter:  bson.M{"basic.id": id},
@@ -25,13 +25,9 @@ func IsUserExist(id string) (bool, error) {
 	}
 	out := bson.M{}
 	if err := jdb.Mongo.FindOne(in, &out); err != nil {
-		return false, err
+		return nil, err
 	}
-	basic := out["basic"].(bson.M)
-	if basic["admin"] != nil {
-		return basic["admin"].(bool), nil
-	}
-	return false, nil
+	return out, nil
 }
 
 // 密码加密

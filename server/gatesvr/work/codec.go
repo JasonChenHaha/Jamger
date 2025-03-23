@@ -142,11 +142,11 @@ func httpDecode(url string, pack *jglobal.Pack) error {
 	raw := pack.Data.([]byte)
 	if url == "/" {
 		uid := binary.LittleEndian.Uint32(raw)
-		// to do: 每次请求都会重新load
 		user := juser.GetUser(uid)
 		if user == nil {
 			user = juser.NewUser(uid)
 		}
+		// to do: 每次请求都会重新load
 		user.Load()
 		pack.Ctx = user
 		pack.Cmd = jpb.CMD(binary.LittleEndian.Uint16(raw[uidSize:]))
@@ -214,10 +214,23 @@ func httpsEncode(pack *jglobal.Pack) error {
 // |    4    |    2    |   ...    |
 // +---------+---------+----------+
 
-func httpsDecode(pack *jglobal.Pack) error {
+func httpsDecode(url string, pack *jglobal.Pack) error {
 	raw := pack.Data.([]byte)
-	pack.Cmd = jpb.CMD(binary.LittleEndian.Uint16(raw))
-	pack.Data = raw[cmdSize:]
+	if url == "/" {
+		uid := binary.LittleEndian.Uint32(raw)
+		user := juser.GetUser(uid)
+		if user == nil {
+			user = juser.NewUser(uid)
+		}
+		// to do: 每次请求都会重新load
+		// user.Load()
+		pack.Ctx = user
+		pack.Cmd = jpb.CMD(binary.LittleEndian.Uint16(raw[uidSize:]))
+		pack.Data = raw[uidSize+cmdSize:]
+	} else {
+		pack.Cmd = jpb.CMD(binary.LittleEndian.Uint16(raw))
+		pack.Data = raw[cmdSize:]
+	}
 	return nil
 }
 

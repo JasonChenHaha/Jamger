@@ -24,7 +24,7 @@ type Handler struct {
 }
 
 var encoder func(*jglobal.Pack) error
-var decoder func(*jglobal.Pack) error
+var decoder func(string, *jglobal.Pack) error
 
 // ------------------------- outside -------------------------
 
@@ -57,7 +57,7 @@ func (o *Https) AsClient() *Https {
 	return o
 }
 
-func (o *Https) SetCodec(en, de func(*jglobal.Pack) error) {
+func (o *Https) SetCodec(en func(*jglobal.Pack) error, de func(string, *jglobal.Pack) error) {
 	encoder = en
 	decoder = de
 }
@@ -97,7 +97,7 @@ func (o *Https) receive(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	pack := &jglobal.Pack{Data: body}
-	if err = decoder(pack); err != nil {
+	if err = decoder(r.URL.Path, pack); err != nil {
 		return
 	}
 	han := o.handler[pack.Cmd]
