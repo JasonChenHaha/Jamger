@@ -14,7 +14,8 @@ message Good {
     string name = 2;        // 名称
     string desc = 3;        // 描述
     string size = 4;        // 尺码
-    uint32 price = 5;       // 价格
+    uint32 oprice = 5;      // 原价
+    uint32 price = 6;       // 价格
     bytes image = 7;        // 图片
     string kind = 8;        // 类别
 }

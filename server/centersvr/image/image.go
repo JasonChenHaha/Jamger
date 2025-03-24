@@ -5,6 +5,7 @@ import (
 	"image"
 	"image/jpeg"
 	"image/png"
+	"jconfig"
 	"jdb"
 	"jglobal"
 	"jlog"
@@ -13,10 +14,6 @@ import (
 	"github.com/disintegration/imaging"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"gopkg.in/mgo.v2/bson"
-)
-
-const (
-	EXPIRE = 60
 )
 
 type Img struct {
@@ -28,7 +25,7 @@ var Image *Img
 // ------------------------- outside -------------------------
 
 func Init() {
-	Image = &Img{cache: jglobal.NewTimeCache[uint32, []byte](EXPIRE)}
+	Image = &Img{cache: jglobal.NewTimeCache[uint32, []byte](int64(jconfig.GetInt("image.expire")))}
 }
 
 // 图片压缩
@@ -41,17 +38,19 @@ func (img *Img) Compress(source []byte) ([]byte, error) {
 		return nil, err
 	}
 	// 调整尺寸
-	img3 := imaging.Resize(img2, 250, 0, imaging.Lanczos)
+	if resize := jconfig.GetInt("image.resize"); resize != 0 {
+		img2 = imaging.Resize(img2, 250, 0, imaging.Lanczos)
+	}
 	buffer := &bytes.Buffer{}
 	switch format {
 	case "jpeg":
-		if err = jpeg.Encode(buffer, img3, &jpeg.Options{Quality: 50}); err != nil {
+		if err = jpeg.Encode(buffer, img2, &jpeg.Options{Quality: jconfig.GetInt("image.quality")}); err != nil {
 			jlog.Error(err)
 			return nil, err
 		}
 	case "png":
 		encoder := png.Encoder{CompressionLevel: png.BestCompression}
-		if err = encoder.Encode(buffer, img3); err != nil {
+		if err = encoder.Encode(buffer, img2); err != nil {
 			jlog.Error(err)
 			return nil, err
 		}
