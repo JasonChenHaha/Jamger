@@ -52,16 +52,16 @@ func (goods *Goods) GenGoodUid() (uint32, error) {
 	in := &jmongo.Input{
 		Col:     jglobal.MONGO_USER,
 		Filter:  bson.M{"_id": int64(0)},
-		Update:  bson.M{"$inc": bson.M{"guidc": int64(1)}},
+		Update:  bson.M{"$inc": bson.M{"iuidc": int64(1)}},
 		Upsert:  true,
 		RetDoc:  options.After,
-		Project: bson.M{"guidc": 1},
+		Project: bson.M{"iuidc": 1},
 	}
 	out := bson.M{}
 	if err := jdb.Mongo.FindOneAndUpdate(in, &out); err != nil {
 		return 0, err
 	}
-	return uint32(out["guidc"].(int64)), nil
+	return uint32(out["iuidc"].(int64)), nil
 }
 
 // 添加商品
@@ -85,6 +85,6 @@ func (goods *Goods) ModifyGood(good *jpb.Good) {
 func (goods *Goods) DelGood(uid uint32) {
 	delete(goods.Data, uid)
 	goods.user.Lock()
-	goods.user.DirtyMongo2[fmt.Sprintf("goods.%d", uid)] = 1
+	goods.user.DirtyMongo[fmt.Sprintf("goods.%d", uid)] = nil
 	goods.user.UnLock()
 }

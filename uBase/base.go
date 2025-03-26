@@ -10,23 +10,21 @@ import (
 )
 
 type Base struct {
-	Uid         uint32
-	live        int
-	mutex       sync.Mutex
-	DirtyRedis  map[string]any
-	DirtyMongo  map[string]any
-	DirtyMongo2 map[string]any
+	Uid        uint32
+	live       int
+	mutex      sync.Mutex
+	DirtyRedis map[string]any
+	DirtyMongo map[string]any
 }
 
 // ------------------------- outside -------------------------
 
 func NewBase(uid uint32) *Base {
 	base := &Base{
-		Uid:         uid,
-		DirtyRedis:  map[string]any{},
-		DirtyMongo:  map[string]any{},
-		DirtyMongo2: map[string]any{},
-		live:        jglobal.USER_LIVE,
+		Uid:        uid,
+		DirtyRedis: map[string]any{},
+		DirtyMongo: map[string]any{},
+		live:       jglobal.USER_LIVE,
 	}
 	return base
 }
@@ -80,17 +78,30 @@ func (base *Base) flush() {
 		base.mutex.Unlock()
 	}
 	base.mutex.Lock()
-	var dirtyMongo, dirtyMongo2 map[string]any
-	if len(base.DirtyMongo) > 0 || len(base.DirtyMongo2) > 0 {
+	var dirtyMongo map[string]any
+	if len(base.DirtyMongo) > 0 {
 		dirtyMongo, base.DirtyMongo = base.DirtyMongo, map[string]any{}
-		dirtyMongo2, base.DirtyMongo2 = base.DirtyMongo2, map[string]any{}
 	}
 	base.mutex.Unlock()
 	if dirtyMongo != nil {
+		a, b, update := bson.M{}, bson.M{}, bson.M{}
+		for k, v := range dirtyMongo {
+			if v != nil {
+				a[k] = v
+			} else {
+				b[k] = 1
+			}
+		}
+		if len(a) > 0 {
+			update["$set"] = a
+		}
+		if len(b) > 0 {
+			update["$unset"] = b
+		}
 		in := &jmongo.Input{
 			Col:    jglobal.MONGO_USER,
 			Filter: bson.M{"_id": base.Uid},
-			Update: bson.M{"$set": dirtyMongo, "$unset": dirtyMongo2},
+			Update: update,
 			Upsert: true,
 		}
 		jdb.Mongo.UpdateOne(in)

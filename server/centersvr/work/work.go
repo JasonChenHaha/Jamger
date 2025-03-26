@@ -17,8 +17,11 @@ func Init() {
 	jrpc.Rpc.Connect(jglobal.GRP_CENTER)
 	jrpc.Rpc.Connect(jglobal.GRP_GATE)
 	jnet.Rpc.SetCodec(rpcEncode, rpcDecode)
-	jnet.Rpc.Register(jpb.CMD_DEL_USER, deleteUser, &jpb.DelUserReq{})
+	jnet.Rpc.Register(jpb.CMD_DEL_USER, deleteUser, &jpb.DeleteUserReq{})
 	jnet.Rpc.Register(jpb.CMD_LOGIN_REQ, login, &jpb.LoginReq{})
+	jnet.Rpc.Register(jpb.CMD_SWIPER_LIST_REQ, swiperList, &jpb.SwiperListReq{})
+	jnet.Rpc.Register(jpb.CMD_UPLOAD_SWIPER_REQ, uploadSwiper, &jpb.UploadSwiperReq{})
+	jnet.Rpc.Register(jpb.CMD_DELETE_SWIPER_REQ, deleteSwiper, &jpb.DeleteSwiperReq{})
 	jnet.Rpc.Register(jpb.CMD_GOOD_LIST_REQ, goodList, &jpb.GoodListReq{})
 	jnet.Rpc.Register(jpb.CMD_UPLOAD_GOOD_REQ, uploadGood, &jpb.UploadGoodReq{})
 	jnet.Rpc.Register(jpb.CMD_MODIFY_GOOD_REQ, modifyGood, &jpb.ModifyGoodReq{})
@@ -30,8 +33,8 @@ func Init() {
 
 // 缓存清理
 func deleteUser(pack *jglobal.Pack) {
-	req := pack.Data.(*jpb.DelUserReq)
-	pack.Data = &jpb.DelUserRsp{}
+	req := pack.Data.(*jpb.DeleteUserReq)
+	pack.Data = &jpb.DeleteUserRsp{}
 	if user := juser.GetUser(req.Uid); user != nil {
 		user.Destory()
 	}
@@ -44,6 +47,72 @@ func login(pack *jglobal.Pack) {
 	pack.Cmd = jpb.CMD_LOGIN_RSP
 	pack.Data = rsp
 	user.SetLoginTs()
+}
+
+// 获取轮播图列表
+func swiperList(pack *jglobal.Pack) {
+	rsp := &jpb.SwiperListRsp{}
+	pack.Cmd = jpb.CMD_SWIPER_LIST_RSP
+	pack.Data = rsp
+	user := juser.GetUserAnyway(0)
+	for k := range user.Swipers.Data {
+		rsp.Uids = append(rsp.Uids, k)
+	}
+}
+
+// 上传轮播图
+func uploadSwiper(pack *jglobal.Pack) {
+	user := pack.Ctx.(*juser.User)
+	req := pack.Data.(*jpb.UploadSwiperReq)
+	rsp := &jpb.UploadSwiperRsp{}
+	pack.Cmd = jpb.CMD_UPLOAD_SWIPER_RSP
+	pack.Data = rsp
+	if !user.Admin {
+		rsp.Code = jpb.CODE_DENY
+		return
+	}
+	user0 := juser.GetUserAnyway(0)
+	uid, err := user0.GenSwiperUid()
+	if err != nil {
+		rsp.Code = jpb.CODE_SVR_ERR
+		return
+	}
+	if err = jimage.Image.Add(uid, req.Image); err != nil {
+		rsp.Code = jpb.CODE_SVR_ERR
+		return
+	}
+	user0.AddSwiper(uid)
+	jschedule.DoAt(5*time.Second, func(args ...any) {
+		jnet.BroadcastToGroup(jglobal.GRP_CENTER, &jglobal.Pack{
+			Cmd:  jpb.CMD_DEL_USER,
+			Data: &jpb.DeleteUserReq{Uid: 0},
+		})
+	})
+}
+
+// 删除轮播图
+func deleteSwiper(pack *jglobal.Pack) {
+	user := pack.Ctx.(*juser.User)
+	req := pack.Data.(*jpb.DeleteSwiperReq)
+	rsp := &jpb.DeleteSwiperRsp{}
+	pack.Cmd = jpb.CMD_DELETE_SWIPER_RSP
+	pack.Data = rsp
+	if !user.Admin {
+		rsp.Code = jpb.CODE_DENY
+		return
+	}
+	if err := jimage.Image.Delete(req.Uid); err != nil {
+		rsp.Code = jpb.CODE_SVR_ERR
+		return
+	}
+	user0 := juser.GetUserAnyway(0)
+	user0.DelSwiper(req.Uid)
+	jschedule.DoAt(5*time.Second, func(args ...any) {
+		jnet.BroadcastToGroup(jglobal.GRP_CENTER, &jglobal.Pack{
+			Cmd:  jpb.CMD_DEL_USER,
+			Data: &jpb.DeleteUserReq{Uid: 0},
+		})
+	})
 }
 
 // 获取商品列表
@@ -68,21 +137,18 @@ func uploadGood(pack *jglobal.Pack) {
 		rsp.Code = jpb.CODE_DENY
 		return
 	}
-	// 图片压缩
 	image, err := jimage.Image.Compress(req.Good.Image)
 	if err != nil {
 		rsp.Code = jpb.CODE_IMAGE_ERR
 		return
 	}
 	req.Good.Image = image
-	// 生成商品uid
 	user0 := juser.GetUserAnyway(0)
 	uid, err := user0.GenGoodUid()
 	if err != nil {
 		rsp.Code = jpb.CODE_SVR_ERR
 		return
 	}
-	// 保存图片
 	if err = jimage.Image.Add(uid, req.Good.Image); err != nil {
 		rsp.Code = jpb.CODE_SVR_ERR
 		return
@@ -92,7 +158,7 @@ func uploadGood(pack *jglobal.Pack) {
 	jschedule.DoAt(5*time.Second, func(args ...any) {
 		jnet.BroadcastToGroup(jglobal.GRP_CENTER, &jglobal.Pack{
 			Cmd:  jpb.CMD_DEL_USER,
-			Data: &jpb.DelUserReq{Uid: 0},
+			Data: &jpb.DeleteUserReq{Uid: 0},
 		})
 	})
 }
@@ -108,14 +174,12 @@ func modifyGood(pack *jglobal.Pack) {
 		rsp.Code = jpb.CODE_DENY
 		return
 	}
-	// 图片压缩
 	image, err := jimage.Image.Compress(req.Good.Image)
 	if err != nil {
 		rsp.Code = jpb.CODE_IMAGE_ERR
 		return
 	}
 	req.Good.Image = image
-	// 保存图片
 	if err = jimage.Image.Add(req.Good.Uid, req.Good.Image); err != nil {
 		rsp.Code = jpb.CODE_SVR_ERR
 		return
@@ -125,7 +189,7 @@ func modifyGood(pack *jglobal.Pack) {
 	jschedule.DoAt(5*time.Second, func(args ...any) {
 		jnet.BroadcastToGroup(jglobal.GRP_CENTER, &jglobal.Pack{
 			Cmd:  jpb.CMD_DEL_USER,
-			Data: &jpb.DelUserReq{Uid: 0},
+			Data: &jpb.DeleteUserReq{Uid: 0},
 		})
 	})
 }
@@ -141,12 +205,16 @@ func deleteGood(pack *jglobal.Pack) {
 		rsp.Code = jpb.CODE_DENY
 		return
 	}
+	if err := jimage.Image.Delete(req.Uid); err != nil {
+		rsp.Code = jpb.CODE_SVR_ERR
+		return
+	}
 	user0 := juser.GetUserAnyway(0)
 	user0.DelGood(req.Uid)
 	jschedule.DoAt(5*time.Second, func(args ...any) {
 		jnet.BroadcastToGroup(jglobal.GRP_CENTER, &jglobal.Pack{
 			Cmd:  jpb.CMD_DEL_USER,
-			Data: &jpb.DelUserReq{Uid: 0},
+			Data: &jpb.DeleteUserReq{Uid: 0},
 		})
 	})
 }

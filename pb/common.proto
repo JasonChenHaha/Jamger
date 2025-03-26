@@ -26,16 +26,22 @@ enum CMD {
     NOTIFY = 3000;
     LOGIN_REQ = 3001;
     LOGIN_RSP = 3002;
-    GOOD_LIST_REQ = 3003;
-    GOOD_LIST_RSP = 3004;
-    UPLOAD_GOOD_REQ = 3005;
-    UPLOAD_GOOD_RSP = 3006;
-    MODIFY_GOOD_REQ = 3007;
-    MODIFY_GOOD_RSP = 3008;
-    DELETE_GOOD_REQ = 3009;
-    DELETE_GOOD_RSP = 3010;
-    IMAGE_REQ = 3011;
-    IMAGE_RSP = 3012;
+    SWIPER_LIST_REQ = 3003;
+    SWIPER_LIST_RSP = 3004;
+    UPLOAD_SWIPER_REQ = 3005;
+    UPLOAD_SWIPER_RSP = 3006;
+    DELETE_SWIPER_REQ = 3007;
+    DELETE_SWIPER_RSP = 3008;
+    GOOD_LIST_REQ = 3009;
+    GOOD_LIST_RSP = 3010;
+    UPLOAD_GOOD_REQ = 3011;
+    UPLOAD_GOOD_RSP = 3012;
+    MODIFY_GOOD_REQ = 3013;
+    MODIFY_GOOD_RSP = 3014;
+    DELETE_GOOD_REQ = 3015;
+    DELETE_GOOD_RSP = 3016;
+    IMAGE_REQ = 3017;
+    IMAGE_RSP = 3018;
 }
 
 enum CODE {
@@ -57,10 +63,10 @@ message Error {
     string desc = 2;
 }
 
-message DelUserReq {
+message DeleteUserReq {
     uint32 uid = 1;
 }
 
-message DelUserRsp {
+message DeleteUserRsp {
     CODE code = 1;
 }

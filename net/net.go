@@ -64,7 +64,7 @@ func BroadcastToGroup(group int, pack *jglobal.Pack) {
 	for k, v := range targets {
 		if k != jglobal.INDEX {
 			pack.Data = data
-			v.Call(pack, &jpb.DelUserRsp{})
+			v.Call(pack, &jpb.DeleteUserRsp{})
 		}
 	}
 }

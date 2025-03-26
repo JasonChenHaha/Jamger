@@ -118,7 +118,6 @@ func wxSignIn(pack *jglobal.Pack) {
 			rsp.Code = jpb.CODE_SVR_ERR
 			return
 		}
-		rsp.Admin = true
 	} else {
 		rsp.Uid = uint32(res["_id"].(int64))
 		basic := res["basic"].(bson.M)

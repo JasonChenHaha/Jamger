@@ -39,3 +39,10 @@ func (tc *TimeCache[T1, T2]) Get(key T1) T2 {
 	}
 	return tc.data[key]
 }
+
+func (tc *TimeCache[T1, T2]) Del(key T1) {
+	tc.mutex.Lock()
+	defer tc.mutex.Unlock()
+	delete(tc.data, key)
+	delete(tc.ts, key)
+}

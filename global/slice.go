@@ -19,6 +19,16 @@ func SliceMultiPick[T1 any, T2 AllInt](s []T1, o []T1, idx []T2) {
 	}
 }
 
+// 删除元素
+func SliceDelete[T comparable](s *[]T, cell T) {
+	for k, v := range *s {
+		if cell == v {
+			*s = append((*s)[:k], (*s)[k+1:]...)
+			break
+		}
+	}
+}
+
 // 删除下标
 func SliceDeletePos[T1 any, T2 AllInt](s *[]T1, idx T2) {
 	*s = append((*s)[:idx], (*s)[idx+1:]...)

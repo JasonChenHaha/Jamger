@@ -70,8 +70,8 @@ func (o *protect) Touch(uid uint32) bool {
 			if target := o.rpc.GetLastConsistentHashTarget(uid); target != o.rpc.GetConsistentHashTarget(jglobal.GROUP, uid) {
 				go target.Call(&jglobal.Pack{
 					Cmd:  jpb.CMD_DEL_USER,
-					Data: &jpb.DelUserReq{Uid: uid},
-				}, &jpb.DelUserRsp{})
+					Data: &jpb.DeleteUserReq{Uid: uid},
+				}, &jpb.DeleteUserRsp{})
 			}
 			o.rec[uid] = struct{}{}
 			return true

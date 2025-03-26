@@ -32,6 +32,9 @@ func testTcp() {
 
 	tcp.rsp[jpb.CMD_GATE_INFO] = &jpb.Error{}
 	tcp.rsp[jpb.CMD_LOGIN_RSP] = &jpb.LoginRsp{}
+	tcp.rsp[jpb.CMD_SWIPER_LIST_RSP] = &jpb.SwiperListRsp{}
+	tcp.rsp[jpb.CMD_UPLOAD_SWIPER_RSP] = &jpb.UploadSwiperRsp{}
+	tcp.rsp[jpb.CMD_DELETE_SWIPER_RSP] = &jpb.DeleteSwiperRsp{}
 	tcp.rsp[jpb.CMD_GOOD_LIST_RSP] = &jpb.GoodListRsp{}
 	tcp.rsp[jpb.CMD_UPLOAD_GOOD_RSP] = &jpb.UploadGoodRsp{}
 	tcp.rsp[jpb.CMD_MODIFY_GOOD_RSP] = &jpb.ModifyGoodRsp{}
@@ -42,16 +45,26 @@ func testTcp() {
 	go tcp.heartbeat()
 
 	tcp.send(jpb.CMD_LOGIN_REQ, &jpb.LoginReq{})
-	// tcp.send(jpb.CMD_GOOD_LIST_REQ, &jpb.GoodListRsp{})
-	// tcp.send(jpb.CMD_IMAGE_REQ, &jpb.ImageReq{
-	// 	Name: "1.jpeg",
-	// })
 
 	// image, err := os.ReadFile("../template/4.jpg")
 	// if err != nil {
 	// 	jlog.Error(err)
 	// 	return
 	// }
+
+	tcp.send(jpb.CMD_SWIPER_LIST_REQ, &jpb.SwiperListReq{})
+	// tcp.send(jpb.CMD_UPLOAD_SWIPER_REQ, &jpb.UploadSwiperReq{
+	// 	Image: image,
+	// })
+	tcp.send(jpb.CMD_DELETE_SWIPER_REQ, &jpb.DeleteSwiperReq{
+		Uid: 26,
+	})
+
+	// tcp.send(jpb.CMD_GOOD_LIST_REQ, &jpb.GoodListRsp{})
+	// tcp.send(jpb.CMD_IMAGE_REQ, &jpb.ImageReq{
+	// 	Name: "1.jpeg",
+	// })
+
 	// tcp.send(jpb.CMD_UPLOAD_GOOD_REQ, &jpb.UploadGoodReq{
 	// 	Good: &jpb.Good{
 	// 		Name:  "商品",

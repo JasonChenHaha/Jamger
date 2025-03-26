@@ -9,6 +9,29 @@ message LoginRsp {
     CODE code = 1;
 }
 
+message SwiperListReq {}
+
+message SwiperListRsp {
+    CODE code = 1;
+    repeated uint32 uids = 2;
+}
+
+message UploadSwiperReq {
+    bytes image = 1;
+}
+
+message UploadSwiperRsp {
+    CODE code = 1;
+}
+
+message DeleteSwiperReq {
+    uint32 uid = 1;
+}
+
+message DeleteSwiperRsp {
+    CODE code = 1;
+}
+
 message Good {
     uint32 uid = 1;         // uid
     string name = 2;        // 名称

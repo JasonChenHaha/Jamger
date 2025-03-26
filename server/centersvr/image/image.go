@@ -88,3 +88,13 @@ func (img *Img) Get(uid uint32) ([]byte, error) {
 		return out["image"].(primitive.Binary).Data, nil
 	}
 }
+
+// 删除图片
+func (img *Img) Delete(uid uint32) error {
+	img.cache.Del(uid)
+	in := &jmongo.Input{
+		Col:    jglobal.MONGO_IMAGE,
+		Filter: bson.M{"_id": uint64(uid)},
+	}
+	return jdb.Mongo.DeleteOne(in)
+}
