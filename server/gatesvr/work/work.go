@@ -24,6 +24,7 @@ func Init() {
 	jnet.Https.SetCodec(httpsEncode, httpsDecode)
 	jnet.Https.Register(jpb.CMD_TRANSFER, httpTransfer, nil)
 	jnet.Https.Register(jpb.CMD_IMAGE_REQ, httpImage, nil)
+	jnet.Https.Register(jpb.CMD_VIDEO_REQ, httpVideo, nil)
 	jnet.Tcp.SetCodec(tcpEncode, tcpDecode)
 	jnet.Tcp.Register(jpb.CMD_HEARTBEAT, twHeartbeat, &jpb.HeartbeatReq{})
 	jnet.Tcp.Register(jpb.CMD_TRANSFER, twTransfer, nil)
@@ -141,6 +142,26 @@ func httpImage(pack *jglobal.Pack) {
 		return
 	}
 	pack.Data = rsp.Image
+}
+
+// 视频下载
+func httpVideo(pack *jglobal.Pack) {
+	target := jrpc.Rpc.GetRoundRobinTarget(jglobal.GRP_CENTER)
+	if target == nil {
+		jlog.Error(fmt.Sprintf("cmd(%d) can't find target", pack.Cmd))
+		return
+	}
+	if !target.Call(pack, &jpb.VideoRsp{}) {
+		jlog.Error(fmt.Sprintf("cmd(%d) call failed", pack.Cmd))
+		return
+	}
+	rsp := pack.Data.(*jpb.VideoRsp)
+	if rsp.Code != jpb.CODE_OK {
+		pack.Data = nil
+		jlog.Errorf("error code(%s)", rsp.Code)
+		return
+	}
+	pack.Data = rsp.Video
 }
 
 // ------------------------- inside.method.tcp/web -------------------------

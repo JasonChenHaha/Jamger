@@ -55,7 +55,7 @@ const (
 
 const (
 	MONGO_USER  = "user"
-	MONGO_IMAGE = "image"
+	MONGO_MEDIA = "media"
 )
 
 const (

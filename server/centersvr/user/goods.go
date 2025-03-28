@@ -37,7 +37,12 @@ func (goods *Goods) load(data bson.M) {
 				Size:   v3["size"].(string),
 				Oprice: uint32(v3["oprice"].(int64)),
 				Price:  uint32(v3["price"].(int64)),
+				MUids:  map[uint32]uint32{},
 				Kind:   v3["kind"].(string),
+			}
+			mUids := v3["muids"].(bson.M)
+			for uid, ty := range mUids {
+				good.MUids[jglobal.Atoi[uint32](uid)] = uint32(ty.(int64))
 			}
 			tmp[good.Uid] = good
 		}
@@ -52,16 +57,16 @@ func (goods *Goods) GenGoodUid() (uint32, error) {
 	in := &jmongo.Input{
 		Col:     jglobal.MONGO_USER,
 		Filter:  bson.M{"_id": int64(0)},
-		Update:  bson.M{"$inc": bson.M{"iuidc": int64(1)}},
+		Update:  bson.M{"$inc": bson.M{"guidc": int64(1)}},
 		Upsert:  true,
 		RetDoc:  options.After,
-		Project: bson.M{"iuidc": 1},
+		Project: bson.M{"guidc": 1},
 	}
 	out := bson.M{}
 	if err := jdb.Mongo.FindOneAndUpdate(in, &out); err != nil {
 		return 0, err
 	}
-	return uint32(out["iuidc"].(int64)), nil
+	return uint32(out["guidc"].(int64)), nil
 }
 
 // 添加商品
@@ -70,14 +75,6 @@ func (goods *Goods) AddGood(uid uint32, good *jpb.Good) {
 	goods.Data[uid] = good
 	goods.user.Lock()
 	goods.user.DirtyMongo[fmt.Sprintf("goods.%d", uid)] = good
-	goods.user.UnLock()
-}
-
-// 修改商品
-func (goods *Goods) ModifyGood(good *jpb.Good) {
-	goods.Data[good.Uid] = good
-	goods.user.Lock()
-	goods.user.DirtyMongo[fmt.Sprintf("goods.%d", good.Uid)] = good
 	goods.user.UnLock()
 }
 

@@ -3,7 +3,6 @@ package juser
 import (
 	"jdb"
 	"jglobal"
-	"jlog"
 	"jmongo"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -37,8 +36,7 @@ func (mongo *Mongo) Load() *User {
 	}
 	data := bson.M{}
 	if err := jdb.Mongo.FindOne(in, &data); err != nil {
-		jlog.Error(err)
-		return nil
+		return mongo.user
 	}
 	mongo.Basic.load(data)
 	mongo.Swipers.load(data)

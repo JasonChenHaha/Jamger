@@ -2,17 +2,14 @@ package juser
 
 import (
 	"fmt"
-	"jdb"
 	"jglobal"
-	"jmongo"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type Swipers struct {
 	user *User
-	Data map[uint32]struct{}
+	Data map[uint32]uint32
 }
 
 // ------------------------- package -------------------------
@@ -20,15 +17,15 @@ type Swipers struct {
 func newSwipers(user *User) *Swipers {
 	return &Swipers{
 		user: user,
-		Data: map[uint32]struct{}{},
+		Data: map[uint32]uint32{},
 	}
 }
 
 func (sp *Swipers) load(data bson.M) {
 	if v, ok := data["swipers"]; ok {
-		tmp := map[uint32]struct{}{}
-		for k := range v.(bson.M) {
-			tmp[jglobal.Atoi[uint32](k)] = struct{}{}
+		tmp := map[uint32]uint32{}
+		for k, ty := range v.(bson.M) {
+			tmp[jglobal.Atoi[uint32](k)] = uint32(ty.(int64))
 		}
 		sp.Data = tmp
 	}
@@ -36,28 +33,11 @@ func (sp *Swipers) load(data bson.M) {
 
 // ------------------------- outside -------------------------
 
-// 生成轮播图id
-func (goods *Goods) GenSwiperUid() (uint32, error) {
-	in := &jmongo.Input{
-		Col:     jglobal.MONGO_USER,
-		Filter:  bson.M{"_id": int64(0)},
-		Update:  bson.M{"$inc": bson.M{"iuidc": int64(1)}},
-		Upsert:  true,
-		RetDoc:  options.After,
-		Project: bson.M{"iuidc": 1},
-	}
-	out := bson.M{}
-	if err := jdb.Mongo.FindOneAndUpdate(in, &out); err != nil {
-		return 0, err
-	}
-	return uint32(out["iuidc"].(int64)), nil
-}
-
 // 添加轮播图
-func (sp *Swipers) AddSwiper(uid uint32) {
-	sp.Data[uid] = struct{}{}
+func (sp *Swipers) AddSwiper(uid uint32, ty uint32) {
+	sp.Data[uid] = ty
 	sp.user.Lock()
-	sp.user.DirtyMongo[fmt.Sprintf("swipers.%d", uid)] = 0
+	sp.user.DirtyMongo[fmt.Sprintf("swipers.%d", uid)] = ty
 	sp.user.UnLock()
 }
 

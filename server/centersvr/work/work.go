@@ -2,7 +2,8 @@ package jwork
 
 import (
 	"jglobal"
-	"jimage"
+	"jlog"
+	"jmedia"
 	"jnet"
 	"jpb"
 	"jrpc"
@@ -24,9 +25,9 @@ func Init() {
 	jnet.Rpc.Register(jpb.CMD_DELETE_SWIPER_REQ, deleteSwiper, &jpb.DeleteSwiperReq{})
 	jnet.Rpc.Register(jpb.CMD_GOOD_LIST_REQ, goodList, &jpb.GoodListReq{})
 	jnet.Rpc.Register(jpb.CMD_UPLOAD_GOOD_REQ, uploadGood, &jpb.UploadGoodReq{})
-	jnet.Rpc.Register(jpb.CMD_MODIFY_GOOD_REQ, modifyGood, &jpb.ModifyGoodReq{})
 	jnet.Rpc.Register(jpb.CMD_DELETE_GOOD_REQ, deleteGood, &jpb.DeleteGoodReq{})
 	jnet.Rpc.Register(jpb.CMD_IMAGE_REQ, image, &jpb.ImageReq{})
+	jnet.Rpc.Register(jpb.CMD_VIDEO_REQ, video, &jpb.VideoReq{})
 }
 
 // ------------------------- inside.method -------------------------
@@ -55,9 +56,7 @@ func swiperList(pack *jglobal.Pack) {
 	pack.Cmd = jpb.CMD_SWIPER_LIST_RSP
 	pack.Data = rsp
 	user := juser.GetUserAnyway(0)
-	for k := range user.Swipers.Data {
-		rsp.Uids = append(rsp.Uids, k)
-	}
+	rsp.MUids = user.Swipers.Data
 }
 
 // 上传轮播图
@@ -71,17 +70,16 @@ func uploadSwiper(pack *jglobal.Pack) {
 		rsp.Code = jpb.CODE_DENY
 		return
 	}
-	user0 := juser.GetUserAnyway(0)
-	uid, err := user0.GenSwiperUid()
+	uids, err := jmedia.Media.Add([]*jpb.Media{req.Media})
 	if err != nil {
 		rsp.Code = jpb.CODE_SVR_ERR
 		return
 	}
-	if err = jimage.Image.Add(uid, req.Image); err != nil {
-		rsp.Code = jpb.CODE_SVR_ERR
-		return
+	user0 := juser.GetUserAnyway(0)
+	for k, v := range uids {
+		user0.AddSwiper(k, v)
+		break
 	}
-	user0.AddSwiper(uid)
 	jschedule.DoAt(5*time.Second, func(args ...any) {
 		jnet.BroadcastToGroup(jglobal.GRP_CENTER, &jglobal.Pack{
 			Cmd:  jpb.CMD_DEL_USER,
@@ -101,7 +99,7 @@ func deleteSwiper(pack *jglobal.Pack) {
 		rsp.Code = jpb.CODE_DENY
 		return
 	}
-	if err := jimage.Image.Delete(req.Uid); err != nil {
+	if err := jmedia.Media.Delete([]uint32{req.Uid}); err != nil {
 		rsp.Code = jpb.CODE_SVR_ERR
 		return
 	}
@@ -137,55 +135,20 @@ func uploadGood(pack *jglobal.Pack) {
 		rsp.Code = jpb.CODE_DENY
 		return
 	}
-	image, err := jimage.Image.Compress(req.Good.Image)
+	uids, err := jmedia.Media.Add(req.Good.Medias)
 	if err != nil {
-		rsp.Code = jpb.CODE_IMAGE_ERR
+		rsp.Code = jpb.CODE_SVR_ERR
 		return
 	}
-	req.Good.Image = image
+	req.Good.Medias = nil
+	req.Good.MUids = uids
 	user0 := juser.GetUserAnyway(0)
 	uid, err := user0.GenGoodUid()
 	if err != nil {
 		rsp.Code = jpb.CODE_SVR_ERR
 		return
 	}
-	if err = jimage.Image.Add(uid, req.Good.Image); err != nil {
-		rsp.Code = jpb.CODE_SVR_ERR
-		return
-	}
-	req.Good.Image = nil
 	user0.AddGood(uid, req.Good)
-	jschedule.DoAt(5*time.Second, func(args ...any) {
-		jnet.BroadcastToGroup(jglobal.GRP_CENTER, &jglobal.Pack{
-			Cmd:  jpb.CMD_DEL_USER,
-			Data: &jpb.DeleteUserReq{Uid: 0},
-		})
-	})
-}
-
-// 修改商品
-func modifyGood(pack *jglobal.Pack) {
-	user := pack.Ctx.(*juser.User)
-	req := pack.Data.(*jpb.ModifyGoodReq)
-	rsp := &jpb.ModifyGoodRsp{}
-	pack.Cmd = jpb.CMD_MODIFY_GOOD_RSP
-	pack.Data = rsp
-	if !user.Admin {
-		rsp.Code = jpb.CODE_DENY
-		return
-	}
-	image, err := jimage.Image.Compress(req.Good.Image)
-	if err != nil {
-		rsp.Code = jpb.CODE_IMAGE_ERR
-		return
-	}
-	req.Good.Image = image
-	if err = jimage.Image.Add(req.Good.Uid, req.Good.Image); err != nil {
-		rsp.Code = jpb.CODE_SVR_ERR
-		return
-	}
-	user0 := juser.GetUserAnyway(0)
-	user0.ModifyGood(req.Good)
 	jschedule.DoAt(5*time.Second, func(args ...any) {
 		jnet.BroadcastToGroup(jglobal.GRP_CENTER, &jglobal.Pack{
 			Cmd:  jpb.CMD_DEL_USER,
@@ -205,11 +168,20 @@ func deleteGood(pack *jglobal.Pack) {
 		rsp.Code = jpb.CODE_DENY
 		return
 	}
-	if err := jimage.Image.Delete(req.Uid); err != nil {
+	user0 := juser.GetUserAnyway(0)
+	good := user0.Goods.Data[req.Uid]
+	if good == nil {
+		rsp.Code = jpb.CODE_PARAM
+		return
+	}
+	uids := []uint32{}
+	for k := range good.MUids {
+		uids = append(uids, k)
+	}
+	if err := jmedia.Media.Delete(uids); err != nil {
 		rsp.Code = jpb.CODE_SVR_ERR
 		return
 	}
-	user0 := juser.GetUserAnyway(0)
 	user0.DelGood(req.Uid)
 	jschedule.DoAt(5*time.Second, func(args ...any) {
 		jnet.BroadcastToGroup(jglobal.GRP_CENTER, &jglobal.Pack{
@@ -221,14 +193,30 @@ func deleteGood(pack *jglobal.Pack) {
 
 // 下载图片
 func image(pack *jglobal.Pack) {
+	jlog.Debug("download image")
 	req := pack.Data.(*jpb.ImageReq)
 	rsp := &jpb.ImageRsp{}
 	pack.Cmd = jpb.CMD_IMAGE_RSP
 	pack.Data = rsp
-	image, err := jimage.Image.Get(req.Uid)
+	image, err := jmedia.Media.GetImage(req.Uid)
 	if err != nil {
 		rsp.Code = jpb.CODE_SVR_ERR
 	} else {
 		rsp.Image = image
+	}
+}
+
+// 下载视频
+func video(pack *jglobal.Pack) {
+	req := pack.Data.(*jpb.VideoReq)
+	jlog.Debug("download video ", req.Uid)
+	rsp := &jpb.VideoRsp{}
+	pack.Cmd = jpb.CMD_VIDEO_RSP
+	pack.Data = rsp
+	video, err := jmedia.Media.GetVideo(req.Uid)
+	if err != nil {
+		rsp.Code = jpb.CODE_SVR_ERR
+	} else {
+		rsp.Video = video
 	}
 }

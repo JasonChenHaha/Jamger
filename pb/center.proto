@@ -9,15 +9,20 @@ message LoginRsp {
     CODE code = 1;
 }
 
+message Media {
+    bytes image = 1;
+    bytes video = 2;
+}
+
 message SwiperListReq {}
 
 message SwiperListRsp {
     CODE code = 1;
-    repeated uint32 uids = 2;
+    map<uint32, uint32> mUids = 8;
 }
 
 message UploadSwiperReq {
-    bytes image = 1;
+    Media media = 1;
 }
 
 message UploadSwiperRsp {
@@ -33,14 +38,15 @@ message DeleteSwiperRsp {
 }
 
 message Good {
-    uint32 uid = 1;         // uid
-    string name = 2;        // 名称
-    string desc = 3;        // 描述
-    string size = 4;        // 尺码
-    uint32 oprice = 5;      // 原价
-    uint32 price = 6;       // 价格
-    bytes image = 7;        // 图片
-    string kind = 8;        // 类别
+    uint32 uid = 1;             // uid
+    string name = 2;            // 名称
+    string desc = 3;            // 描述
+    string size = 4;            // 尺码
+    uint32 oprice = 5;          // 原价
+    uint32 price = 6;           // 价格
+    repeated Media medias = 7;  // 媒体
+    map<uint32, uint32> mUids = 8;
+    string kind = 9;            // 商品类别
 }
 
 message GoodListReq {}
@@ -55,14 +61,6 @@ message UploadGoodReq {
 }
 
 message UploadGoodRsp {
-    CODE code = 1;
-}
-
-message ModifyGoodReq {
-    Good good = 1;
-}
-
-message ModifyGoodRsp {
     CODE code = 1;
 }
 
@@ -81,4 +79,13 @@ message ImageReq {
 message ImageRsp {
     CODE code = 1;
     bytes image = 2;
+}
+
+message VideoReq {
+    uint32 uid = 1;
+}
+
+message VideoRsp {
+    CODE code = 1;
+    bytes video = 2;
 }

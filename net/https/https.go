@@ -37,7 +37,8 @@ func (o *Https) AsServer() *Https {
 	go func() {
 		o.mux = http.NewServeMux()
 		o.mux.HandleFunc("/", o.receive)
-		o.mux.HandleFunc("/image/", o.imageReceive)
+		o.mux.HandleFunc("/image/", o.mediaReceive)
+		o.mux.HandleFunc("/video/", o.mediaReceive)
 		server := &http.Server{
 			Addr:    jconfig.GetString("https.addr"),
 			Handler: o.mux,
@@ -133,13 +134,15 @@ func (o *Https) receive(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (o *Https) imageReceive(w http.ResponseWriter, r *http.Request) {
+func (o *Https) mediaReceive(w http.ResponseWriter, r *http.Request) {
 	parts := strings.Split(r.URL.Path, "/")
-	pack := &jglobal.Pack{
-		Cmd: jpb.CMD_IMAGE_REQ,
-		Data: &jpb.ImageReq{
-			Uid: jglobal.Atoi[uint32](parts[len(parts)-1]),
-		},
+	pack := &jglobal.Pack{}
+	if parts[len(parts)-2] == "image" {
+		pack.Cmd = jpb.CMD_IMAGE_REQ
+		pack.Data = &jpb.ImageReq{Uid: jglobal.Atoi[uint32](parts[len(parts)-1])}
+	} else {
+		pack.Cmd = jpb.CMD_VIDEO_REQ
+		pack.Data = &jpb.VideoReq{Uid: jglobal.Atoi[uint32](parts[len(parts)-1])}
 	}
 	han := o.handler[pack.Cmd]
 	if han == nil {
