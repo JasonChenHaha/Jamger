@@ -2,7 +2,6 @@ package jwork
 
 import (
 	"jglobal"
-	"jlog"
 	"jmedia"
 	"jnet"
 	"jpb"
@@ -193,7 +192,6 @@ func deleteGood(pack *jglobal.Pack) {
 
 // 下载图片
 func image(pack *jglobal.Pack) {
-	jlog.Debug("download image")
 	req := pack.Data.(*jpb.ImageReq)
 	rsp := &jpb.ImageRsp{}
 	pack.Cmd = jpb.CMD_IMAGE_RSP
@@ -209,7 +207,6 @@ func image(pack *jglobal.Pack) {
 // 下载视频
 func video(pack *jglobal.Pack) {
 	req := pack.Data.(*jpb.VideoReq)
-	jlog.Debug("download video ", req.Uid)
 	rsp := &jpb.VideoRsp{}
 	pack.Cmd = jpb.CMD_VIDEO_RSP
 	pack.Data = rsp

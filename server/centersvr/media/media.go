@@ -54,11 +54,7 @@ func (me *Medi) Add(medias []*jpb.Media) (map[uint32]uint32, error) {
 			uids[uid] = 2
 		} else {
 			// 添加图片
-			image, err := me.compressImage(v.Image)
-			if err != nil {
-				return nil, err
-			}
-			many = append(many, bson.M{"_id": uid, "image": image})
+			many = append(many, bson.M{"_id": uid, "image": v.Image})
 			uids[uid] = 1
 		}
 		uid++
@@ -107,9 +103,12 @@ func (me *Medi) GetVideo(uid uint32) ([]byte, error) {
 		if err := jdb.Mongo.FindOne(in, &out); err != nil {
 			return nil, err
 		}
-		media = &jpb.Media{
-			Image: out["image"].(primitive.Binary).Data,
-			Video: out["video"].(primitive.Binary).Data,
+		media = &jpb.Media{}
+		if v, ok := out["image"]; ok {
+			media.Image = v.(primitive.Binary).Data
+		}
+		if v, ok := out["video"]; ok {
+			media.Video = v.(primitive.Binary).Data
 		}
 		me.cache.Set(uid, media)
 		return media.Video, nil
