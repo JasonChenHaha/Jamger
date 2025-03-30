@@ -84,6 +84,7 @@ message ImageRsp {
 message VideoReq {
     uint32 uid = 1;
     uint32 start = 2;
+    uint32 end = 3;
 }
 
 message VideoRsp {
