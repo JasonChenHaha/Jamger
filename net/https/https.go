@@ -218,12 +218,13 @@ func (o *Https) videoReceive(w http.ResponseWriter, r *http.Request) {
 				}
 			} else {
 				start := jglobal.Atoi[uint32](ab[0])
+				end := start + 1048575
 				pack := &jglobal.Pack{
 					Cmd: jpb.CMD_VIDEO_REQ,
 					Data: &jpb.VideoReq{
 						Uid:   jglobal.Atoi[uint32](parts[len(parts)-1]),
 						Start: start,
-						End:   1048575,
+						End:   end,
 					},
 				}
 				han := o.handler[pack.Cmd]
