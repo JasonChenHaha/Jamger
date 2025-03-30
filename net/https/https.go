@@ -8,7 +8,6 @@ import (
 	"jglobal"
 	"jlog"
 	"jpb"
-	"math"
 	"net/http"
 	"os"
 	"strconv"
@@ -167,7 +166,7 @@ func (o *Https) videoReceive(w http.ResponseWriter, r *http.Request) {
 			Data: &jpb.VideoReq{
 				Uid:   jglobal.Atoi[uint32](parts[len(parts)-1]),
 				Start: 0,
-				End:   math.MaxUint32 - 1,
+				End:   1048575,
 			},
 		}
 		han := o.handler[pack.Cmd]
@@ -183,6 +182,7 @@ func (o *Https) videoReceive(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Connection", "keep-alive")
 		w.Header().Set("Content-Range", fmt.Sprintf("bytes 0-%d/%d", size-1, rsp.Size))
 		w.WriteHeader(http.StatusPartialContent)
+		jlog.Debug(w.Header())
 		if _, err := w.Write(rsp.Video); err != nil {
 			jlog.Error(err)
 		}
