@@ -214,6 +214,12 @@ func video(pack *jglobal.Pack) {
 	if err != nil {
 		rsp.Code = jpb.CODE_SVR_ERR
 	} else {
-		rsp.Video = video
+		size := uint32(len(video))
+		if req.Start >= size {
+			rsp.Code = jpb.CODE_PARAM
+			return
+		}
+		rsp.Size = size
+		rsp.Video = video[req.Start:jglobal.Min(req.Start+1024*1024, size)]
 	}
 }

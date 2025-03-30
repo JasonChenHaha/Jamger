@@ -141,7 +141,6 @@ func httpImage(pack *jglobal.Pack) {
 		jlog.Errorf("error code(%s)", rsp.Code)
 		return
 	}
-	pack.Data = rsp.Image
 }
 
 // 视频下载
@@ -161,7 +160,6 @@ func httpVideo(pack *jglobal.Pack) {
 		jlog.Errorf("error code(%s)", rsp.Code)
 		return
 	}
-	pack.Data = rsp.Video
 }
 
 // ------------------------- inside.method.tcp/web -------------------------

@@ -306,3 +306,17 @@ func UrlToCmd(str string) jpb.CMD {
 		return Atoi[jpb.CMD](s)
 	}
 }
+
+func Max[T AllInt](a, b T) T {
+	if a < b {
+		return b
+	}
+	return a
+}
+
+func Min[T AllInt](a, b T) T {
+	if a < b {
+		return a
+	}
+	return b
+}
