@@ -178,6 +178,9 @@ func (o *Https) videoReceive(w http.ResponseWriter, r *http.Request) {
 		han.fun(pack)
 		rsp := pack.Data.(*jpb.VideoRsp)
 		size := len(rsp.Video)
+		w.Header().Set("Content-Type", "video/mp4")
+		w.Header().Set("Accept-Ranges", "bytes")
+		w.Header().Set("Connection", "keep-alive")
 		w.Header().Set("Content-Range", fmt.Sprintf("bytes 0-%d/%d", size-1, rsp.Size))
 		w.WriteHeader(http.StatusPartialContent)
 		if _, err := w.Write(rsp.Video); err != nil {
@@ -239,7 +242,30 @@ func (o *Https) videoReceive(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 		} else {
-
+			start := jglobal.Atoi[uint32](ab[0])
+			end := jglobal.Atoi[uint32](ab[1])
+			pack := &jglobal.Pack{
+				Cmd: jpb.CMD_VIDEO_REQ,
+				Data: &jpb.VideoReq{
+					Uid:   jglobal.Atoi[uint32](parts[len(parts)-1]),
+					Start: start,
+					End:   end,
+				},
+			}
+			han := o.handler[pack.Cmd]
+			if han == nil {
+				jlog.Errorf("no cmd(%s)", pack.Cmd)
+				return
+			}
+			han.fun(pack)
+			rsp := pack.Data.(*jpb.VideoRsp)
+			size := uint32(len(rsp.Video))
+			w.Header().Set("Content-Length", jglobal.Itoa(size))
+			w.Header().Set("Content-Range", fmt.Sprintf("bytes %d-%d/%d", start, start+size-1, rsp.Size))
+			w.WriteHeader(http.StatusPartialContent)
+			if _, err := w.Write(rsp.Video); err != nil {
+				jlog.Error(err)
+			}
 		}
 	}
 
