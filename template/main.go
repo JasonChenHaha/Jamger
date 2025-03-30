@@ -11,7 +11,7 @@ import (
 	"jnet"
 	"jrpc"
 	"jschedule"
-	"juser"
+	"juser2"
 	"jwork"
 )
 
@@ -28,7 +28,7 @@ func main() {
 	jmeta.Init()
 	jetcd.Init()
 	jrpc.Init()
-	juser.Init()
+	juser2.Init()
 	jwork.Init()
 	jglobal.Keep()
 	jlog.Infof(">%s stop<", jglobal.SERVER)

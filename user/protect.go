@@ -1,4 +1,4 @@
-package juBase
+package juser
 
 // 保护模块用来解决缓存在多节点同时存在时的数据一致性问题：
 // 若group集群内有a，b两个节点,当a节点下线后，请求从gate转发到b节点，b节点会建立缓存，

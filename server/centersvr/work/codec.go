@@ -4,7 +4,7 @@ import (
 	"encoding/binary"
 	"jglobal"
 	"jpb"
-	"juser"
+	"juser2"
 )
 
 const (
@@ -40,7 +40,7 @@ func rpcEncode(pack *jglobal.Pack) error {
 	data := pack.Data.([]byte)
 	raw := make([]byte, uidSize+gateSize+cmdSize+len(data))
 	switch v := pack.Ctx.(type) {
-	case *juser.User:
+	case *juser2.User:
 		binary.LittleEndian.PutUint32(raw, uint32(v.Uid))
 		binary.LittleEndian.PutUint32(raw[uidSize:], uint32(v.Gate))
 	case uint32:
@@ -56,11 +56,11 @@ func rpcDecode(pack *jglobal.Pack) error {
 	raw := pack.Data.([]byte)
 	uid := binary.LittleEndian.Uint32(raw)
 	if pack.Ctx == nil && uid != 0 {
-		user := juser.GetUserAnyway(uid)
+		user := juser2.GetUserAnyway(uid)
 		pack.Ctx = user
 	}
 	if pack.Ctx != nil {
-		pack.Ctx.(*juser.User).SetGate(int(binary.LittleEndian.Uint32(raw[uidSize:])))
+		pack.Ctx.(*juser2.User).SetGate(int(binary.LittleEndian.Uint32(raw[uidSize:])))
 	}
 	pack.Cmd = jpb.CMD(binary.LittleEndian.Uint16(raw[uidSize+gateSize:]))
 	pack.Data = raw[uidSize+gateSize+cmdSize:]

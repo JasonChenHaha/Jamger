@@ -1,16 +1,16 @@
-package juser
+package juser2
 
 import (
 	"fmt"
 	"jglobal"
 	"jschedule"
-	"juBase"
+	"juser"
 	"time"
 )
 
 // 所有属性的写需要使用对应的set方法，以驱动数据定时落地
 type User struct {
-	*juBase.Base
+	*juser.User
 	*Redis
 	*Mongo
 	ticker any
@@ -23,7 +23,7 @@ var users = jglobal.NewMaps(uint32(1))
 func Init() {}
 
 func NewUser(uid uint32) *User {
-	user := &User{Base: juBase.NewBase(uid)}
+	user := &User{User: juser.NewUser(uid)}
 	user.Redis = newRedis(user)
 	user.Mongo = newMongo(user)
 	user.ticker = jschedule.DoEvery(time.Second, user.tick)
@@ -58,13 +58,13 @@ func (user *User) Destory() {
 	jschedule.Stop(user.ticker)
 	users.Delete(user.Uid)
 	user.Redis.clear()
-	user.Base.Flush()
+	user.User.Flush()
 }
 
 // ------------------------- inside -------------------------
 
 func (user *User) tick(args ...any) {
-	if user.Base.Tick() {
+	if user.User.Tick() {
 		user.Destory()
 	}
 }

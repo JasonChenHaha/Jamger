@@ -7,7 +7,7 @@ import (
 	"jglobal"
 	"jlog"
 	"jschedule"
-	"juBase"
+	"juser"
 	"strings"
 	"time"
 
@@ -87,11 +87,11 @@ again:
 	if v := o.server[jglobal.GROUP]; v != nil {
 		if v2 := v[jglobal.INDEX]; v2 == nil {
 			// 本节点是新加入进来的，切换protect模式
-			juBase.Protect.Enable(true)
+			juser.Protect.Enable(true)
 			o.info["protect"] = time.Now().Unix() + jglobal.USER_LIVE
 			o.lease = nil
 			o.ticker2 = jschedule.DoAt(jglobal.USER_LIVE*time.Second, func(args ...any) {
-				juBase.Protect.Disable()
+				juser.Protect.Disable()
 				o.info["protect"] = nil
 				o.lease = nil
 			})
@@ -100,14 +100,14 @@ again:
 				// protect模式还未结束
 				left := int64(v3.(float64)) - time.Now().Unix()
 				if left > 0 {
-					juBase.Protect.Enable(false)
+					juser.Protect.Enable(false)
 					o.ticker2 = jschedule.DoAt(time.Duration(left)*time.Second, func(args ...any) {
-						juBase.Protect.Disable()
+						juser.Protect.Disable()
 						delete(o.info, "protect")
 						o.lease = nil
 					})
 				} else {
-					juBase.Protect.Disable()
+					juser.Protect.Disable()
 					delete(o.info, "protect")
 					o.lease = nil
 				}

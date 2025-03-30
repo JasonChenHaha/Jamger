@@ -8,7 +8,7 @@ import (
 	"jnet"
 	"jpb"
 	"jrpc"
-	"juser"
+	"juser2"
 )
 
 // ------------------------- outside -------------------------
@@ -17,23 +17,18 @@ func Init() {
 	jrpc.Rpc.Connect(jglobal.GRP_GATE)
 	jrpc.Rpc.Connect(jglobal.GRP_AUTH)
 	jrpc.Rpc.Connect(jglobal.GRP_CENTER)
-	jnet.Http.SetCodec(httpEncode, httpDecode)
 	jnet.Http.Register(jpb.CMD_TRANSFER, httpTransfer, nil)
 	jnet.Http.Register(jpb.CMD_SIGN_IN_REQ, httpSignIn, &jpb.SignInReq{})
 	jnet.Http.Register(jpb.CMD_LOGIN_REQ, httpLogin, &jpb.LoginReq{})
-	jnet.Https.SetCodec(httpsEncode, httpsDecode)
 	jnet.Https.Register(jpb.CMD_TRANSFER, httpTransfer, nil)
 	jnet.Https.Register(jpb.CMD_IMAGE_REQ, httpImage, nil)
 	jnet.Https.Register(jpb.CMD_VIDEO_REQ, httpVideo, nil)
-	jnet.Tcp.SetCodec(tcpEncode, tcpDecode)
 	jnet.Tcp.Register(jpb.CMD_HEARTBEAT, twHeartbeat, &jpb.HeartbeatReq{})
 	jnet.Tcp.Register(jpb.CMD_TRANSFER, twTransfer, nil)
 	jnet.Tcp.Register(jpb.CMD_LOGIN_REQ, twLogin, &jpb.LoginReq{})
-	jnet.Web.SetCodec(webEncode, webDecode)
 	jnet.Web.Register(jpb.CMD_HEARTBEAT, twHeartbeat, &jpb.HeartbeatReq{})
 	jnet.Web.Register(jpb.CMD_TRANSFER, twTransfer, nil)
 	jnet.Web.Register(jpb.CMD_LOGIN_REQ, twLogin, &jpb.LoginReq{})
-	jnet.Rpc.SetCodec(rpcEncode, rpcDecode)
 	jnet.Rpc.Register(jpb.CMD_KICK_USER_REQ, rpcKickUser, &jpb.KickUserReq{})
 	jnet.Rpc.Register(jpb.CMD_TOC, rpcSendToC, nil)
 	jnet.Rpc.Register(jpb.CMD_BROADCAST, rpcBroadcast, nil)
@@ -110,7 +105,7 @@ func httpSignIn(pack *jglobal.Pack) {
 
 // 登录
 func httpLogin(pack *jglobal.Pack) {
-	user := pack.Ctx.(*juser.User)
+	user := pack.Ctx.(*juser2.User)
 	target := jrpc.Rpc.GetConsistentHashTarget(jglobal.GRP_CENTER, user.Uid)
 	if target == nil {
 		pack.Data = &jpb.Error{Code: jpb.CODE_SVR_ERR, Desc: fmt.Sprintf("cmd(%d) can't find target", pack.Cmd)}
@@ -166,7 +161,7 @@ func httpVideo(pack *jglobal.Pack) {
 
 // 透传
 func twTransfer(pack *jglobal.Pack) {
-	user := pack.Ctx.(*juser.User)
+	user := pack.Ctx.(*juser2.User)
 	defer jnet.Send(pack)
 	target := jrpc.Rpc.GetConsistentHashTarget(jglobal.GetGroup(pack.Cmd), user.Uid)
 	if target == nil {
@@ -187,7 +182,7 @@ func twHeartbeat(pack *jglobal.Pack) {
 
 // 登录
 func twLogin(pack *jglobal.Pack) {
-	user := pack.Ctx.(*juser.User)
+	user := pack.Ctx.(*juser2.User)
 	defer jnet.Send(pack)
 	user.SetGate(jglobal.INDEX)
 	target := jrpc.Rpc.GetConsistentHashTarget(jglobal.GRP_CENTER, user.Uid)
@@ -210,7 +205,7 @@ func rpcKickUser(pack *jglobal.Pack) {
 	req := pack.Data.(*jpb.KickUserReq)
 	pack.Cmd = jpb.CMD_KICK_USER_RSP
 	pack.Data = &jpb.KickUserRsp{}
-	if user := juser.GetUser(req.Uid); user != nil {
+	if user := juser2.GetUser(req.Uid); user != nil {
 		jnet.Close(user)
 		user.Destory()
 	}
@@ -219,13 +214,13 @@ func rpcKickUser(pack *jglobal.Pack) {
 // 发送
 func rpcSendToC(pack *jglobal.Pack) {
 	switch v := pack.Ctx.(type) {
-	case *juser.User:
+	case *juser2.User:
 		jnet.Send(pack)
 	case uint32:
 		// 转发
-		var user *juser.User
-		if user = juser.GetUser(v); user == nil {
-			user = juser.NewUser(v).Redis.Load()
+		var user *juser2.User
+		if user = juser2.GetUser(v); user == nil {
+			user = juser2.NewUser(v).Redis.Load()
 		}
 		if user.Gate == 0 {
 			jlog.Warnf("%s is offline", user)
@@ -243,7 +238,7 @@ func rpcSendToC(pack *jglobal.Pack) {
 // 广播
 func rpcBroadcast(pack *jglobal.Pack) {
 	data := pack.Data
-	juser.Range(func(uid, user any) bool {
+	juser2.Range(func(uid, user any) bool {
 		pack.Data = data
 		pack.Ctx = user
 		jnet.Send(pack)

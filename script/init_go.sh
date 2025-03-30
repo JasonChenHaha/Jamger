@@ -1,5 +1,6 @@
 root=`pwd`
 exclude_paths=("./server" "./out" "./script" "./template" "./test")
+declare -A keys
 tmpFile=$(mktemp)
 tmpFile2=$(mktemp)
 
@@ -20,6 +21,7 @@ done < "$tmpFile"
 
 while IFS= read -r dir; do
     all="$all $dir"
+    keys[$(basename $dir)]=1
 done < "$tmpFile2"
 
 find ./server -maxdepth 1 ! -path './server' -type d -print | while read dir; do
@@ -35,7 +37,12 @@ find ./server -maxdepth 1 ! -path './server' -type d -print | while read dir; do
     find . -path '*/.*' -prune -o ! -path '.' -type d -print | while read dir2; do
         cd $root/server/$server/${dir2#./}
         if [[ ! -f ./go.mod ]]; then
-            go mod init j$(basename $dir2)
+            key=$(basename $dir2)
+            if [[ -n "${keys[$key]}" ]]; then
+                go mod init j$(basename $dir2)2
+            else
+                go mod init j$(basename $dir2)
+            fi
             go mod tidy
         fi
         cd $root/${dir#./}

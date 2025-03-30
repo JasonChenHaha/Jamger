@@ -1,4 +1,4 @@
-package juBase
+package juser
 
 import (
 	"jdb"
@@ -9,7 +9,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 )
 
-type Base struct {
+type User struct {
 	Uid        uint32
 	live       int
 	mutex      sync.Mutex
@@ -19,39 +19,39 @@ type Base struct {
 
 // ------------------------- outside -------------------------
 
-func NewBase(uid uint32) *Base {
-	base := &Base{
+func NewUser(uid uint32) *User {
+	user := &User{
 		Uid:        uid,
 		DirtyRedis: map[string]any{},
 		DirtyMongo: map[string]any{},
 		live:       jglobal.USER_LIVE,
 	}
-	return base
+	return user
 }
 
-func (base *Base) GetUid() uint32 {
-	return base.Uid
+func (user *User) GetUid() uint32 {
+	return user.Uid
 }
 
-func (base *Base) Lock() {
-	base.mutex.Lock()
+func (user *User) Lock() {
+	user.mutex.Lock()
 }
 
-func (base *Base) UnLock() {
-	base.mutex.Unlock()
+func (user *User) UnLock() {
+	user.mutex.Unlock()
 }
 
-func (base *Base) Touch() {
-	base.live = jglobal.USER_LIVE
+func (user *User) Touch() {
+	user.live = jglobal.USER_LIVE
 }
 
-func (base *Base) Flush() {
-	base.flush()
+func (user *User) Flush() {
+	user.flush()
 }
 
-func (base *Base) Tick() bool {
-	base.flush()
-	if base.live -= 1; base.live <= 0 {
+func (user *User) Tick() bool {
+	user.flush()
+	if user.live -= 1; user.live <= 0 {
 		return true
 	}
 	return false
@@ -60,29 +60,29 @@ func (base *Base) Tick() bool {
 // ------------------------- inside -------------------------
 
 // 脏数据落地
-func (base *Base) flush() {
-	base.mutex.Lock()
-	if base.DirtyRedis == nil {
-		base.DirtyRedis = map[string]any{}
-		base.mutex.Unlock()
-		jdb.Redis.Del(jglobal.Itoa(base.Uid))
-	} else if len(base.DirtyRedis) > 0 {
+func (user *User) flush() {
+	user.mutex.Lock()
+	if user.DirtyRedis == nil {
+		user.DirtyRedis = map[string]any{}
+		user.mutex.Unlock()
+		jdb.Redis.Del(jglobal.Itoa(user.Uid))
+	} else if len(user.DirtyRedis) > 0 {
 		dirtyRedis := []any{}
-		for k, v := range base.DirtyRedis {
+		for k, v := range user.DirtyRedis {
 			dirtyRedis = append(dirtyRedis, k, v)
 		}
-		base.DirtyRedis = map[string]any{}
-		base.mutex.Unlock()
-		jdb.Redis.HSet(jglobal.Itoa(base.Uid), dirtyRedis...)
+		user.DirtyRedis = map[string]any{}
+		user.mutex.Unlock()
+		jdb.Redis.HSet(jglobal.Itoa(user.Uid), dirtyRedis...)
 	} else {
-		base.mutex.Unlock()
+		user.mutex.Unlock()
 	}
-	base.mutex.Lock()
+	user.mutex.Lock()
 	var dirtyMongo map[string]any
-	if len(base.DirtyMongo) > 0 {
-		dirtyMongo, base.DirtyMongo = base.DirtyMongo, map[string]any{}
+	if len(user.DirtyMongo) > 0 {
+		dirtyMongo, user.DirtyMongo = user.DirtyMongo, map[string]any{}
 	}
-	base.mutex.Unlock()
+	user.mutex.Unlock()
 	if dirtyMongo != nil {
 		a, b, update := bson.M{}, bson.M{}, bson.M{}
 		for k, v := range dirtyMongo {
@@ -100,7 +100,7 @@ func (base *Base) flush() {
 		}
 		in := &jmongo.Input{
 			Col:    jglobal.MONGO_USER,
-			Filter: bson.M{"_id": base.Uid},
+			Filter: bson.M{"_id": user.Uid},
 			Update: update,
 			Upsert: true,
 		}

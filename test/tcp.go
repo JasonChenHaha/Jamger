@@ -37,7 +37,6 @@ func testTcp() {
 	tcp.rsp[jpb.CMD_DELETE_SWIPER_RSP] = &jpb.DeleteSwiperRsp{}
 	tcp.rsp[jpb.CMD_GOOD_LIST_RSP] = &jpb.GoodListRsp{}
 	tcp.rsp[jpb.CMD_UPLOAD_GOOD_RSP] = &jpb.UploadGoodRsp{}
-	tcp.rsp[jpb.CMD_MODIFY_GOOD_RSP] = &jpb.ModifyGoodRsp{}
 	tcp.rsp[jpb.CMD_DELETE_GOOD_RSP] = &jpb.DeleteGoodRsp{}
 	tcp.rsp[jpb.CMD_IMAGE_RSP] = &jpb.ImageRsp{}
 

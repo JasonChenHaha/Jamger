@@ -1,4 +1,4 @@
-package juser
+package juser2
 
 import (
 	"go.mongodb.org/mongo-driver/bson"

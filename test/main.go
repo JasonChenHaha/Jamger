@@ -132,7 +132,7 @@ func CompressPNG(file *os.File, dir, name, ext string) {
 
 func CompressImage(name string) {
 	dir := filepath.Dir(name)
-	fileName := filepath.Base(name)
+	fileName := filepath.User(name)
 	ext := filepath.Ext(name)
 	fileName = fileName[:len(fileName)-len(ext)]
 	file, err := os.Open(name)

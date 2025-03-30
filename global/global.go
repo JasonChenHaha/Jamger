@@ -69,6 +69,14 @@ const (
 	KCP
 )
 
+const (
+	UID_SIZE      = 4
+	GATE_SIZE     = 4
+	CMD_SIZE      = 2
+	AESKEY_SIZE   = 16
+	CHECKSUM_SIZE = 4
+)
+
 var ID int
 var NAME string
 var ZONE int

@@ -1,4 +1,4 @@
-package juser
+package juser2
 
 import (
 	"jdb"

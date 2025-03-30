@@ -22,7 +22,7 @@ type DDD struct {
 	Name string
 }
 
-type User struct {
+type User2 struct {
 	Id   int `gorm:"primaryKey"`
 	Name string
 	gorm.Model
@@ -48,11 +48,11 @@ func network() {
 func mysql() {
 	var res *gorm.DB
 	var n int64
-	user := &User{
+	user := &User2{
 		Id:   8,
 		Name: "ddd",
 	}
-	users := &[]User{
+	users := &[]User2{
 		{Id: 0, Name: "abc"},
 		{Id: 2, Name: "kkk"},
 	}

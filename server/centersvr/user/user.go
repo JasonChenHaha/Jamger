@@ -1,17 +1,17 @@
-package juser
+package juser2
 
 import (
 	"fmt"
 	"jglobal"
 	"jnet"
 	"jschedule"
-	"juBase"
+	"juser"
 	"time"
 )
 
 // 所有属性的写需要使用对应的set方法，以驱动数据定时落地
 type User struct {
-	*juBase.Base
+	*juser.User
 	*Mongo
 	ticker any
 }
@@ -25,7 +25,7 @@ func Init() {
 }
 
 func NewUser(uid uint32) *User {
-	user := &User{Base: juBase.NewBase(uid)}
+	user := &User{User: juser.NewUser(uid)}
 	user.Mongo = newMongo(user)
 	user.ticker = jschedule.DoEvery(time.Second, user.tick)
 	users.Store(uid, user)
@@ -35,7 +35,7 @@ func NewUser(uid uint32) *User {
 func GetUser(uid uint32) *User {
 	if v, ok := users.Load(uid); ok {
 		user := v.(*User)
-		if juBase.Protect.Touch(uid) {
+		if juser.Protect.Touch(uid) {
 			// 如果处于protect模式，当前user可能是旧的，需要销毁
 			user.Destory()
 		} else {
@@ -44,7 +44,7 @@ func GetUser(uid uint32) *User {
 		}
 	} else {
 		// 不存在user仍要touch通知其他节点销毁user
-		juBase.Protect.Touch(uid)
+		juser.Protect.Touch(uid)
 	}
 	return nil
 }
@@ -80,13 +80,13 @@ func (user *User) Load() *User {
 func (user *User) Destory() {
 	jschedule.Stop(user.ticker)
 	users.Delete(user.Uid)
-	user.Base.Flush()
+	user.User.Flush()
 }
 
 // ------------------------- inside -------------------------
 
 func (user *User) tick(args ...any) {
-	if user.Base.Tick() {
+	if user.User.Tick() {
 		user.Destory()
 	}
 }

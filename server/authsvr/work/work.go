@@ -7,7 +7,7 @@ import (
 	"jnet"
 	"jpb"
 	"jrpc"
-	"juser"
+	"juser2"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -38,7 +38,7 @@ func signUp(pack *jglobal.Pack) {
 		return
 	}
 	// 判断账号是否存在
-	_, err := juser.IsUserExist(req.Id)
+	_, err := juser2.IsUserExist(req.Id)
 	if err == nil {
 		rsp.Code = jpb.CODE_USER_EXIST
 		return
@@ -47,19 +47,19 @@ func signUp(pack *jglobal.Pack) {
 		return
 	} else {
 		// 密码加密
-		secret, err := juser.EncryptPwd(req.Pwd)
+		secret, err := juser2.EncryptPwd(req.Pwd)
 		if err != nil {
 			rsp.Code = jpb.CODE_SVR_ERR
 			return
 		}
 		// 生成用户id
-		uid, err := juser.GenUserUid()
+		uid, err := juser2.GenUserUid()
 		if err != nil {
 			rsp.Code = jpb.CODE_SVR_ERR
 			return
 		}
 		// 创建
-		if err = juser.CreateUser(uid, req.Id, secret); err != nil {
+		if err = juser2.CreateUser(uid, req.Id, secret); err != nil {
 			rsp.Code = jpb.CODE_SVR_ERR
 			return
 		}
@@ -78,7 +78,7 @@ func signIn(pack *jglobal.Pack) {
 		return
 	}
 	// 账号校验
-	if uid, err := juser.AccountCheck(req.Id, req.Pwd); err != nil {
+	if uid, err := juser2.AccountCheck(req.Id, req.Pwd); err != nil {
 		rsp.Code = jpb.CODE_ACCOUNT_FAIL
 	} else {
 		rsp.Uid = uid
@@ -99,17 +99,17 @@ func wxSignIn(pack *jglobal.Pack) {
 	openId := res["openid"].(string)
 	// sesKey := res["session_key"].(string)
 	// 判断账号是否存在
-	res, err = juser.IsUserExist(openId)
+	res, err = juser2.IsUserExist(openId)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
 			// 生成用户id
-			uid, err := juser.GenUserUid()
+			uid, err := juser2.GenUserUid()
 			if err != nil {
 				rsp.Code = jpb.CODE_SVR_ERR
 				return
 			}
 			// 创建
-			if err = juser.WxCreateUser(uid, openId); err != nil {
+			if err = juser2.WxCreateUser(uid, openId); err != nil {
 				rsp.Code = jpb.CODE_SVR_ERR
 				return
 			}
