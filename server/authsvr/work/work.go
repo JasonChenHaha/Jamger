@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"jglobal"
 	"jglobal2"
+	"jlog"
 	"jnet"
 	"jpb"
 	"jrpc"
@@ -93,6 +94,10 @@ func wxSignIn(pack *jglobal.Pack) {
 	pack.Data = rsp
 	res, err := jnet.Https.Get(fmt.Sprintf("https://api.weixin.qq.com/sns/jscode2session?appid=%s&secret=%s&js_code=%s&grant_type=authorization_code", jglobal2.AppId, jglobal2.AppSecret, req.WxCode))
 	if err != nil {
+		rsp.Code = jpb.CODE_SVR_ERR
+		return
+	} else if res["errcode"] != nil {
+		jlog.Error(res)
 		rsp.Code = jpb.CODE_SVR_ERR
 		return
 	}
