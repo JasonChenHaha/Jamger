@@ -78,6 +78,15 @@ func (goods *Goods) AddGood(uid uint32, good *jpb.Good) {
 	goods.user.UnLock()
 }
 
+// 修改商品
+func (goods *Goods) ModifyGood(uid uint32, good *jpb.Good) {
+	good.Uid = uid
+	goods.Data[uid] = good
+	goods.user.Lock()
+	goods.user.DirtyMongo[fmt.Sprintf("goods.%d", uid)] = good
+	goods.user.UnLock()
+}
+
 // 下架商品
 func (goods *Goods) DelGood(uid uint32) {
 	delete(goods.Data, uid)

@@ -64,6 +64,14 @@ message UploadGoodRsp {
     CODE code = 1;
 }
 
+message ModifyGoodReq {
+    Good good = 1;
+}
+
+message ModifyGoodRsp {
+    CODE code = 1;
+}
+
 message DeleteGoodReq {
     uint32 uid = 1;
 }
