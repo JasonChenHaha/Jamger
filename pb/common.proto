@@ -26,24 +26,30 @@ enum CMD {
     NOTIFY = 3000;
     LOGIN_REQ = 3001;
     LOGIN_RSP = 3002;
-    SWIPER_LIST_REQ = 3003;
-    SWIPER_LIST_RSP = 3004;
-    UPLOAD_SWIPER_REQ = 3005;
-    UPLOAD_SWIPER_RSP = 3006;
-    DELETE_SWIPER_REQ = 3007;
-    DELETE_SWIPER_RSP = 3008;
-    GOOD_LIST_REQ = 3009;
-    GOOD_LIST_RSP = 3010;
-    UPLOAD_GOOD_REQ = 3011;
-    UPLOAD_GOOD_RSP = 3012;
-    MODIFY_GOOD_REQ = 3013;
-    MODIFY_GOOD_RSP = 3014;
-    DELETE_GOOD_REQ = 3015;
-    DELETE_GOOD_RSP = 3016;
-    IMAGE_REQ = 3017;
-    IMAGE_RSP = 3018;
-    VIDEO_REQ = 3019;
-    VIDEO_RSP = 3020;
+    SCORE_REQ = 3003;
+    SCORE_RSP = 3004;
+    ADD_SCORE_REQ = 3005;
+    ADD_SCORE_RSP = 3006;
+    MODIFY_SCORE_REQ = 3007;
+    MODIFY_SCORE_RSP = 3008;
+    SWIPER_LIST_REQ = 3009;
+    SWIPER_LIST_RSP = 3010;
+    UPLOAD_SWIPER_REQ = 3011;
+    UPLOAD_SWIPER_RSP = 3012;
+    DELETE_SWIPER_REQ = 3013;
+    DELETE_SWIPER_RSP = 3014;
+    GOOD_LIST_REQ = 3015;
+    GOOD_LIST_RSP = 3016;
+    UPLOAD_GOOD_REQ = 3017;
+    UPLOAD_GOOD_RSP = 3018;
+    MODIFY_GOOD_REQ = 3019;
+    MODIFY_GOOD_RSP = 3020;
+    DELETE_GOOD_REQ = 3021;
+    DELETE_GOOD_RSP = 3022;
+    IMAGE_REQ = 3023;
+    IMAGE_RSP = 3024;
+    VIDEO_REQ = 3025;
+    VIDEO_RSP = 3026;
 }
 
 enum CODE {
@@ -51,14 +57,16 @@ enum CODE {
     ERR = 1;
     SVR_ERR = 2;
     CLOSED = 3;
-    DENY = 4;
-    PARAM = 5;
+    PARAM = 4;
+    DENY = 5;
 
     AESKEY_ERR = 10;         // 重复的AESKey
     ACCOUNT_SYNTX = 11;      // 账号密码格式错误
-    USER_EXIST = 12;         // 账号已存在
+    ACCOUNT_EXIST = 12;      // 账号已存在
     ACCOUNT_FAIL = 13;       // 账号或密码错误
-    IMAGE_ERR = 14;          // 图片压缩失败
+    USER_NIL = 14;           // 用户不存在
+    SCORE_INSUFFICIENT = 15; // 积分不够
+    IMAGE_ERR = 16;          // 图片压缩失败
 }
 
 message Error {

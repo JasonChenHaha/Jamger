@@ -3,6 +3,7 @@ package jwork
 import (
 	"jconfig"
 	"jglobal"
+	"jlog"
 	"jmedia"
 	"jnet"
 	"jpb"
@@ -20,6 +21,9 @@ func Init() {
 	jnet.Rpc.SetCodec(rpcEncode, rpcDecode)
 	jnet.Rpc.Register(jpb.CMD_DEL_USER, deleteUser, &jpb.DeleteUserReq{})
 	jnet.Rpc.Register(jpb.CMD_LOGIN_REQ, login, &jpb.LoginReq{})
+	jnet.Rpc.Register(jpb.CMD_SCORE_REQ, score, &jpb.ScoreReq{})
+	jnet.Rpc.Register(jpb.CMD_ADD_SCORE_REQ, addScore, &jpb.AddScoreReq{})
+	jnet.Rpc.Register(jpb.CMD_MODIFY_SCORE_REQ, modifyScore, &jpb.ModifyScoreReq{})
 	jnet.Rpc.Register(jpb.CMD_SWIPER_LIST_REQ, swiperList, &jpb.SwiperListReq{})
 	jnet.Rpc.Register(jpb.CMD_UPLOAD_SWIPER_REQ, uploadSwiper, &jpb.UploadSwiperReq{})
 	jnet.Rpc.Register(jpb.CMD_DELETE_SWIPER_REQ, deleteSwiper, &jpb.DeleteSwiperReq{})
@@ -49,6 +53,84 @@ func login(pack *jglobal.Pack) {
 	pack.Cmd = jpb.CMD_LOGIN_RSP
 	pack.Data = rsp
 	user.SetLoginTs()
+}
+
+// 获取积分
+func score(pack *jglobal.Pack) {
+	user := pack.Ctx.(*juser2.User)
+	req := pack.Data.(*jpb.ScoreReq)
+	rsp := &jpb.ScoreRsp{}
+	pack.Cmd = jpb.CMD_SCORE_RSP
+	pack.Data = rsp
+	if req.Uid != 0 {
+		if !user.Admin {
+			rsp.Code = jpb.CODE_DENY
+			return
+		}
+		user2 := juser2.GetUserAnyway(req.Uid)
+		if !user2.Exist {
+			rsp.Code = jpb.CODE_USER_NIL
+			return
+		}
+		rsp.Score = user2.Score.Data
+	} else {
+		rsp.Score = user.Score.Data
+	}
+}
+
+// 增加积分
+func addScore(pack *jglobal.Pack) {
+	user := pack.Ctx.(*juser2.User)
+	req := pack.Data.(*jpb.AddScoreReq)
+	rsp := &jpb.AddScoreRsp{}
+	pack.Cmd = jpb.CMD_ADD_SCORE_RSP
+	pack.Data = rsp
+	if !user.Admin {
+		rsp.Code = jpb.CODE_DENY
+		return
+	}
+	user2 := juser2.GetUserAnyway(req.Uid)
+	if !user2.Exist {
+		rsp.Code = jpb.CODE_USER_NIL
+		return
+	}
+	if req.Add < 0 && int32(user2.Score.Data) < -req.Add {
+		rsp.Code = jpb.CODE_SCORE_INSUFFICIENT
+		return
+	}
+	user2.ModifyScore(uint32(jglobal.Max(0, int32(user2.Score.Data)+req.Add)))
+	rsp.Score = user2.Score.Data
+	jschedule.DoAt(5*time.Second, func(args ...any) {
+		jnet.BroadcastToGroup(jglobal.GRP_CENTER, &jglobal.Pack{
+			Cmd:  jpb.CMD_DEL_USER,
+			Data: &jpb.DeleteUserReq{Uid: req.Uid},
+		})
+	})
+}
+
+// 修改积分
+func modifyScore(pack *jglobal.Pack) {
+	user := pack.Ctx.(*juser2.User)
+	req := pack.Data.(*jpb.ModifyScoreReq)
+	rsp := &jpb.ModifyScoreRsp{}
+	pack.Cmd = jpb.CMD_MODIFY_SCORE_RSP
+	pack.Data = rsp
+	if !user.Admin {
+		rsp.Code = jpb.CODE_DENY
+		return
+	}
+	user2 := juser2.GetUserAnyway(req.Uid)
+	if !user2.Exist {
+		rsp.Code = jpb.CODE_USER_NIL
+		return
+	}
+	user2.ModifyScore(req.Score)
+	jschedule.DoAt(5*time.Second, func(args ...any) {
+		jnet.BroadcastToGroup(jglobal.GRP_CENTER, &jglobal.Pack{
+			Cmd:  jpb.CMD_DEL_USER,
+			Data: &jpb.DeleteUserReq{Uid: req.Uid},
+		})
+	})
 }
 
 // 获取轮播图列表
@@ -231,6 +313,7 @@ func image(pack *jglobal.Pack) {
 	} else {
 		rsp.Image = image
 	}
+	jlog.Debugf("image size: %d", len(rsp.Image))
 }
 
 // 下载视频
@@ -247,6 +330,7 @@ func video(pack *jglobal.Pack) {
 			req.End = req.Start + uint32(jconfig.GetInt("video.len"))
 		}
 		size := uint32(len(video))
+		jlog.Debugf("video size: %d", size)
 		if req.Start > req.End || req.Start >= size {
 			rsp.Code = jpb.CODE_PARAM
 			return

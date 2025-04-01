@@ -41,7 +41,7 @@ func signUp(pack *jglobal.Pack) {
 	// 判断账号是否存在
 	_, err := juser2.IsUserExist(req.Id)
 	if err == nil {
-		rsp.Code = jpb.CODE_USER_EXIST
+		rsp.Code = jpb.CODE_ACCOUNT_EXIST
 		return
 	} else if err != mongo.ErrNoDocuments {
 		rsp.Code = jpb.CODE_SVR_ERR

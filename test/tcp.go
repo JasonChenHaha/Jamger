@@ -39,11 +39,18 @@ func testTcp() {
 	tcp.rsp[jpb.CMD_UPLOAD_GOOD_RSP] = &jpb.UploadGoodRsp{}
 	tcp.rsp[jpb.CMD_DELETE_GOOD_RSP] = &jpb.DeleteGoodRsp{}
 	tcp.rsp[jpb.CMD_IMAGE_RSP] = &jpb.ImageRsp{}
+	tcp.rsp[jpb.CMD_SCORE_RSP] = &jpb.ScoreRsp{}
+	tcp.rsp[jpb.CMD_MODIFY_SCORE_RSP] = &jpb.ModifyScoreRsp{}
 
 	go tcp.recv()
 	go tcp.heartbeat()
 
 	tcp.send(jpb.CMD_LOGIN_REQ, &jpb.LoginReq{})
+	tcp.send(jpb.CMD_MODIFY_SCORE_REQ, &jpb.ModifyScoreReq{
+		Uid:   3,
+		Score: 10,
+	})
+	tcp.send(jpb.CMD_SCORE_REQ, &jpb.ScoreReq{})
 
 	// image, err := os.ReadFile("../template/4.jpg")
 	// if err != nil {
@@ -51,13 +58,13 @@ func testTcp() {
 	// 	return
 	// }
 
-	tcp.send(jpb.CMD_SWIPER_LIST_REQ, &jpb.SwiperListReq{})
+	// tcp.send(jpb.CMD_SWIPER_LIST_REQ, &jpb.SwiperListReq{})
 	// tcp.send(jpb.CMD_UPLOAD_SWIPER_REQ, &jpb.UploadSwiperReq{
 	// 	Image: image,
 	// })
-	tcp.send(jpb.CMD_DELETE_SWIPER_REQ, &jpb.DeleteSwiperReq{
-		Uid: 26,
-	})
+	// tcp.send(jpb.CMD_DELETE_SWIPER_REQ, &jpb.DeleteSwiperReq{
+	// 	Uid: 26,
+	// })
 
 	// tcp.send(jpb.CMD_GOOD_LIST_REQ, &jpb.GoodListRsp{})
 	// tcp.send(jpb.CMD_IMAGE_REQ, &jpb.ImageReq{

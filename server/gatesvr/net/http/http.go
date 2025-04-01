@@ -60,7 +60,7 @@ func authReceive(w http.ResponseWriter, r *http.Request) {
 	pack.Data = body[:pos-jglobal.AESKEY_SIZE]
 	pack.Ctx = body[pos-jglobal.AESKEY_SIZE : pos]
 	// 执行
-	han := jnet.Https.Handler[pack.Cmd]
+	han := jnet.Http.Handler[pack.Cmd]
 	if han != nil {
 		msg := proto.Clone(han.Template)
 		if err = proto.Unmarshal(pack.Data.([]byte), msg); err != nil {
@@ -70,7 +70,7 @@ func authReceive(w http.ResponseWriter, r *http.Request) {
 		pack.Data = msg
 		han.Fun(pack)
 	} else {
-		han = jnet.Https.Handler[jpb.CMD_TRANSFER]
+		han = jnet.Http.Handler[jpb.CMD_TRANSFER]
 		if han == nil {
 			jlog.Error("no cmd(TRANSFER).")
 			return

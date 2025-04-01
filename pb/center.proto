@@ -9,6 +9,34 @@ message LoginRsp {
     CODE code = 1;
 }
 
+message ScoreReq {
+    uint32 uid = 1;
+}
+
+message ScoreRsp {
+    CODE code = 1;
+    uint32 score = 2;
+}
+
+message AddScoreReq {
+    uint32 uid = 1;
+    int32 add = 2;
+}
+
+message AddScoreRsp {
+    CODE code = 1;
+    uint32 score = 2;
+}
+
+message ModifyScoreReq {
+    uint32 uid = 1;
+    uint32 score = 2;
+}
+
+message ModifyScoreRsp {
+    CODE code = 1;
+}
+
 message Media {
     bytes image = 1;
     bytes video = 2;
