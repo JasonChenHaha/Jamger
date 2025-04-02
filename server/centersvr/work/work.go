@@ -21,9 +21,9 @@ func Init() {
 	jnet.Rpc.SetCodec(rpcEncode, rpcDecode)
 	jnet.Rpc.Register(jpb.CMD_DEL_USER, deleteUser, &jpb.DeleteUserReq{})
 	jnet.Rpc.Register(jpb.CMD_LOGIN_REQ, login, &jpb.LoginReq{})
-	jnet.Rpc.Register(jpb.CMD_SCORE_REQ, score, &jpb.ScoreReq{})
-	jnet.Rpc.Register(jpb.CMD_ADD_SCORE_REQ, addScore, &jpb.AddScoreReq{})
-	jnet.Rpc.Register(jpb.CMD_MODIFY_SCORE_REQ, modifyScore, &jpb.ModifyScoreReq{})
+	jnet.Rpc.Register(jpb.CMD_RECORD_REQ, record, &jpb.RecordReq{})
+	jnet.Rpc.Register(jpb.CMD_ADD_RECORD_REQ, addRecord, &jpb.AddRecordReq{})
+	jnet.Rpc.Register(jpb.CMD_MODIFY_RECORD_REQ, modifyRecord, &jpb.ModifyRecordReq{})
 	jnet.Rpc.Register(jpb.CMD_SWIPER_LIST_REQ, swiperList, &jpb.SwiperListReq{})
 	jnet.Rpc.Register(jpb.CMD_UPLOAD_SWIPER_REQ, uploadSwiper, &jpb.UploadSwiperReq{})
 	jnet.Rpc.Register(jpb.CMD_DELETE_SWIPER_REQ, deleteSwiper, &jpb.DeleteSwiperReq{})
@@ -55,12 +55,12 @@ func login(pack *jglobal.Pack) {
 	user.SetLoginTs()
 }
 
-// 获取积分
-func score(pack *jglobal.Pack) {
+// 获取记录
+func record(pack *jglobal.Pack) {
 	user := pack.Ctx.(*juser2.User)
-	req := pack.Data.(*jpb.ScoreReq)
-	rsp := &jpb.ScoreRsp{}
-	pack.Cmd = jpb.CMD_SCORE_RSP
+	req := pack.Data.(*jpb.RecordReq)
+	rsp := &jpb.RecordRsp{}
+	pack.Cmd = jpb.CMD_RECORD_RSP
 	pack.Data = rsp
 	if req.Uid != 0 {
 		if !user.Admin {
@@ -72,18 +72,18 @@ func score(pack *jglobal.Pack) {
 			rsp.Code = jpb.CODE_USER_NIL
 			return
 		}
-		rsp.Score = user2.Score.Data
+		rsp.Records = user2.Record.Data
 	} else {
-		rsp.Score = user.Score.Data
+		rsp.Records = user.Record.Data
 	}
 }
 
 // 增加积分
-func addScore(pack *jglobal.Pack) {
+func addRecord(pack *jglobal.Pack) {
 	user := pack.Ctx.(*juser2.User)
-	req := pack.Data.(*jpb.AddScoreReq)
-	rsp := &jpb.AddScoreRsp{}
-	pack.Cmd = jpb.CMD_ADD_SCORE_RSP
+	req := pack.Data.(*jpb.AddRecordReq)
+	rsp := &jpb.AddRecordRsp{}
+	pack.Cmd = jpb.CMD_ADD_RECORD_RSP
 	pack.Data = rsp
 	if !user.Admin {
 		rsp.Code = jpb.CODE_DENY
@@ -94,12 +94,7 @@ func addScore(pack *jglobal.Pack) {
 		rsp.Code = jpb.CODE_USER_NIL
 		return
 	}
-	if req.Add < 0 && int32(user2.Score.Data) < -req.Add {
-		rsp.Code = jpb.CODE_SCORE_INSUFFICIENT
-		return
-	}
-	user2.ModifyScore(uint32(jglobal.Max(0, int32(user2.Score.Data)+req.Add)))
-	rsp.Score = user2.Score.Data
+	user2.AddRecord(req.Record)
 	jschedule.DoAt(5*time.Second, func(args ...any) {
 		jnet.BroadcastToGroup(jglobal.GRP_CENTER, &jglobal.Pack{
 			Cmd:  jpb.CMD_DEL_USER,
@@ -109,11 +104,11 @@ func addScore(pack *jglobal.Pack) {
 }
 
 // 修改积分
-func modifyScore(pack *jglobal.Pack) {
+func modifyRecord(pack *jglobal.Pack) {
 	user := pack.Ctx.(*juser2.User)
-	req := pack.Data.(*jpb.ModifyScoreReq)
-	rsp := &jpb.ModifyScoreRsp{}
-	pack.Cmd = jpb.CMD_MODIFY_SCORE_RSP
+	req := pack.Data.(*jpb.ModifyRecordReq)
+	rsp := &jpb.ModifyRecordRsp{}
+	pack.Cmd = jpb.CMD_MODIFY_RECORD_RSP
 	pack.Data = rsp
 	if !user.Admin {
 		rsp.Code = jpb.CODE_DENY
@@ -124,7 +119,10 @@ func modifyScore(pack *jglobal.Pack) {
 		rsp.Code = jpb.CODE_USER_NIL
 		return
 	}
-	user2.ModifyScore(req.Score)
+	if !user2.ModifyRecord(req.Index, req.Record) {
+		rsp.Code = jpb.CODE_PARAM
+		return
+	}
 	jschedule.DoAt(5*time.Second, func(args ...any) {
 		jnet.BroadcastToGroup(jglobal.GRP_CENTER, &jglobal.Pack{
 			Cmd:  jpb.CMD_DEL_USER,

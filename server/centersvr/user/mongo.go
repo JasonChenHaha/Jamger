@@ -11,7 +11,7 @@ import (
 type Mongo struct {
 	user *User
 	*Basic
-	*Score
+	*Record
 	*Swipers
 	*Goods
 	Exist bool
@@ -23,7 +23,7 @@ func newMongo(user *User) *Mongo {
 	return &Mongo{
 		user:    user,
 		Basic:   newBasic(user),
-		Score:   newScore(user),
+		Record:  newRecord(user),
 		Swipers: newSwipers(user),
 		Goods:   newGoods(user),
 	}
@@ -35,7 +35,7 @@ func (mongo *Mongo) Load() *User {
 	in := &jmongo.Input{
 		Col:     jglobal.MONGO_USER,
 		Filter:  bson.M{"_id": mongo.user.Uid},
-		Project: bson.M{"basic": 1, "swipers": 1, "goods": 1, "score": 1},
+		Project: bson.M{"basic": 1, "swipers": 1, "goods": 1, "score": 1, "record": 1},
 	}
 	data := bson.M{}
 	if err := jdb.Mongo.FindOne(in, &data); err != nil {
@@ -43,7 +43,7 @@ func (mongo *Mongo) Load() *User {
 	}
 	mongo.Exist = true
 	mongo.Basic.load(data)
-	mongo.Score.load(data)
+	mongo.Record.load(data)
 	mongo.Swipers.load(data)
 	mongo.Goods.load(data)
 	return mongo.user

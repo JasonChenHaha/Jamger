@@ -9,31 +9,36 @@ message LoginRsp {
     CODE code = 1;
 }
 
-message ScoreReq {
+message Record {
+    uint32 score = 1;
+    uint64 timestamp = 2;
+}
+
+message RecordReq {
     uint32 uid = 1;
 }
 
-message ScoreRsp {
+message RecordRsp {
     CODE code = 1;
-    uint32 score = 2;
+    repeated Record records = 2;
 }
 
-message AddScoreReq {
+message AddRecordReq {
     uint32 uid = 1;
-    int32 add = 2;
+    Record record = 2;
 }
 
-message AddScoreRsp {
+message AddRecordRsp {
     CODE code = 1;
-    uint32 score = 2;
 }
 
-message ModifyScoreReq {
+message ModifyRecordReq {
     uint32 uid = 1;
-    uint32 score = 2;
+    uint32 index = 2;
+    Record record = 3;
 }
 
-message ModifyScoreRsp {
+message ModifyRecordRsp {
     CODE code = 1;
 }
 

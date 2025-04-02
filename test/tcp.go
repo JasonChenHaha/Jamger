@@ -39,18 +39,29 @@ func testTcp() {
 	tcp.rsp[jpb.CMD_UPLOAD_GOOD_RSP] = &jpb.UploadGoodRsp{}
 	tcp.rsp[jpb.CMD_DELETE_GOOD_RSP] = &jpb.DeleteGoodRsp{}
 	tcp.rsp[jpb.CMD_IMAGE_RSP] = &jpb.ImageRsp{}
-	tcp.rsp[jpb.CMD_SCORE_RSP] = &jpb.ScoreRsp{}
-	tcp.rsp[jpb.CMD_MODIFY_SCORE_RSP] = &jpb.ModifyScoreRsp{}
+	tcp.rsp[jpb.CMD_RECORD_RSP] = &jpb.RecordRsp{}
+	tcp.rsp[jpb.CMD_ADD_RECORD_RSP] = &jpb.AddRecordRsp{}
+	tcp.rsp[jpb.CMD_MODIFY_RECORD_RSP] = &jpb.ModifyRecordRsp{}
 
 	go tcp.recv()
 	go tcp.heartbeat()
 
 	tcp.send(jpb.CMD_LOGIN_REQ, &jpb.LoginReq{})
-	tcp.send(jpb.CMD_MODIFY_SCORE_REQ, &jpb.ModifyScoreReq{
+	// tcp.send(jpb.CMD_ADD_RECORD_REQ, &jpb.AddRecordReq{
+	// 	Uid: 3,
+	// 	Record: &jpb.Record{
+	// 		Score:     10,
+	// 		Timestamp: uint64(time.Now().Unix()),
+	// 	},
+	// })
+	tcp.send(jpb.CMD_MODIFY_RECORD_REQ, &jpb.ModifyRecordReq{
 		Uid:   3,
-		Score: 10,
+		Index: 1,
+		Record: &jpb.Record{
+			Score: 20,
+		},
 	})
-	tcp.send(jpb.CMD_SCORE_REQ, &jpb.ScoreReq{})
+	tcp.send(jpb.CMD_RECORD_REQ, &jpb.RecordReq{})
 
 	// image, err := os.ReadFile("../template/4.jpg")
 	// if err != nil {
