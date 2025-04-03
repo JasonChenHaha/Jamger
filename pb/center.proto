@@ -42,6 +42,15 @@ message ModifyRecordRsp {
     CODE code = 1;
 }
 
+message DeleteRecordReq {
+    uint32 uid = 1;
+    uint32 index = 2;
+}
+
+message DeleteRecordRsp {
+    CODE code = 1;
+}
+
 message Media {
     bytes image = 1;
     bytes video = 2;

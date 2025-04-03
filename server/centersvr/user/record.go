@@ -57,3 +57,13 @@ func (re *Record) ModifyRecord(index uint32, record *jpb.Record) bool {
 	re.user.UnLock()
 	return true
 }
+
+// 删除记录
+func (re *Record) DeleteRecord(index uint32) bool {
+	if index >= uint32(len(re.Data)) {
+		jlog.Errorf("index(%d) out of bounds(%d)", index, len(re.Data))
+		return false
+	}
+	jglobal.SliceDeletePos(&re.Data, index)
+	return true
+}

@@ -24,6 +24,7 @@ func Init() {
 	jnet.Rpc.Register(jpb.CMD_RECORD_REQ, record, &jpb.RecordReq{})
 	jnet.Rpc.Register(jpb.CMD_ADD_RECORD_REQ, addRecord, &jpb.AddRecordReq{})
 	jnet.Rpc.Register(jpb.CMD_MODIFY_RECORD_REQ, modifyRecord, &jpb.ModifyRecordReq{})
+	jnet.Rpc.Register(jpb.CMD_DELETE_RECORD_REQ, deleteRecord, &jpb.DeleteRecoredReq{})
 	jnet.Rpc.Register(jpb.CMD_SWIPER_LIST_REQ, swiperList, &jpb.SwiperListReq{})
 	jnet.Rpc.Register(jpb.CMD_UPLOAD_SWIPER_REQ, uploadSwiper, &jpb.UploadSwiperReq{})
 	jnet.Rpc.Register(jpb.CMD_DELETE_SWIPER_REQ, deleteSwiper, &jpb.DeleteSwiperReq{})
@@ -78,7 +79,7 @@ func record(pack *jglobal.Pack) {
 	}
 }
 
-// 增加积分
+// 增加记录
 func addRecord(pack *jglobal.Pack) {
 	user := pack.Ctx.(*juser2.User)
 	req := pack.Data.(*jpb.AddRecordReq)
@@ -103,7 +104,7 @@ func addRecord(pack *jglobal.Pack) {
 	})
 }
 
-// 修改积分
+// 修改记录
 func modifyRecord(pack *jglobal.Pack) {
 	user := pack.Ctx.(*juser2.User)
 	req := pack.Data.(*jpb.ModifyRecordReq)
@@ -120,6 +121,30 @@ func modifyRecord(pack *jglobal.Pack) {
 		return
 	}
 	if !user2.ModifyRecord(req.Index, req.Record) {
+		rsp.Code = jpb.CODE_PARAM
+		return
+	}
+	jschedule.DoAt(5*time.Second, func(args ...any) {
+		jnet.BroadcastToGroup(jglobal.GRP_CENTER, &jglobal.Pack{
+			Cmd:  jpb.CMD_DEL_USER,
+			Data: &jpb.DeleteUserReq{Uid: req.Uid},
+		})
+	})
+}
+
+// 删除记录
+func deleteRecord(pack *jglobal.Pack) {
+	user := pack.Ctx.(*juser2.User)
+	req := pack.Data.(*jpb.DeleteRecordReq)
+	rsp := &jpb.DeleteRecordRsp{}
+	pack.Cmd = jpb.CMD_DELETE_GOOD_RSP
+	pack.Data = rsp
+	if !user.Admin {
+		rsp.Code = jpb.CODE_DENY
+		return
+	}
+	user2 := juser2.GetUserAnyway(req.Uid)
+	if !user2.DeleteRecord(req.Index) {
 		rsp.Code = jpb.CODE_PARAM
 		return
 	}
