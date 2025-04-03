@@ -117,6 +117,7 @@ func videoReceive(w http.ResponseWriter, r *http.Request) {
 		// 分片请求
 		ab := strings.Split(strings.Split(r.Header["Range"][0], "=")[1], "-")
 		if ab[1] == "" {
+			end = 1
 			// 没有给定请求范围右端的情况
 			if ab[0] == "0" {
 				// 分片的初始请求，返回视频元数据和少量长度的视频头部

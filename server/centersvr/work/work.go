@@ -349,16 +349,19 @@ func video(pack *jglobal.Pack) {
 	if err != nil {
 		rsp.Code = jpb.CODE_SVR_ERR
 	} else {
-		if req.End == 0 {
-			req.End = req.Start + uint32(jconfig.GetInt("video.len"))
-		}
 		size := uint32(len(video))
 		jlog.Debugf("video size: %d", size)
-		if req.Start > req.End || req.Start >= size {
+		rsp.Size = size
+		if req.End == 0 {
+			return
+		} else if req.End == 1 {
+			req.End = req.Start + uint32(jconfig.GetInt("video.len"))
+			rsp.Video = video[req.Start:jglobal.Min(req.End+1, size)]
+		} else if req.Start > req.End || req.Start >= size {
 			rsp.Code = jpb.CODE_PARAM
 			return
+		} else {
+			rsp.Video = video[req.Start:jglobal.Min(req.End+1, size)]
 		}
-		rsp.Size = size
-		rsp.Video = video[req.Start:jglobal.Min(req.End+1, size)]
 	}
 }
