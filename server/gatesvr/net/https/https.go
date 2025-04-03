@@ -150,11 +150,16 @@ func videoReceive(w http.ResponseWriter, r *http.Request) {
 	}
 	rsp := pack.Data.(*jpb.VideoRsp)
 	size := uint32(len(rsp.Video))
+	if size == 0 {
+		end = 0
+	} else {
+		end = start + size - 1
+	}
 	w.Header().Set("Content-Type", "video/mp4")
 	w.Header().Set("Accept-Ranges", "bytes")
 	w.Header().Set("Connection", "keep-alive")
 	w.Header().Set("Content-Length", jglobal.Itoa(size))
-	w.Header().Set("Content-Range", fmt.Sprintf("bytes %d-%d/%d", start, start+size-1, rsp.Size))
+	w.Header().Set("Content-Range", fmt.Sprintf("bytes %d-%d/%d", start, end, rsp.Size))
 	w.WriteHeader(http.StatusPartialContent)
 	jlog.Debug(w.Header())
 	if _, err := w.Write(rsp.Video); err != nil {
