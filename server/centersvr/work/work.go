@@ -24,7 +24,7 @@ func Init() {
 	jnet.Rpc.Register(jpb.CMD_RECORD_REQ, record, &jpb.RecordReq{})
 	jnet.Rpc.Register(jpb.CMD_ADD_RECORD_REQ, addRecord, &jpb.AddRecordReq{})
 	jnet.Rpc.Register(jpb.CMD_MODIFY_RECORD_REQ, modifyRecord, &jpb.ModifyRecordReq{})
-	jnet.Rpc.Register(jpb.CMD_DELETE_RECORD_REQ, deleteRecord, &jpb.DeleteRecoredReq{})
+	jnet.Rpc.Register(jpb.CMD_DELETE_RECORD_REQ, deleteRecord, &jpb.DeleteRecordReq{})
 	jnet.Rpc.Register(jpb.CMD_SWIPER_LIST_REQ, swiperList, &jpb.SwiperListReq{})
 	jnet.Rpc.Register(jpb.CMD_UPLOAD_SWIPER_REQ, uploadSwiper, &jpb.UploadSwiperReq{})
 	jnet.Rpc.Register(jpb.CMD_DELETE_SWIPER_REQ, deleteSwiper, &jpb.DeleteSwiperReq{})
