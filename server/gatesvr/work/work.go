@@ -2,6 +2,7 @@ package jwork
 
 import (
 	"fmt"
+	"jconfig"
 	"jdb"
 	"jglobal"
 	"jlog"
@@ -14,24 +15,34 @@ import (
 // ------------------------- outside -------------------------
 
 func Init() {
-	jrpc.Rpc.Connect(jglobal.GRP_GATE)
-	jrpc.Rpc.Connect(jglobal.GRP_AUTH)
-	jrpc.Rpc.Connect(jglobal.GRP_CENTER)
-	jnet.Http.Register(jpb.CMD_TRANSFER, httpTransfer, nil)
-	jnet.Http.Register(jpb.CMD_SIGN_IN_REQ, httpSignIn, &jpb.SignInReq{})
-	jnet.Http.Register(jpb.CMD_LOGIN_REQ, httpLogin, &jpb.LoginReq{})
-	jnet.Https.Register(jpb.CMD_TRANSFER, httpTransfer, nil)
-	jnet.Https.Register(jpb.CMD_IMAGE_REQ, httpImage, nil)
-	jnet.Https.Register(jpb.CMD_VIDEO_REQ, httpVideo, nil)
-	jnet.Tcp.Register(jpb.CMD_HEARTBEAT, twHeartbeat, &jpb.HeartbeatReq{})
-	jnet.Tcp.Register(jpb.CMD_TRANSFER, twTransfer, nil)
-	jnet.Tcp.Register(jpb.CMD_LOGIN_REQ, twLogin, &jpb.LoginReq{})
-	jnet.Web.Register(jpb.CMD_HEARTBEAT, twHeartbeat, &jpb.HeartbeatReq{})
-	jnet.Web.Register(jpb.CMD_TRANSFER, twTransfer, nil)
-	jnet.Web.Register(jpb.CMD_LOGIN_REQ, twLogin, &jpb.LoginReq{})
-	jnet.Rpc.Register(jpb.CMD_KICK_USER_REQ, rpcKickUser, &jpb.KickUserReq{})
-	jnet.Rpc.Register(jpb.CMD_TOC, rpcSendToC, nil)
-	jnet.Rpc.Register(jpb.CMD_BROADCAST, rpcBroadcast, nil)
+	if jconfig.Get("tcp") != nil {
+		jnet.Tcp.Register(jpb.CMD_HEARTBEAT, twHeartbeat, &jpb.HeartbeatReq{})
+		jnet.Tcp.Register(jpb.CMD_TRANSFER, twTransfer, nil)
+		jnet.Tcp.Register(jpb.CMD_LOGIN_REQ, twLogin, &jpb.LoginReq{})
+	}
+	if jconfig.Get("web") != nil {
+		jnet.Web.Register(jpb.CMD_HEARTBEAT, twHeartbeat, &jpb.HeartbeatReq{})
+		jnet.Web.Register(jpb.CMD_TRANSFER, twTransfer, nil)
+		jnet.Web.Register(jpb.CMD_LOGIN_REQ, twLogin, &jpb.LoginReq{})
+	}
+	if jconfig.Get("http") != nil {
+		jnet.Http.Register(jpb.CMD_TRANSFER, httpTransfer, nil)
+		jnet.Http.Register(jpb.CMD_SIGN_IN_REQ, httpSignIn, &jpb.SignInReq{})
+		jnet.Http.Register(jpb.CMD_LOGIN_REQ, httpLogin, &jpb.LoginReq{})
+	}
+	if jconfig.Get("https") != nil {
+		jnet.Https.Register(jpb.CMD_TRANSFER, httpTransfer, nil)
+		jnet.Https.Register(jpb.CMD_IMAGE_REQ, httpImage, nil)
+		jnet.Https.Register(jpb.CMD_VIDEO_REQ, httpVideo, nil)
+	}
+	if jconfig.Get("rpc") != nil {
+		jrpc.Rpc.Connect(jglobal.GRP_GATE)
+		jrpc.Rpc.Connect(jglobal.GRP_AUTH)
+		jrpc.Rpc.Connect(jglobal.GRP_CENTER)
+		jnet.Rpc.Register(jpb.CMD_KICK_USER_REQ, rpcKickUser, &jpb.KickUserReq{})
+		jnet.Rpc.Register(jpb.CMD_TOC, rpcSendToC, nil)
+		jnet.Rpc.Register(jpb.CMD_BROADCAST, rpcBroadcast, nil)
+	}
 }
 
 // ------------------------- inside.method.http/https -------------------------
