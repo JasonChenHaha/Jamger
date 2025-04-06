@@ -2,7 +2,9 @@ package juser2
 
 import (
 	"fmt"
+	"jconfig"
 	"jglobal"
+	"jlog"
 	"jschedule"
 	"juser"
 	"time"
@@ -20,7 +22,13 @@ var users = jglobal.NewMaps(uint32(1))
 
 // ------------------------- outside -------------------------
 
-func Init() {}
+func Init() {
+	if jconfig.Get("debug") != nil {
+		jschedule.DoEvery(time.Duration(jconfig.GetInt("debug.interval"))*time.Millisecond, func(args ...any) {
+			jlog.Debugf("gate user %v", users)
+		})
+	}
+}
 
 func NewUser(uid uint32) *User {
 	user := &User{User: juser.NewUser(uid)}
