@@ -59,7 +59,7 @@ const (
 )
 
 const (
-	USER_LIVE = 10 // 300
+	USER_LIVE = 300
 )
 
 const (
