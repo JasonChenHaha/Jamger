@@ -113,10 +113,8 @@ func httpDecode(pack *jglobal.Pack) error {
 	uid := binary.LittleEndian.Uint32(raw)
 	user := juser2.GetUser(uid)
 	if user == nil {
-		user = juser2.NewUser(uid)
+		user = juser2.NewUser(uid).Load()
 	}
-	// to do: 每次请求都会重新load
-	user.Load()
 	pack.Ctx = user
 	pack.Cmd = jpb.CMD(binary.LittleEndian.Uint16(raw[jglobal.UID_SIZE:]))
 	raw = raw[jglobal.UID_SIZE+jglobal.CMD_SIZE:]
@@ -130,48 +128,6 @@ func httpDecode(pack *jglobal.Pack) error {
 		return err
 	}
 	pack.Data = raw[:pos]
-	return nil
-}
-
-// server https pack structure:
-// +--------------------+
-// |        pack        |
-// +---------+----------+
-// |   cmd   |   data   |
-// |---------+----------+
-// |    2    |   ...    |
-// +---------+----------+
-
-func httpsEncode(pack *jglobal.Pack) error {
-	data := pack.Data.([]byte)
-	raw := make([]byte, jglobal.CMD_SIZE+len(data))
-	binary.LittleEndian.PutUint16(raw, uint16(pack.Cmd))
-	copy(raw[jglobal.CMD_SIZE:], data)
-	pack.Data = raw
-	return nil
-}
-
-// client https pack structure:
-// +------------------------------+
-// |             pack             |
-// +---------+---------+----------+
-// |   uid   |   cmd   |   data   |
-// +---------+---------+----------+
-// |    4    |    2    |   ...    |
-// +---------+---------+----------+
-
-func httpsDecode(pack *jglobal.Pack) error {
-	raw := pack.Data.([]byte)
-	uid := binary.LittleEndian.Uint32(raw)
-	user := juser2.GetUser(uid)
-	if user == nil {
-		user = juser2.NewUser(uid)
-	}
-	// to do: 每次请求都会重新load
-	// user.Load()
-	pack.Ctx = user
-	pack.Cmd = jpb.CMD(binary.LittleEndian.Uint16(raw[jglobal.UID_SIZE:]))
-	pack.Data = raw[jglobal.UID_SIZE+jglobal.CMD_SIZE:]
 	return nil
 }
 

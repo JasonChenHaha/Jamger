@@ -19,7 +19,6 @@ func Init() {
 		jhttp2.Init()
 	}
 	if jconfig.Get("https") != nil {
-		jnet.Https.SetCodec(httpsEncode, httpsDecode)
 		jhttps2.Init()
 	}
 	if jconfig.Get("rpc") != nil {

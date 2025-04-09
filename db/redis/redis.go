@@ -25,7 +25,6 @@ func NewRedis() *Redis {
 	})
 	jlog.Info("connect to redis")
 	re.client = client
-	re.Flush()
 	return re
 }
 
@@ -38,8 +37,34 @@ func (re *Redis) Exist(key string) (bool, error) {
 	return rsp > 0, err
 }
 
+func (re *Redis) Set(key string, value any, expire int64) (string, error) {
+	rsp, err := re.client.Set(context.Background(), key, value, time.Duration(expire)*time.Second).Result()
+	if err != nil {
+		jlog.Error(err)
+	}
+	return rsp, err
+}
+
+func (re *Redis) Get(key string) (string, error) {
+	rsp, err := re.client.Get(context.Background(), key).Result()
+	if err == redis.Nil {
+		err = nil
+	} else if err != nil {
+		jlog.Error(err)
+	}
+	return rsp, err
+}
+
 func (re *Redis) HSet(key string, values ...any) (int64, error) {
 	rsp, err := re.client.HSet(context.Background(), key, values...).Result()
+	if err != nil {
+		jlog.Error(err)
+	}
+	return rsp, err
+}
+
+func (re *Redis) HDel(key string, fields ...string) (int64, error) {
+	rsp, err := re.client.HDel(context.Background(), key, fields...).Result()
 	if err != nil {
 		jlog.Error(err)
 	}

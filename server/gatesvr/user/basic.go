@@ -24,7 +24,9 @@ func (basic *Basic) load(data bson.M) {
 	if v, ok := data["basic"]; ok {
 		data = v.(bson.M)
 		basic.Id = data["id"].(string)
-		basic.Pwd = data["pwd"].(primitive.Binary).Data
+		if v, ok := data["pwd"]; ok {
+			basic.Pwd = v.(primitive.Binary).Data
+		}
 		if _, ok := data["admin"]; ok {
 			basic.Admin = true
 		}

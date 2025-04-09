@@ -5,6 +5,7 @@ import (
 	"jconfig"
 	"jdb"
 	"jglobal"
+	"jglobal2"
 	"jlog"
 	"jnet"
 	"jpb"
@@ -32,6 +33,7 @@ func Init() {
 	}
 	if jconfig.Get("https") != nil {
 		jnet.Https.Register(jpb.CMD_TRANSFER, httpTransfer, nil)
+		jnet.Https.Register(jpb.CMD_WX_SIGN_IN_REQ, wxHttpSignIn, &jpb.WxSignInReq{})
 		jnet.Https.Register(jpb.CMD_IMAGE_REQ, httpImage, nil)
 		jnet.Https.Register(jpb.CMD_VIDEO_REQ, httpVideo, nil)
 	}
@@ -58,6 +60,32 @@ func httpTransfer(pack *jglobal.Pack) {
 	if !target.Transfer(pack) {
 		pack.Data = &jpb.Error{Code: jpb.CODE_SVR_ERR, Desc: fmt.Sprintf("cmd(%d) transfer failed", pack.Cmd)}
 		pack.Cmd = jpb.CMD_GATE_INFO
+	}
+}
+
+// wx的auth登录
+func wxHttpSignIn(pack *jglobal.Pack) {
+	target := jrpc.Rpc.GetRoundRobinTarget(jglobal.GetGroup(pack.Cmd))
+	if target == nil {
+		pack.Data = &jpb.Error{Code: jpb.CODE_SVR_ERR, Desc: fmt.Sprintf("cmd(%d) can't find target", pack.Cmd)}
+		pack.Cmd = jpb.CMD_GATE_INFO
+		return
+	}
+	if !target.Call(pack, &jpb.WxSignInRsp{}) {
+		pack.Data = &jpb.Error{Code: jpb.CODE_SVR_ERR, Desc: fmt.Sprintf("cmd(%d) call failed", pack.Cmd)}
+		pack.Cmd = jpb.CMD_GATE_INFO
+		return
+	}
+	rsp := pack.Data.(*jpb.WxSignInRsp)
+	if rsp.Code == jpb.CODE_OK {
+		if _, err := jdb.Redis.Set(fmt.Sprintf("%d-token", rsp.Uid), rsp.Token, jglobal2.TOKEN_EXPIRE); err != nil {
+			pack.Data = &jpb.Error{Code: jpb.CODE_SVR_ERR, Desc: "save token failed"}
+			pack.Cmd = jpb.CMD_GATE_INFO
+			return
+		}
+		if user := juser2.GetUser(rsp.Uid); user != nil {
+			user.SetToken(rsp.Token)
+		}
 	}
 }
 

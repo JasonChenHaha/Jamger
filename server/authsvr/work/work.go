@@ -19,7 +19,6 @@ import (
 func Init() {
 	jrpc.Rpc.Connect(jglobal.GRP_AUTH)
 	jrpc.Rpc.Connect(jglobal.GRP_GATE)
-	jnet.Rpc.SetCodec(rpcEncode, rpcDecode)
 	jnet.Rpc.Register(jpb.CMD_SIGN_UP_REQ, signUp, &jpb.SignUpReq{})
 	jnet.Rpc.Register(jpb.CMD_SIGN_IN_REQ, signIn, &jpb.SignInReq{})
 	jnet.Rpc.Register(jpb.CMD_WX_SIGN_IN_REQ, wxSignIn, &jpb.WxSignInReq{})
@@ -92,6 +91,7 @@ func wxSignIn(pack *jglobal.Pack) {
 	rsp := &jpb.WxSignInRsp{}
 	pack.Cmd = jpb.CMD_WX_SIGN_IN_RSP
 	pack.Data = rsp
+	// wx登录
 	res, err := jnet.Https.Get(fmt.Sprintf("https://api.weixin.qq.com/sns/jscode2session?appid=%s&secret=%s&js_code=%s&grant_type=authorization_code", jglobal2.AppId, jglobal2.AppSecret, req.WxCode))
 	if err != nil {
 		rsp.Code = jpb.CODE_SVR_ERR
@@ -103,7 +103,7 @@ func wxSignIn(pack *jglobal.Pack) {
 	}
 	openId := res["openid"].(string)
 	// sesKey := res["session_key"].(string)
-	// 判断账号是否存在
+	// 用户
 	res, err = juser2.IsUserExist(openId)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
@@ -128,6 +128,7 @@ func wxSignIn(pack *jglobal.Pack) {
 		basic := res["basic"].(bson.M)
 		rsp.Admin = basic["admin"] != nil || basic["admin"] == true
 	}
+	// 生成token
 	token, err := jglobal.TokenGenerate(openId)
 	if err != nil {
 		rsp.Code = jpb.CODE_SVR_ERR

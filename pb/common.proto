@@ -61,6 +61,7 @@ enum CODE {
     CLOSED = 3;
     PARAM = 4;
     DENY = 5;
+    TOKEN = 6;
 
     AESKEY_ERR = 10;         // 重复的AESKey
     ACCOUNT_SYNTX = 11;      // 账号密码格式错误

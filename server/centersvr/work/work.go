@@ -3,7 +3,6 @@ package jwork
 import (
 	"jconfig"
 	"jglobal"
-	"jlog"
 	"jmedia"
 	"jnet"
 	"jpb"
@@ -18,7 +17,6 @@ import (
 func Init() {
 	jrpc.Rpc.Connect(jglobal.GRP_CENTER)
 	jrpc.Rpc.Connect(jglobal.GRP_GATE)
-	jnet.Rpc.SetCodec(rpcEncode, rpcDecode)
 	jnet.Rpc.Register(jpb.CMD_DEL_USER, deleteUser, &jpb.DeleteUserReq{})
 	jnet.Rpc.Register(jpb.CMD_LOGIN_REQ, login, &jpb.LoginReq{})
 	jnet.Rpc.Register(jpb.CMD_RECORD_REQ, record, &jpb.RecordReq{})
@@ -336,7 +334,7 @@ func image(pack *jglobal.Pack) {
 	} else {
 		rsp.Image = image
 	}
-	jlog.Debugf("image size: %d", len(rsp.Image))
+	// jlog.Debugf("image size: %d", len(rsp.Image))
 }
 
 // 下载视频
@@ -350,7 +348,7 @@ func video(pack *jglobal.Pack) {
 		rsp.Code = jpb.CODE_SVR_ERR
 	} else {
 		size := uint32(len(video))
-		jlog.Debugf("video size: %d", size)
+		// jlog.Debugf("video size: %d", size)
 		rsp.Size = size
 		if req.End == 0 {
 			return

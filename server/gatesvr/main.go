@@ -6,6 +6,7 @@ import (
 	"jetcd"
 	"jevent"
 	"jglobal"
+	"jglobal2"
 	"jlog"
 	"jmeta"
 	"jnet"
@@ -21,6 +22,7 @@ func main() {
 	defer jglobal.Rcover()
 	jconfig.Init()
 	jglobal.Init()
+	jglobal2.Init()
 	jlog.Init(jglobal.SERVER)
 	jlog.Infof(">%s start<", jglobal.SERVER)
 	jevent.Init()

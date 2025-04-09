@@ -59,14 +59,14 @@ const (
 )
 
 const (
-	USER_LIVE = 60 * 5
+	USER_LIVE = 10 // 300
 )
 
 const (
-	HTTP = iota
-	TCP
-	WEB
-	KCP
+	HTTP = 1
+	TCP  = 2
+	WEB  = 3
+	KCP  = 4
 )
 
 const (

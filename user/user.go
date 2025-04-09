@@ -11,6 +11,7 @@ import (
 
 type User struct {
 	Uid        uint32
+	UidStr     string
 	live       int
 	mutex      sync.Mutex
 	DirtyRedis map[string]any
@@ -22,6 +23,7 @@ type User struct {
 func NewUser(uid uint32) *User {
 	user := &User{
 		Uid:        uid,
+		UidStr:     jglobal.Itoa(uid),
 		DirtyRedis: map[string]any{},
 		DirtyMongo: map[string]any{},
 		live:       jglobal.USER_LIVE,
@@ -65,15 +67,24 @@ func (user *User) flush() {
 	if user.DirtyRedis == nil {
 		user.DirtyRedis = map[string]any{}
 		user.mutex.Unlock()
-		jdb.Redis.Del(jglobal.Itoa(user.Uid))
+		jdb.Redis.Del(user.UidStr)
 	} else if len(user.DirtyRedis) > 0 {
-		dirtyRedis := []any{}
+		dirtyRedis, dirtyRedis2 := []any{}, []string{}
 		for k, v := range user.DirtyRedis {
-			dirtyRedis = append(dirtyRedis, k, v)
+			if v != nil {
+				dirtyRedis = append(dirtyRedis, k, v)
+			} else {
+				dirtyRedis2 = append(dirtyRedis2, k)
+			}
 		}
 		user.DirtyRedis = map[string]any{}
 		user.mutex.Unlock()
-		jdb.Redis.HSet(jglobal.Itoa(user.Uid), dirtyRedis...)
+		if len(dirtyRedis) > 0 {
+			jdb.Redis.HSet(user.UidStr, dirtyRedis...)
+		}
+		if len(dirtyRedis2) > 0 {
+			jdb.Redis.HDel(user.UidStr, dirtyRedis2...)
+		}
 	} else {
 		user.mutex.Unlock()
 	}

@@ -61,6 +61,7 @@ func CreateUser(uid uint32, id string, secret []byte) error {
 	return jdb.Mongo.InsertOne(in)
 }
 
+// wx创建用户
 func WxCreateUser(uid uint32, id string) error {
 	in := &jmongo.Input{
 		Col:    jglobal.MONGO_USER,

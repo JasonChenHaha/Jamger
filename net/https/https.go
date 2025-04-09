@@ -35,7 +35,6 @@ func (o *Https) AsServer() *Https {
 	o.Handler = map[jpb.CMD]*Handler{}
 	go func() {
 		o.mux = http.NewServeMux()
-		o.mux.HandleFunc("/", o.receive)
 		server := &http.Server{
 			Addr:    jconfig.GetString("https.addr"),
 			Handler: o.mux,
@@ -58,6 +57,10 @@ func (o *Https) AsClient() *Https {
 func (o *Https) SetCodec(en func(*jglobal.Pack) error, de func(*jglobal.Pack) error) {
 	encoder = en
 	decoder = de
+}
+
+func (o *Https) UseDefaultPattern() {
+	o.mux.HandleFunc("/", o.receive)
 }
 
 func (o *Https) RegisterPattern(pattern string, handler func(http.ResponseWriter, *http.Request)) {

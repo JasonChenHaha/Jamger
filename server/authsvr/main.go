@@ -10,6 +10,7 @@ import (
 	"jlog"
 	"jmeta"
 	"jnet"
+	"jnet2"
 	"jrpc"
 	"jschedule"
 	"juser"
@@ -32,6 +33,7 @@ func main() {
 	jetcd.Init()
 	jrpc.Init()
 	juser.Init(jrpc.Rpc)
+	jnet2.Init()
 	juser2.Init()
 	jwork.Init()
 	jglobal.Keep()

@@ -2,13 +2,14 @@ package juser2
 
 import (
 	"bytes"
+	"fmt"
 	"jdb"
-	"jglobal"
 )
 
 type Redis struct {
 	user   *User
 	Gate   int
+	Token  string
 	AesKey []byte
 }
 
@@ -19,22 +20,29 @@ func newRedis(user *User) *Redis {
 }
 
 func (redis *Redis) clear() {
+	redis.user.Lock()
 	redis.user.DirtyRedis = nil
+	redis.user.UnLock()
 }
 
 // ------------------------- outSide -------------------------
 
 func (redis *Redis) Load() *User {
-	data, err := jdb.Redis.HGetAll(jglobal.Itoa(redis.user.Uid))
+	// data, err := jdb.Redis.HGetAll(jglobal.Itoa(redis.user.Uid))
+	// if err != nil {
+	// 	return nil
+	// }
+	// if v, ok := data["gate"]; ok {
+	// 	redis.Gate = jglobal.Atoi[int](v)
+	// }
+	// if v, ok := data["aesKey"]; ok {
+	// 	redis.AesKey = []byte(v)
+	// }
+	token, err := jdb.Redis.Get(fmt.Sprintf("%d-token", redis.user.Uid))
 	if err != nil {
 		return nil
 	}
-	if v, ok := data["gate"]; ok {
-		redis.Gate = jglobal.Atoi[int](v)
-	}
-	if v, ok := data["aesKey"]; ok {
-		redis.AesKey = []byte(v)
-	}
+	redis.Token = token
 	return redis.user
 }
 
@@ -43,6 +51,15 @@ func (redis *Redis) SetGate(gate int) {
 		redis.Gate = gate
 		redis.user.Lock()
 		redis.user.DirtyRedis["gate"] = gate
+		redis.user.UnLock()
+	}
+}
+
+func (redis *Redis) SetToken(token string) {
+	if token != redis.Token {
+		redis.Token = token
+		redis.user.Lock()
+		redis.user.DirtyRedis["token"] = token
 		redis.user.UnLock()
 	}
 }

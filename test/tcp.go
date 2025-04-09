@@ -54,14 +54,14 @@ func testTcp() {
 	// 		Timestamp: uint64(time.Now().Unix()),
 	// 	},
 	// })
-	tcp.send(jpb.CMD_MODIFY_RECORD_REQ, &jpb.ModifyRecordReq{
-		Uid:   3,
-		Index: 1,
-		Record: &jpb.Record{
-			Score: 20,
-		},
-	})
-	tcp.send(jpb.CMD_RECORD_REQ, &jpb.RecordReq{})
+	// tcp.send(jpb.CMD_MODIFY_RECORD_REQ, &jpb.ModifyRecordReq{
+	// 	Uid:   3,
+	// 	Index: 1,
+	// 	Record: &jpb.Record{
+	// 		Score: 20,
+	// 	},
+	// })
+	// tcp.send(jpb.CMD_RECORD_REQ, &jpb.RecordReq{})
 
 	// image, err := os.ReadFile("../template/4.jpg")
 	// if err != nil {
