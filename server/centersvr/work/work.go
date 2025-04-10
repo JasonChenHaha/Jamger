@@ -3,6 +3,7 @@ package jwork
 import (
 	"jconfig"
 	"jglobal"
+	"jlog"
 	"jmedia"
 	"jnet"
 	"jpb"
@@ -243,6 +244,10 @@ func uploadGood(pack *jglobal.Pack) {
 	if err != nil {
 		rsp.Code = jpb.CODE_SVR_ERR
 		return
+	}
+	for _, v := range req.Good.Medias {
+		jlog.Debugf("upload image %d", len(v.Image))
+		jlog.Debugf("upload video %d", len(v.Video))
 	}
 	req.Good.Medias = nil
 	req.Good.MUids = uids
