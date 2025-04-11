@@ -1,6 +1,7 @@
 package jwork
 
 import (
+	"jaddress"
 	"jconfig"
 	"jglobal"
 	"jlog"
@@ -20,6 +21,7 @@ func Init() {
 	jrpc.Rpc.Connect(jglobal.GRP_GATE)
 	jnet.Rpc.Register(jpb.CMD_DEL_USER, deleteUser, &jpb.DeleteUserReq{})
 	jnet.Rpc.Register(jpb.CMD_LOGIN_REQ, login, &jpb.LoginReq{})
+	jnet.Rpc.Register(jpb.CMD_SCORE_REQ, score, &jpb.ScoreReq{})
 	jnet.Rpc.Register(jpb.CMD_RECORD_REQ, record, &jpb.RecordReq{})
 	jnet.Rpc.Register(jpb.CMD_ADD_RECORD_REQ, addRecord, &jpb.AddRecordReq{})
 	jnet.Rpc.Register(jpb.CMD_MODIFY_RECORD_REQ, modifyRecord, &jpb.ModifyRecordReq{})
@@ -33,6 +35,7 @@ func Init() {
 	jnet.Rpc.Register(jpb.CMD_DELETE_GOOD_REQ, deleteGood, &jpb.DeleteGoodReq{})
 	jnet.Rpc.Register(jpb.CMD_IMAGE_REQ, image, &jpb.ImageReq{})
 	jnet.Rpc.Register(jpb.CMD_VIDEO_REQ, video, &jpb.VideoReq{})
+	jnet.Rpc.Register(jpb.CMD_ADDRESS_REQ, address, &jpb.AddressReq{})
 }
 
 // ------------------------- inside.method -------------------------
@@ -53,6 +56,19 @@ func login(pack *jglobal.Pack) {
 	pack.Cmd = jpb.CMD_LOGIN_RSP
 	pack.Data = rsp
 	user.SetLoginTs()
+}
+
+// 获取积分
+func score(pack *jglobal.Pack) {
+	user := pack.Ctx.(*juser2.User)
+	rsp := &jpb.ScoreRsp{}
+	pack.Cmd = jpb.CMD_SCORE_RSP
+	pack.Data = rsp
+	score := uint32(0)
+	for _, v := range user.Record.Data {
+		score += v.Score
+	}
+	rsp.Score = score
 }
 
 // 获取记录
@@ -367,4 +383,12 @@ func video(pack *jglobal.Pack) {
 			rsp.Video = video[req.Start:jglobal.Min(req.End+1, size)]
 		}
 	}
+}
+
+// 获取门店地址
+func address(pack *jglobal.Pack) {
+	rsp := &jpb.AddressRsp{}
+	pack.Cmd = jpb.CMD_ADDRESS_RSP
+	pack.Data = rsp
+	rsp.Addrs = jaddress.Addr.Data
 }

@@ -104,6 +104,9 @@ func (mog *Mongo) FindOneAndUpdate(in *Input, out any) error {
 // out需要为结构体指针切片的指针 *[]*(bson.M or struct)
 func (mog *Mongo) FindMany(in *Input, out any) error {
 	co := mog.getCollection(in.Col)
+	if in.Filter == nil {
+		in.Filter = bson.M{}
+	}
 	opts := options.Find()
 	opts.SetProjection(in.Project)
 	opts.SetSort(in.Sort)

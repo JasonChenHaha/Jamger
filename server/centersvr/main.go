@@ -16,6 +16,7 @@ import (
 	"juser"
 	"juser2"
 	"jwork"
+	"jaddress"
 )
 
 func main() {
@@ -34,6 +35,7 @@ func main() {
 	juser.Init(jrpc.Rpc)
 	jnet2.Init()
 	juser2.Init()
+	jaddress.Init()
 	jmedia.Init()
 	jwork.Init()
 	jglobal.Keep()

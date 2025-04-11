@@ -9,6 +9,13 @@ message LoginRsp {
     CODE code = 1;
 }
 
+message ScoreReq {}
+
+message ScoreRsp {
+    CODE code = 1;
+    uint32 score = 2;
+}
+
 message Record {
     uint32 score = 1;
     uint64 timestamp = 2;
@@ -141,4 +148,18 @@ message VideoRsp {
     CODE code = 1;
     uint32 size = 2;
     bytes video = 3;
+}
+
+message Address {
+    string name = 1;
+    string addr = 2;
+    double longitude = 3;
+    double latitude = 4;
+}
+
+message AddressReq {}
+
+message AddressRsp {
+    CODE code = 1;
+    repeated Address addrs = 2;
 }
