@@ -33,11 +33,19 @@ func (tc *TimeCache[T1, T2]) Set(key T1, val T2) {
 func (tc *TimeCache[T1, T2]) Get(key T1) T2 {
 	tc.mutex.RLock()
 	defer tc.mutex.RUnlock()
-	if t, ok := tc.ts[key]; !ok || t <= time.Now().Unix() {
+	if t, ok := tc.ts[key]; ok {
+		if t > time.Now().Unix() {
+			return tc.data[key]
+		} else {
+			delete(tc.data, key)
+			delete(tc.ts, key)
+			var zero T2
+			return zero
+		}
+	} else {
 		var zero T2
 		return zero
 	}
-	return tc.data[key]
 }
 
 func (tc *TimeCache[T1, T2]) Del(key T1) {

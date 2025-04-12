@@ -374,7 +374,7 @@ func video(pack *jglobal.Pack) {
 		if req.End == 0 {
 			return
 		} else if req.End == 1 {
-			req.End = req.Start + uint32(jconfig.GetInt("video.len"))
+			req.End = req.Start + uint32(jconfig.GetInt("media.video.len"))
 			rsp.Video = video[req.Start:jglobal.Min(req.End+1, size)]
 		} else if req.Start > req.End || req.Start >= size {
 			rsp.Code = jpb.CODE_PARAM
@@ -390,5 +390,5 @@ func address(pack *jglobal.Pack) {
 	rsp := &jpb.AddressRsp{}
 	pack.Cmd = jpb.CMD_ADDRESS_RSP
 	pack.Data = rsp
-	rsp.Addrs = jaddress.Addr.Data
+	rsp.Addrs = jaddress.Addr.Get()
 }
