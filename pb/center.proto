@@ -9,11 +9,12 @@ message LoginRsp {
     CODE code = 1;
 }
 
-message ScoreReq {}
+message StatusReq {}
 
-message ScoreRsp {
+message StatusRsp {
     CODE code = 1;
     uint32 score = 2;
+    uint32 progress = 3;
 }
 
 message Record {

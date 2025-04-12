@@ -21,7 +21,7 @@ func Init() {
 	jrpc.Rpc.Connect(jglobal.GRP_GATE)
 	jnet.Rpc.Register(jpb.CMD_DEL_USER, deleteUser, &jpb.DeleteUserReq{})
 	jnet.Rpc.Register(jpb.CMD_LOGIN_REQ, login, &jpb.LoginReq{})
-	jnet.Rpc.Register(jpb.CMD_SCORE_REQ, score, &jpb.ScoreReq{})
+	jnet.Rpc.Register(jpb.CMD_STATUS_REQ, status, &jpb.StatusReq{})
 	jnet.Rpc.Register(jpb.CMD_RECORD_REQ, record, &jpb.RecordReq{})
 	jnet.Rpc.Register(jpb.CMD_ADD_RECORD_REQ, addRecord, &jpb.AddRecordReq{})
 	jnet.Rpc.Register(jpb.CMD_MODIFY_RECORD_REQ, modifyRecord, &jpb.ModifyRecordReq{})
@@ -58,17 +58,22 @@ func login(pack *jglobal.Pack) {
 	user.SetLoginTs()
 }
 
-// 获取积分
-func score(pack *jglobal.Pack) {
+// 获取状态
+func status(pack *jglobal.Pack) {
 	user := pack.Ctx.(*juser2.User)
-	rsp := &jpb.ScoreRsp{}
-	pack.Cmd = jpb.CMD_SCORE_RSP
+	rsp := &jpb.StatusRsp{}
+	pack.Cmd = jpb.CMD_STATUS_REQ
 	pack.Data = rsp
-	score := uint32(0)
+	count, score := uint32(0), uint32(0)
 	for _, v := range user.Record.Data {
+		if v.Score == 0 {
+			break
+		}
+		count++
 		score += v.Score
 	}
 	rsp.Score = score
+	rsp.Progress = jglobal.Min(count*100/uint32(jconfig.GetInt("good.free")), 100)
 }
 
 // 获取记录
