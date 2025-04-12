@@ -65,12 +65,13 @@ func status(pack *jglobal.Pack) {
 	pack.Cmd = jpb.CMD_STATUS_REQ
 	pack.Data = rsp
 	count, score := uint32(0), uint32(0)
-	for _, v := range user.Record.Data {
-		if v.Score == 0 {
+	records := user.Record.Data
+	for i := len(records) - 1; i >= 0; i-- {
+		if records[i].Score == 0 {
 			break
 		}
 		count++
-		score += v.Score
+		score += records[i].Score
 	}
 	rsp.Score = score
 	rsp.Progress = jglobal.Min(count*100/uint32(jconfig.GetInt("good.free")), 100)
