@@ -80,7 +80,9 @@ func status(pack *jglobal.Pack) {
 	rsp.Score = score
 	rsp.All = all
 	rsp.Count = count
-	rsp.Ave = score / count
+	if count > 0 {
+		rsp.Ave = score / count
+	}
 	rsp.Progress = jglobal.Min(count*100/uint32(jconfig.GetInt("good.free")), 100)
 }
 
