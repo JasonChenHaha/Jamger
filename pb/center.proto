@@ -14,7 +14,10 @@ message StatusReq {}
 message StatusRsp {
     CODE code = 1;
     uint32 score = 2;
-    uint32 progress = 3;
+    uint32 count = 3;
+    uint32 all = 4;
+    uint32 ave = 5;
+    uint32 progress = 6;
 }
 
 message Record {
