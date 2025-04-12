@@ -296,13 +296,9 @@ func modifyGood(pack *jglobal.Pack) {
 		return
 	}
 	user0 := juser2.GetUserAnyway(0)
-	if req.Good.Size != "" {
-		good := user0.Goods.Data[req.Good.Uid]
-		good.Size = req.Good.Size
-		user0.ModifyGood(req.Good.Uid, good)
-	} else {
-		user0.DelGood(req.Good.Uid)
-	}
+	good := user0.Goods.Data[req.Good.Uid]
+	good.Size = req.Good.Size
+	user0.ModifyGood(req.Good.Uid, good)
 	jschedule.DoAt(5*time.Second, func(args ...any) {
 		jnet.BroadcastToGroup(jglobal.GRP_CENTER, &jglobal.Pack{
 			Cmd:  jpb.CMD_DEL_USER,
