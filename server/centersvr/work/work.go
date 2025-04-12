@@ -196,6 +196,8 @@ func uploadSwiper(pack *jglobal.Pack) {
 		rsp.Code = jpb.CODE_SVR_ERR
 		return
 	}
+	jlog.Infof("upload image %d", len(req.Media.Image))
+	jlog.Infof("upload video %d", len(req.Media.Video))
 	user0 := juser2.GetUserAnyway(0)
 	for k, v := range uids {
 		user0.AddSwiper(k, v)
@@ -262,8 +264,8 @@ func uploadGood(pack *jglobal.Pack) {
 		return
 	}
 	for _, v := range req.Good.Medias {
-		jlog.Debugf("upload image %d", len(v.Image))
-		jlog.Debugf("upload video %d", len(v.Video))
+		jlog.Infof("upload image %d", len(v.Image))
+		jlog.Infof("upload video %d", len(v.Video))
 	}
 	req.Good.Medias = nil
 	req.Good.MUids = uids
@@ -355,7 +357,6 @@ func image(pack *jglobal.Pack) {
 	} else {
 		rsp.Image = image
 	}
-	// jlog.Debugf("image size: %d", len(rsp.Image))
 }
 
 // 下载视频
@@ -369,7 +370,6 @@ func video(pack *jglobal.Pack) {
 		rsp.Code = jpb.CODE_SVR_ERR
 	} else {
 		size := uint32(len(video))
-		// jlog.Debugf("video size: %d", size)
 		rsp.Size = size
 		if req.End == 0 {
 			return
