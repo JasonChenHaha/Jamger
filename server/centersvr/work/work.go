@@ -4,7 +4,6 @@ import (
 	"jaddress"
 	"jconfig"
 	"jglobal"
-	"jlog"
 	"jmedia"
 	"jnet"
 	"jpb"
@@ -206,17 +205,10 @@ func uploadSwiper(pack *jglobal.Pack) {
 		rsp.Code = jpb.CODE_DENY
 		return
 	}
-	uids, err := jmedia.Media.Add([]*jpb.Media{req.Media})
-	if err != nil {
+	user0 := juser2.GetUserAnyway(0)
+	if err := user0.AddSwiper(req.Media); err != nil {
 		rsp.Code = jpb.CODE_SVR_ERR
 		return
-	}
-	jlog.Infof("upload image %d", len(req.Media.Image))
-	jlog.Infof("upload video %d", len(req.Media.Video))
-	user0 := juser2.GetUserAnyway(0)
-	for k, v := range uids {
-		user0.AddSwiper(k, v)
-		break
 	}
 	jschedule.DoAt(5*time.Second, func(args ...any) {
 		jnet.BroadcastToGroup(jglobal.GRP_CENTER, &jglobal.Pack{
@@ -237,12 +229,15 @@ func deleteSwiper(pack *jglobal.Pack) {
 		rsp.Code = jpb.CODE_DENY
 		return
 	}
-	if err := jmedia.Media.Delete([]uint32{req.Uid}); err != nil {
+	user0 := juser2.GetUserAnyway(0)
+	if _, ok := user0.Swipers.Data[req.Uid]; !ok {
+		rsp.Code = jpb.CODE_PARAM
+		return
+	}
+	if err := user0.DelSwiper(req.Uid); err != nil {
 		rsp.Code = jpb.CODE_SVR_ERR
 		return
 	}
-	user0 := juser2.GetUserAnyway(0)
-	user0.DelSwiper(req.Uid)
 	jschedule.DoAt(5*time.Second, func(args ...any) {
 		jnet.BroadcastToGroup(jglobal.GRP_CENTER, &jglobal.Pack{
 			Cmd:  jpb.CMD_DEL_USER,
@@ -273,24 +268,11 @@ func uploadGood(pack *jglobal.Pack) {
 		rsp.Code = jpb.CODE_DENY
 		return
 	}
-	uids, err := jmedia.Media.Add(req.Good.Medias)
-	if err != nil {
-		rsp.Code = jpb.CODE_SVR_ERR
-		return
-	}
-	for _, v := range req.Good.Medias {
-		jlog.Infof("upload image %d", len(v.Image))
-		jlog.Infof("upload video %d", len(v.Video))
-	}
-	req.Good.Medias = nil
-	req.Good.MUids = uids
 	user0 := juser2.GetUserAnyway(0)
-	uid, err := user0.GenGoodUid()
-	if err != nil {
+	if err := user0.AddGood(req.Good); err != nil {
 		rsp.Code = jpb.CODE_SVR_ERR
 		return
 	}
-	user0.AddGood(uid, req.Good)
 	jschedule.DoAt(5*time.Second, func(args ...any) {
 		jnet.BroadcastToGroup(jglobal.GRP_CENTER, &jglobal.Pack{
 			Cmd:  jpb.CMD_DEL_USER,
@@ -299,7 +281,7 @@ func uploadGood(pack *jglobal.Pack) {
 	})
 }
 
-// 修改商品
+// 修改商品(尺码)
 func modifyGood(pack *jglobal.Pack) {
 	user := pack.Ctx.(*juser2.User)
 	req := pack.Data.(*jpb.ModifyGoodReq)
@@ -311,9 +293,11 @@ func modifyGood(pack *jglobal.Pack) {
 		return
 	}
 	user0 := juser2.GetUserAnyway(0)
-	good := user0.Goods.Data[req.Good.Uid]
-	good.Size = req.Good.Size
-	user0.ModifyGood(req.Good.Uid, good)
+	if user0.Goods.Data[req.Good.Uid] == nil {
+		rsp.Code = jpb.CODE_PARAM
+		return
+	}
+	user0.ModifyGood(req.Good)
 	jschedule.DoAt(5*time.Second, func(args ...any) {
 		jnet.BroadcastToGroup(jglobal.GRP_CENTER, &jglobal.Pack{
 			Cmd:  jpb.CMD_DEL_USER,
@@ -339,15 +323,10 @@ func deleteGood(pack *jglobal.Pack) {
 		rsp.Code = jpb.CODE_PARAM
 		return
 	}
-	uids := []uint32{}
-	for k := range good.MUids {
-		uids = append(uids, k)
-	}
-	if err := jmedia.Media.Delete(uids); err != nil {
+	if err := user0.DelGood(req.Uid); err != nil {
 		rsp.Code = jpb.CODE_SVR_ERR
 		return
 	}
-	user0.DelGood(req.Uid)
 	jschedule.DoAt(5*time.Second, func(args ...any) {
 		jnet.BroadcastToGroup(jglobal.GRP_CENTER, &jglobal.Pack{
 			Cmd:  jpb.CMD_DEL_USER,

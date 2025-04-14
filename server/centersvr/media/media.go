@@ -52,10 +52,12 @@ func (me *Medi) Add(medias []*jpb.Media) (map[uint32]uint32, error) {
 			// 添加视频(和预览图片)
 			many = append(many, bson.M{"_id": uid, "image": v.Image, "video": v.Video})
 			uids[uid] = 2
+			jlog.Infof("upload video %d", len(v.Video))
 		} else {
 			// 添加图片
 			many = append(many, bson.M{"_id": uid, "image": v.Image})
 			uids[uid] = 1
+			jlog.Infof("upload image %d", len(v.Image))
 		}
 		uid++
 	}

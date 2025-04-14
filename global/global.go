@@ -54,8 +54,8 @@ const (
 )
 
 const (
-	MONGO_USER  = "user"
-	MONGO_MEDIA = "media"
+	MONGO_USER    = "user"
+	MONGO_MEDIA   = "media"
 	MONGO_ADDRESS = "address"
 )
 

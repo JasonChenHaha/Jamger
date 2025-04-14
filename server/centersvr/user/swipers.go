@@ -3,6 +3,8 @@ package juser2
 import (
 	"fmt"
 	"jglobal"
+	"jmedia"
+	"jpb"
 
 	"go.mongodb.org/mongo-driver/bson"
 )
@@ -34,17 +36,28 @@ func (sp *Swipers) load(data bson.M) {
 // ------------------------- outside -------------------------
 
 // 添加轮播图
-func (sp *Swipers) AddSwiper(uid uint32, ty uint32) {
-	sp.Data[uid] = ty
+func (sp *Swipers) AddSwiper(media *jpb.Media) error {
+	uids, err := jmedia.Media.Add([]*jpb.Media{media})
+	if err != nil {
+		return err
+	}
 	sp.user.Lock()
-	sp.user.DirtyMongo[fmt.Sprintf("swipers.%d", uid)] = ty
+	for k, v := range uids {
+		sp.Data[k] = v
+		sp.user.DirtyMongo[fmt.Sprintf("swipers.%d", k)] = v
+	}
 	sp.user.UnLock()
+	return nil
 }
 
 // 删除轮播图
-func (sp *Swipers) DelSwiper(uid uint32) {
+func (sp *Swipers) DelSwiper(uid uint32) error {
+	if err := jmedia.Media.Delete([]uint32{uid}); err != nil {
+		return err
+	}
 	delete(sp.Data, uid)
 	sp.user.Lock()
 	sp.user.DirtyMongo[fmt.Sprintf("swipers.%d", uid)] = nil
 	sp.user.UnLock()
+	return nil
 }

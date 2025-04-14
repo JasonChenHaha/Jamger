@@ -16,11 +16,13 @@ type TimeCache[T1 comparable, T2 any] struct {
 // ------------------------- outside -------------------------
 
 func NewTimeCache[T1 comparable, T2 any](expire int64) *TimeCache[T1, T2] {
-	return &TimeCache[T1, T2]{
+	cache := &TimeCache[T1, T2]{
 		data:   map[T1]T2{},
 		ts:     map[T1]int64{},
 		expire: expire,
 	}
+	// jschedule.DoEvery(time.Second, cache.tick)
+	return cache
 }
 
 func (tc *TimeCache[T1, T2]) Set(key T1, val T2) {
@@ -53,4 +55,10 @@ func (tc *TimeCache[T1, T2]) Del(key T1) {
 	defer tc.mutex.Unlock()
 	delete(tc.data, key)
 	delete(tc.ts, key)
+}
+
+// ------------------------- inside -------------------------
+
+func (tc *TimeCache[T1, T2]) tick(args ...any) {
+
 }
