@@ -97,7 +97,7 @@ func (goods *Goods) ModifyGood(good *jpb.Good) {
 	good2 := goods.Data[good.Uid]
 	good2.Size = good.Size
 	if good.Size == "" {
-		good2.Expire = time.Now().Unix() + int64(jconfig.GetInt("expire"))
+		good2.Expire = time.Now().Unix() + int64(jconfig.GetInt("good.expire"))
 	} else {
 		good2.Expire = 0
 	}
