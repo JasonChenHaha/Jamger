@@ -1,6 +1,7 @@
 package main
 
 import (
+	"jaddress"
 	"jconfig"
 	"jdb"
 	"jetcd"
@@ -16,7 +17,6 @@ import (
 	"juser"
 	"juser2"
 	"jwork"
-	"jaddress"
 )
 
 func main() {
