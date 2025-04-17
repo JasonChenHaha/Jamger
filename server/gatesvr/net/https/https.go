@@ -59,8 +59,7 @@ func receive(w http.ResponseWriter, r *http.Request) {
 	pack.Cmd = jpb.CMD(binary.LittleEndian.Uint16(body[jglobal.UID_SIZE:]))
 	pack.Data = body[jglobal.UID_SIZE+jglobal.CMD_SIZE:]
 	// token校验
-	token := pack.Ctx.(*juser2.User).Token
-	if token == "" || token != r.URL.Query().Get("token") {
+	if user.Token == "" || user.Token != r.URL.Query().Get("token") {
 		pack.Cmd = jpb.CMD_GATE_INFO
 		pack.Data = &jpb.Error{Code: jpb.CODE_TOKEN, Desc: "token invalid"}
 	} else {
@@ -169,6 +168,20 @@ func authReceive(w http.ResponseWriter, r *http.Request) {
 
 func imageReceive(w http.ResponseWriter, r *http.Request) {
 	parts := strings.Split(r.URL.Path, "/")
+	query := r.URL.Query()
+	uidStr := query.Get("uid")
+	if uidStr == "" {
+		return
+	}
+	uid := jglobal.Atoi[uint32](uidStr)
+	token := query.Get("token")
+	user := juser2.GetUser(uid)
+	if user == nil {
+		user = juser2.NewUser(uid).Load()
+	}
+	if user.Token == "" || user.Token != token {
+		return
+	}
 	pack := &jglobal.Pack{
 		Cmd:  jpb.CMD_IMAGE_REQ,
 		Data: &jpb.ImageReq{Uid: jglobal.Atoi[uint32](parts[len(parts)-1])},
@@ -188,6 +201,20 @@ func imageReceive(w http.ResponseWriter, r *http.Request) {
 
 func videoReceive(w http.ResponseWriter, r *http.Request) {
 	parts := strings.Split(r.URL.Path, "/")
+	query := r.URL.Query()
+	uidStr := query.Get("uid")
+	if uidStr == "" {
+		return
+	}
+	uid := jglobal.Atoi[uint32](uidStr)
+	token := query.Get("token")
+	user := juser2.GetUser(uid)
+	if user == nil {
+		user = juser2.NewUser(uid).Load()
+	}
+	if user.Token == "" || user.Token != token {
+		return
+	}
 	start, end := uint32(0), uint32(0)
 	if r.Header["Range"] == nil {
 		// 不分片的初始请求，返回视频元数据和少量长度的视频头部
