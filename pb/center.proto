@@ -134,6 +134,15 @@ message DeleteGoodRsp {
     CODE code = 1;
 }
 
+message ModifyKindReq {
+    string old = 1;
+    string new = 2;
+}
+
+message ModifyKindRsp {
+    CODE code = 1;
+}
+
 message ImageReq {
     uint32 uid = 1;
 }

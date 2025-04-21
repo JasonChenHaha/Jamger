@@ -32,6 +32,7 @@ func Init() {
 	jnet.Rpc.Register(jpb.CMD_UPLOAD_GOOD_REQ, uploadGood, &jpb.UploadGoodReq{})
 	jnet.Rpc.Register(jpb.CMD_MODIFY_GOOD_REQ, modifyGood, &jpb.ModifyGoodReq{})
 	jnet.Rpc.Register(jpb.CMD_DELETE_GOOD_REQ, deleteGood, &jpb.DeleteGoodReq{})
+	jnet.Rpc.Register(jpb.CMD_MODIFY_KIND_REQ, modifyKind, &jpb.ModifyKindReq{})
 	jnet.Rpc.Register(jpb.CMD_IMAGE_REQ, image, &jpb.ImageReq{})
 	jnet.Rpc.Register(jpb.CMD_VIDEO_REQ, video, &jpb.VideoReq{})
 	jnet.Rpc.Register(jpb.CMD_ADDRESS_REQ, address, &jpb.AddressReq{})
@@ -326,6 +327,33 @@ func deleteGood(pack *jglobal.Pack) {
 	if err := user0.DelGood(req.Uid); err != nil {
 		rsp.Code = jpb.CODE_SVR_ERR
 		return
+	}
+	jschedule.DoAt(5*time.Second, func(args ...any) {
+		jnet.BroadcastToGroup(jglobal.GRP_CENTER, &jglobal.Pack{
+			Cmd:  jpb.CMD_DEL_USER,
+			Data: &jpb.DeleteUserReq{Uid: 0},
+		})
+	})
+}
+
+// 修改品类
+func modifyKind(pack *jglobal.Pack) {
+	user := pack.Ctx.(*juser2.User)
+	req := pack.Data.(*jpb.ModifyKindReq)
+	rsp := &jpb.ModifyKindRsp{}
+	pack.Cmd = jpb.CMD_MODIFY_KIND_RSP
+	pack.Data = rsp
+	if !user.Admin {
+		rsp.Code = jpb.CODE_DENY
+		return
+	}
+	good := &jpb.Good{Kind: req.New}
+	user0 := juser2.GetUserAnyway(0)
+	for _, v := range user0.Goods.Data {
+		if v.Kind == req.Old {
+			good.Uid = v.Uid
+			user0.ModifyGood(good)
+		}
 	}
 	jschedule.DoAt(5*time.Second, func(args ...any) {
 		jnet.BroadcastToGroup(jglobal.GRP_CENTER, &jglobal.Pack{

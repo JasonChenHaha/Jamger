@@ -94,15 +94,53 @@ func (goods *Goods) AddGood(good *jpb.Good) error {
 
 // 修改商品
 func (goods *Goods) ModifyGood(good *jpb.Good) {
-	good2 := goods.Data[good.Uid]
-	good2.Size = good.Size
-	if good.Size == "" {
-		good2.Expire = time.Now().Unix() + int64(jconfig.GetInt("good.expire"))
-	} else {
-		good2.Expire = 0
+	goo := goods.Data[good.Uid]
+	if len(good.Name) > 0 {
+		if good.Name == "." {
+			goo.Name = ""
+		} else {
+			goo.Name = good.Name
+		}
+	}
+	if len(good.Desc) > 0 {
+		if good.Desc == "." {
+			goo.Desc = ""
+		} else {
+			goo.Desc = good.Desc
+		}
+	}
+	if len(good.Size) > 0 {
+		if good.Size == "." {
+			goo.Expire = time.Now().Unix() + int64(jconfig.GetInt("good.expire"))
+			goo.Size = ""
+		} else {
+			goo.Expire = 0
+			goo.Size = good.Size
+		}
+	}
+	if good.Oprice != 0 {
+		if good.Oprice == 9999 {
+			goo.Oprice = 0
+		} else {
+			goo.Oprice = good.Oprice
+		}
+	}
+	if good.Price != 0 {
+		if good.Price == 9999 {
+			goo.Price = 0
+		} else {
+			goo.Price = good.Price
+		}
+	}
+	if len(good.Kind) > 0 {
+		if good.Kind == "." {
+			goo.Kind = ""
+		} else {
+			goo.Kind = good.Kind
+		}
 	}
 	goods.user.Lock()
-	goods.user.DirtyMongo[fmt.Sprintf("goods.%d", good.Uid)] = good2
+	goods.user.DirtyMongo[fmt.Sprintf("goods.%d", good.Uid)] = goo
 	goods.user.UnLock()
 }
 
