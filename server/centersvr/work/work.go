@@ -282,7 +282,7 @@ func uploadGood(pack *jglobal.Pack) {
 	})
 }
 
-// 修改商品(尺码)
+// 修改商品
 func modifyGood(pack *jglobal.Pack) {
 	user := pack.Ctx.(*juser2.User)
 	req := pack.Data.(*jpb.ModifyGoodReq)
@@ -298,7 +298,10 @@ func modifyGood(pack *jglobal.Pack) {
 		rsp.Code = jpb.CODE_PARAM
 		return
 	}
-	user0.ModifyGood(req.Good)
+	if err := user0.ModifyGood(req.Good); err != nil {
+		rsp.Code = jpb.CODE_SVR_ERR
+		return
+	}
 	jschedule.DoAt(5*time.Second, func(args ...any) {
 		jnet.BroadcastToGroup(jglobal.GRP_CENTER, &jglobal.Pack{
 			Cmd:  jpb.CMD_DEL_USER,

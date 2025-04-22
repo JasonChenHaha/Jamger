@@ -11,6 +11,7 @@ import (
 	"jlog"
 	"jmongo"
 	"jpb"
+	"maps"
 
 	"github.com/disintegration/imaging"
 	"go.mongodb.org/mongo-driver/bson"
@@ -48,16 +49,16 @@ func (me *Medi) Add(medias []*jpb.Media) (map[uint32]uint32, error) {
 	many := []any{}
 	for _, v := range medias {
 		me.data.Set(uid, v)
-		if v.Video != nil {
-			// 添加视频(和预览图片)
-			many = append(many, bson.M{"_id": uid, "image": v.Image, "video": v.Video})
-			uids[uid] = 2
-			jlog.Infof("upload video %d", len(v.Video))
-		} else {
+		if v.Video == nil {
 			// 添加图片
-			many = append(many, bson.M{"_id": uid, "image": v.Image})
 			uids[uid] = 1
+			many = append(many, bson.M{"_id": uid, "image": v.Image})
 			jlog.Infof("upload image %d", len(v.Image))
+		} else {
+			// 添加视频(和预览图片)
+			uids[uid] = 2
+			many = append(many, bson.M{"_id": uid, "image": v.Image, "video": v.Video})
+			jlog.Infof("upload video %d", len(v.Video))
 		}
 		uid++
 	}
@@ -66,6 +67,60 @@ func (me *Medi) Add(medias []*jpb.Media) (map[uint32]uint32, error) {
 		InsertMany: many,
 	}
 	return uids, jdb.Mongo.InsertMany(in)
+}
+
+// 修改媒体
+func (me *Medi) Modify(uids map[uint32]uint32, medias map[uint32]*jpb.Media) (map[uint32]uint32, error) {
+	// 修改规则
+	// 1.uid!=0，且v的image存在，表示修改
+	// 2.uid==0，且v的image存在，表示新增
+	// 3.uid!=0，且v的image为nil，表示删除
+	add, del := []*jpb.Media{}, []uint32{}
+	for uid, v := range medias {
+		if uid != 0 && v.Image != nil {
+			// 修改
+		} else if uid == 0 && v.Image != nil {
+			// 新增
+			add = append(add, v)
+			delete(medias, uid)
+		} else if uid != 0 && v.Image == nil {
+			// 删除
+			del = append(del, uid)
+			delete(medias, uid)
+		}
+	}
+	// 修改
+	for uid, v := range medias {
+		update := bson.M{}
+		if v.Video == nil {
+			uids[uid] = 1
+			update["image"] = v.Image
+		} else {
+			uids[uid] = 2
+			update["image"] = v.Image
+			update["video"] = v.Video
+		}
+		in := &jmongo.Input{
+			Col:    jglobal.MONGO_MEDIA,
+			Filter: bson.M{"_id": uid},
+			Update: update,
+		}
+		if err := jdb.Mongo.UpdateOne(in); err != nil {
+			return nil, err
+		}
+	}
+	// 新增
+	uids2, err := me.Add(add)
+	if err != nil {
+		return nil, err
+	}
+	maps.Copy(uids, uids2)
+	// 删除
+	me.Delete(del)
+	for _, v := range del {
+		delete(uids, v)
+	}
+	return uids, nil
 }
 
 // 获得图片(带缓存)
