@@ -95,13 +95,6 @@ func (goods *Goods) AddGood(good *jpb.Good) error {
 // 修改商品
 func (goods *Goods) ModifyGood(good *jpb.Good) error {
 	goo := goods.Data[good.Uid]
-	if len(goo.Medias2) > 0 {
-		uids, err := jmedia.Media.Modify(goo.MUids, good.Medias2)
-		if err != nil {
-			return err
-		}
-		good.MUids = uids
-	}
 	if len(good.Name) > 0 {
 		if good.Name == "." {
 			goo.Name = ""

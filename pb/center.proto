@@ -100,8 +100,7 @@ message Good {
     string kind = 7;            // 商品类别
     int64 expire = 8;           // 过期时间
     repeated Media medias = 9;  // 媒体
-    map<uint32, Media> medias2 = 10;
-    map<uint32, uint32> mUids = 11;
+    map<uint32, uint32> mUids = 10;
 }
 
 message GoodListReq {}

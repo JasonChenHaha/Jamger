@@ -9,6 +9,7 @@ import (
 	"jnet"
 	"jpb"
 	"juser2"
+	"math"
 	"net/http"
 	"strings"
 
@@ -22,6 +23,7 @@ func Init() {
 	jnet.Https.RegisterPattern("/auth", authReceive)
 	jnet.Https.RegisterPattern("/image/", imageReceive)
 	jnet.Https.RegisterPattern("/video/", videoReceive)
+	jnet.Https.RegisterPattern("/video2/", video2Receive)
 }
 
 // ------------------------- inside -------------------------
@@ -267,6 +269,44 @@ func videoReceive(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Range", fmt.Sprintf("bytes %d-%d/%d", start, end, rsp.Size))
 	w.WriteHeader(http.StatusPartialContent)
 	if _, err := w.Write(rsp.Video); err != nil {
+		jlog.Error(err)
+	}
+}
+
+func video2Receive(w http.ResponseWriter, r *http.Request) {
+	parts := strings.Split(r.URL.Path, "/")
+	query := r.URL.Query()
+	uidStr := query.Get("uid")
+	if uidStr == "" {
+		return
+	}
+	uid := jglobal.Atoi[uint32](uidStr)
+	token := query.Get("token")
+	user := juser2.GetUser(uid)
+	if user == nil {
+		user = juser2.NewUser(uid).Load()
+	}
+	if user.Token == "" || user.Token != token {
+		return
+	}
+	pack := &jglobal.Pack{
+		Cmd: jpb.CMD_VIDEO_REQ,
+		Data: &jpb.VideoReq{
+			Uid:   jglobal.Atoi[uint32](parts[len(parts)-1]),
+			Start: 0,
+			End:   math.MaxUint32 - 1,
+		},
+	}
+	han := jnet.Https.Handler[pack.Cmd]
+	if han == nil {
+		jlog.Errorf("no cmd(%s)", pack.Cmd)
+		return
+	}
+	han.Fun(pack)
+	if pack.Data == nil {
+		return
+	}
+	if _, err := w.Write(pack.Data.(*jpb.VideoRsp).Video); err != nil {
 		jlog.Error(err)
 	}
 }

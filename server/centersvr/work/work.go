@@ -270,6 +270,12 @@ func uploadGood(pack *jglobal.Pack) {
 		return
 	}
 	user0 := juser2.GetUserAnyway(0)
+	if req.Good.Uid != 0 {
+		if err := user0.DelGood(req.Good.Uid); err != nil {
+			rsp.Code = jpb.CODE_SVR_ERR
+			return
+		}
+	}
 	if err := user0.AddGood(req.Good); err != nil {
 		rsp.Code = jpb.CODE_SVR_ERR
 		return
