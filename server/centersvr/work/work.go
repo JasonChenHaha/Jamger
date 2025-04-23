@@ -250,6 +250,7 @@ func deleteSwiper(pack *jglobal.Pack) {
 
 // 获取商品列表
 func goodList(pack *jglobal.Pack) {
+	jlog.Debug("load good list")
 	rsp := &jpb.GoodListRsp{Goods: []*jpb.Good{}}
 	pack.Cmd = jpb.CMD_GOOD_LIST_RSP
 	pack.Data = rsp
