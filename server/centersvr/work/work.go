@@ -208,9 +208,16 @@ func uploadSwiper(pack *jglobal.Pack) {
 		return
 	}
 	user0 := juser2.GetUserAnyway(0)
-	if err := user0.AddSwiper(req.Media); err != nil {
-		rsp.Code = jpb.CODE_SVR_ERR
-		return
+	if req.Uid == 0 {
+		if err := user0.AddSwiper(req.Media); err != nil {
+			rsp.Code = jpb.CODE_SVR_ERR
+			return
+		}
+	} else {
+		if err := user0.ModifySwiper(req.Uid, req.Media); err != nil {
+			rsp.Code = jpb.CODE_SVR_ERR
+			return
+		}
 	}
 	jschedule.DoAt(5*time.Second, func(args ...any) {
 		jnet.BroadcastToGroup(jglobal.GRP_CENTER, &jglobal.Pack{

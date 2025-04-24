@@ -75,7 +75,8 @@ message SwiperListRsp {
 }
 
 message UploadSwiperReq {
-    Media media = 1;
+    uint32 uid = 1;
+    Media media = 2;
 }
 
 message UploadSwiperRsp {

@@ -3,5 +3,7 @@
 检测内存泄漏
 pprof
 
-downloadfile真机报域名没注册问题
 测试修改功能
+测试缓存功能
+swiper主动change会导致视频中断
+没放头条时，无法滚动

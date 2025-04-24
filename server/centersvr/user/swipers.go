@@ -50,6 +50,25 @@ func (sp *Swipers) AddSwiper(media *jpb.Media) error {
 	return nil
 }
 
+// 修改轮播图
+func (sp *Swipers) ModifySwiper(uid uint32, media *jpb.Media) error {
+	if err := jmedia.Media.Modify(uid, media); err != nil {
+		return err
+	}
+	if media.Video == nil && sp.Data[uid] == jmedia.MEDIA_VIDEO {
+		sp.user.Lock()
+		sp.Data[uid] = jmedia.MEDIA_IMAGE
+		sp.user.DirtyMongo[fmt.Sprintf("swipers.%d", uid)] = jmedia.MEDIA_IMAGE
+		sp.user.UnLock()
+	} else if media.Video != nil && sp.Data[uid] == jmedia.MEDIA_IMAGE {
+		sp.user.Lock()
+		sp.Data[uid] = jmedia.MEDIA_VIDEO
+		sp.user.DirtyMongo[fmt.Sprintf("swipers.%d", uid)] = jmedia.MEDIA_VIDEO
+		sp.user.UnLock()
+	}
+	return nil
+}
+
 // 删除轮播图
 func (sp *Swipers) DelSwiper(uid uint32) error {
 	if err := jmedia.Media.Delete([]uint32{uid}); err != nil {

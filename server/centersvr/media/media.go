@@ -22,6 +22,11 @@ type Medi struct {
 	data *jglobal.TimeCache[uint32, *jpb.Media]
 }
 
+const (
+	MEDIA_IMAGE = 1
+	MEDIA_VIDEO = 2
+)
+
 var Media *Medi
 
 // ------------------------- outside -------------------------
@@ -50,12 +55,12 @@ func (me *Medi) Add(medias []*jpb.Media) (map[uint32]uint32, error) {
 		me.data.Set(uid, v)
 		if v.Video == nil {
 			// 添加图片
-			uids[uid] = 1
+			uids[uid] = MEDIA_IMAGE
 			many = append(many, bson.M{"_id": uid, "image": v.Image})
 			jlog.Infof("upload image %d", len(v.Image))
 		} else {
 			// 添加视频(和预览图片)
-			uids[uid] = 2
+			uids[uid] = MEDIA_VIDEO
 			many = append(many, bson.M{"_id": uid, "image": v.Image, "video": v.Video})
 			jlog.Infof("upload video %d", len(v.Video))
 		}
@@ -66,6 +71,20 @@ func (me *Medi) Add(medias []*jpb.Media) (map[uint32]uint32, error) {
 		InsertMany: many,
 	}
 	return uids, jdb.Mongo.InsertMany(in)
+}
+
+// 修改媒体
+func (me *Medi) Modify(uid uint32, media *jpb.Media) error {
+	in := &jmongo.Input{
+		Col:    jglobal.MONGO_MEDIA,
+		Filter: bson.M{"_id": uid},
+	}
+	if media.Video == nil {
+		in.Update = bson.M{"$set": bson.M{"image": media.Image}, "$unset": bson.M{"video": ""}}
+	} else {
+		in.Update = bson.M{"$set": bson.M{"image": media.Image, "video": media.Video}}
+	}
+	return jdb.Mongo.UpdateOne(in)
 }
 
 // 获得图片(带缓存)
