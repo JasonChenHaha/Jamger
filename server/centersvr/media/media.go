@@ -23,8 +23,8 @@ type Medi struct {
 }
 
 const (
-	MEDIA_IMAGE = 1
-	MEDIA_VIDEO = 2
+	MEDIA_IMAGE = uint32(1)
+	MEDIA_VIDEO = uint32(2)
 )
 
 var Media *Medi
@@ -75,6 +75,7 @@ func (me *Medi) Add(medias []*jpb.Media) (map[uint32]uint32, error) {
 
 // 修改媒体
 func (me *Medi) Modify(uid uint32, media *jpb.Media) error {
+	me.data.Set(uid, media)
 	in := &jmongo.Input{
 		Col:    jglobal.MONGO_MEDIA,
 		Filter: bson.M{"_id": uid},
