@@ -60,7 +60,7 @@ const (
 )
 
 const (
-	USER_LIVE = 300
+	USER_LIVE = 5 * 60
 )
 
 const (
