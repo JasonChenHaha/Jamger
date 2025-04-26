@@ -99,9 +99,10 @@ message Good {
     uint32 oprice = 5;          // 原价
     uint32 price = 6;           // 价格
     string kind = 7;            // 商品类别
-    int64 expire = 8;           // 过期时间
-    repeated Media medias = 9;  // 媒体
-    map<uint32, uint32> mUids = 10;
+    int64 create = 8;           // 上架时间
+    int64 expire = 9;           // 过期时间
+    repeated Media medias = 10;  // 媒体
+    map<uint32, uint32> mUids = 11;
 }
 
 message GoodListReq {}

@@ -43,6 +43,7 @@ func (goods *Goods) load(data bson.M) {
 				Price:  uint32(v3["price"].(int64)),
 				MUids:  map[uint32]uint32{},
 				Kind:   v3["kind"].(string),
+				Create: v3["create"].(int64),
 			}
 			mUids := v3["muids"].(bson.M)
 			for uid, ty := range mUids {
@@ -85,6 +86,9 @@ func (goods *Goods) AddGood(good *jpb.Good) error {
 	good.Uid = uid
 	good.MUids = uids
 	good.Medias = nil
+	if good.Size == "" {
+		good.Expire = time.Now().Unix() + int64(jconfig.GetInt("good.expire"))
+	}
 	goods.Data[uid] = good
 	goods.user.Lock()
 	goods.user.DirtyMongo[fmt.Sprintf("goods.%d", uid)] = good
