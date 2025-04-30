@@ -40,12 +40,12 @@ func (o *Https) AsServer() *Https {
 			Handler: o.mux,
 		}
 		jlog.Info("listen on ", jconfig.GetString("https.addr"))
-		// if err := server.ListenAndServeTLS(jconfig.GetString("https.crt"), jconfig.GetString("https.key")); err != nil {
-		// 	jlog.Fatal(err)
-		// }
-		if err := server.ListenAndServe(); err != nil {
+		if err := server.ListenAndServeTLS(jconfig.GetString("https.crt"), jconfig.GetString("https.key")); err != nil {
 			jlog.Fatal(err)
 		}
+		// if err := server.ListenAndServe(); err != nil {
+		// 	jlog.Fatal(err)
+		// }
 	}()
 	return o
 }
