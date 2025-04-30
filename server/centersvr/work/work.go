@@ -84,7 +84,7 @@ func status(pack *jglobal.Pack) {
 	if count > 0 {
 		rsp.Ave = score / count
 	}
-	rsp.Progress = jglobal.Min(count*100/uint32(jconfig.GetInt("good.free")), 100)
+	rsp.Free = uint32(jconfig.GetInt("good.free"))
 }
 
 // 获取记录

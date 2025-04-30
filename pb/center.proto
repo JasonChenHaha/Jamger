@@ -17,7 +17,7 @@ message StatusRsp {
     uint32 count = 3;
     uint32 all = 4;
     uint32 ave = 5;
-    uint32 progress = 6;
+    uint32 free = 6;
 }
 
 message Record {
