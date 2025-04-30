@@ -65,5 +65,8 @@ func (re *Record) DeleteRecord(index uint32) bool {
 		return false
 	}
 	jglobal.SliceDeletePos(&re.Data, index)
+	re.user.Lock()
+	re.user.DirtyMongo[fmt.Sprintf("record.%d", index)] = nil
+	re.user.UnLock()
 	return true
 }
