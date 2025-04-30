@@ -16,8 +16,9 @@ message StatusRsp {
     uint32 score = 2;
     uint32 count = 3;
     uint32 all = 4;
-    uint32 ave = 5;
-    uint32 free = 6;
+    uint32 cost = 5;
+    uint32 ave = 6;
+    uint32 free = 7;
 }
 
 message Record {

@@ -65,7 +65,7 @@ func status(pack *jglobal.Pack) {
 	rsp := &jpb.StatusRsp{}
 	pack.Cmd = jpb.CMD_STATUS_REQ
 	pack.Data = rsp
-	count, all, score, done := uint32(0), uint32(0), uint32(0), false
+	count, all, cost, score, done := uint32(0), uint32(0), uint32(0), uint32(0), false
 	records := user.Record.Data
 	for i := len(records) - 1; i >= 0; i-- {
 		if records[i].Score > 0 {
@@ -74,6 +74,7 @@ func status(pack *jglobal.Pack) {
 				score += records[i].Score
 			}
 			all++
+			cost += records[i].Score
 		} else {
 			done = true
 		}
@@ -81,6 +82,7 @@ func status(pack *jglobal.Pack) {
 	rsp.Score = score
 	rsp.All = all
 	rsp.Count = count
+	rsp.Cost = cost
 	if count > 0 {
 		rsp.Ave = score / count
 	}
