@@ -82,8 +82,10 @@ func (me *Medi) Modify(uid uint32, media *jpb.Media) error {
 	}
 	if media.Video == nil {
 		in.Update = bson.M{"$set": bson.M{"image": media.Image}, "$unset": bson.M{"video": ""}}
+		jlog.Infof("upload image %d", len(media.Image))
 	} else {
 		in.Update = bson.M{"$set": bson.M{"image": media.Image, "video": media.Video}}
+		jlog.Infof("upload image %d", len(media.Video))
 	}
 	return jdb.Mongo.UpdateOne(in)
 }
