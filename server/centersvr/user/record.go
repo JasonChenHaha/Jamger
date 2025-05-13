@@ -29,13 +29,14 @@ func (re *Record) load(data bson.M) {
 	if v, ok := data["record"]; ok {
 		tmp := []*jpb.Record{}
 		for _, v2 := range v.(bson.M) {
-			v3 := v2.(bson.M)
-			tmp = append(tmp, &jpb.Record{
-				Uid:       uint32(v3["uid"].(int64)),
-				Score:     uint32(v3["score"].(int64)),
-				Muid:      uint32(v3["muid"].(int64)),
-				Timestamp: uint64(v3["timestamp"].(int64)),
-			})
+			if v3, ok := v2.(bson.M); ok {
+				tmp = append(tmp, &jpb.Record{
+					Uid:       uint32(v3["uid"].(int64)),
+					Score:     uint32(v3["score"].(int64)),
+					Muid:      uint32(v3["muid"].(int64)),
+					Timestamp: uint64(v3["timestamp"].(int64)),
+				})
+			}
 		}
 		sort.Slice(tmp, func(i, j int) bool { return tmp[i].Timestamp < tmp[j].Timestamp })
 		re.Data = tmp
