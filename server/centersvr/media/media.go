@@ -36,7 +36,7 @@ func Init() {
 }
 
 // 添加媒体
-func (me *Medi) Add(medias []*jpb.Media) (map[uint32]uint32, error) {
+func (me *Medi) Add(medias []*jpb.Media, compress bool) (map[uint32]uint32, error) {
 	in := &jmongo.Input{
 		Col:     jglobal.MONGO_MEDIA,
 		Filter:  bson.M{"_id": int64(0)},
@@ -56,6 +56,13 @@ func (me *Medi) Add(medias []*jpb.Media) (map[uint32]uint32, error) {
 		if v.Video == nil {
 			// 添加图片
 			uids[uid] = MEDIA_IMAGE
+			if compress {
+				img, err := me.compressImage(v.Image)
+				if err != nil {
+					return nil, err
+				}
+				v.Image = img
+			}
 			many = append(many, bson.M{"_id": uid, "image": v.Image})
 			jlog.Infof("upload image %d", len(v.Image))
 		} else {
@@ -164,7 +171,7 @@ func (me *Medi) compressImage(source []byte) ([]byte, error) {
 	}
 	// 调整尺寸
 	if resize := jconfig.GetInt("media.image.resize"); resize != 0 {
-		img2 = imaging.Resize(img2, 250, 0, imaging.Lanczos)
+		img2 = imaging.Resize(img2, resize, 0, imaging.Lanczos)
 	}
 	buffer := &bytes.Buffer{}
 	switch format {

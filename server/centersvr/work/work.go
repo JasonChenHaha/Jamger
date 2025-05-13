@@ -4,7 +4,6 @@ import (
 	"jaddress"
 	"jconfig"
 	"jglobal"
-	"jlog"
 	"jmedia"
 	"jnet"
 	"jpb"
@@ -128,7 +127,10 @@ func addRecord(pack *jglobal.Pack) {
 		rsp.Code = jpb.CODE_USER_NIL
 		return
 	}
-	user2.AddRecord(req.Record)
+	if err := user2.AddRecord(req.Record); err != nil {
+		rsp.Code = jpb.CODE_SVR_ERR
+		return
+	}
 	jschedule.DoAt(5*time.Second, func(args ...any) {
 		jnet.BroadcastToGroup(jglobal.GRP_CENTER, &jglobal.Pack{
 			Cmd:  jpb.CMD_DEL_USER,
@@ -153,7 +155,7 @@ func modifyRecord(pack *jglobal.Pack) {
 		rsp.Code = jpb.CODE_USER_NIL
 		return
 	}
-	if !user2.ModifyRecord(req.Index, req.Record) {
+	if err := user2.ModifyRecord(req.Index, req.Record); err != nil {
 		rsp.Code = jpb.CODE_PARAM
 		return
 	}
@@ -177,7 +179,7 @@ func deleteRecord(pack *jglobal.Pack) {
 		return
 	}
 	user2 := juser2.GetUserAnyway(req.Uid)
-	if !user2.DeleteRecord(req.Index) {
+	if err := user2.DeleteRecord(req.Index); err != nil {
 		rsp.Code = jpb.CODE_PARAM
 		return
 	}
@@ -259,7 +261,6 @@ func deleteSwiper(pack *jglobal.Pack) {
 
 // 获取商品列表
 func goodList(pack *jglobal.Pack) {
-	jlog.Debug("load good list")
 	rsp := &jpb.GoodListRsp{Goods: []*jpb.Good{}}
 	pack.Cmd = jpb.CMD_GOOD_LIST_RSP
 	pack.Data = rsp

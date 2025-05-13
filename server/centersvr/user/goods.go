@@ -66,7 +66,7 @@ func (goods *Goods) load(data bson.M) {
 
 // 添加商品
 func (goods *Goods) AddGood(good *jpb.Good) error {
-	uids, err := jmedia.Media.Add(good.Medias)
+	uids, err := jmedia.Media.Add(good.Medias, false)
 	if err != nil {
 		return err
 	}

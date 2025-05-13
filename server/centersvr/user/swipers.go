@@ -37,7 +37,7 @@ func (sp *Swipers) load(data bson.M) {
 
 // 添加轮播图
 func (sp *Swipers) AddSwiper(media *jpb.Media) error {
-	uids, err := jmedia.Media.Add([]*jpb.Media{media})
+	uids, err := jmedia.Media.Add([]*jpb.Media{media}, false)
 	if err != nil {
 		return err
 	}

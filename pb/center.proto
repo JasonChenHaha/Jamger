@@ -22,8 +22,11 @@ message StatusRsp {
 }
 
 message Record {
-    uint32 score = 1;
-    uint64 timestamp = 2;
+    uint32 uid = 1;
+    uint32 score = 2;
+    Media media = 3;
+    uint32 muid = 4;
+    uint64 timestamp = 5;
 }
 
 message RecordReq {
