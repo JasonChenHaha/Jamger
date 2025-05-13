@@ -59,16 +59,16 @@ func (re *Record) AddRecord(record *jpb.Record) error {
 	in := &jmongo.Input{
 		Col:     jglobal.MONGO_USER,
 		Filter:  bson.M{"_id": int64(re.user.Uid)},
-		Update:  bson.M{"$inc": bson.M{"ruidc": int64(1)}},
+		Update:  bson.M{"$inc": bson.M{"record.ruidc": int64(1)}},
 		Upsert:  true,
 		RetDoc:  options.After,
-		Project: bson.M{"ruidc": 1},
+		Project: bson.M{"record.ruidc": 1},
 	}
 	out := bson.M{}
 	if err := jdb.Mongo.FindOneAndUpdate(in, &out); err != nil {
 		return err
 	}
-	record.Uid = uint32(out["ruidc"].(int64))
+	record.Uid = uint32(out["record"].(bson.M)["ruidc"].(int64))
 	re.Data = append(re.Data, record)
 	re.user.Lock()
 	re.user.DirtyMongo[fmt.Sprintf("record.%d", record.Uid)] = record
